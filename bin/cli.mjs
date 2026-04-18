@@ -1,37 +1,130 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 
 const DEFAULT_SOURCE = 'wiolett-industries/marketplace';
+const MARKETPLACE_NAME = 'wiolett-industries';
+const MCP_SERVER_NAME = 'agent-memory';
+
+const BRAND_MINT = '\u001b[38;2;140;176;132m';
+const GRAY = '\u001b[0;90m';
+const NC = '\u001b[0m';
+const INFO_TAG = '\u001b[47m\u001b[90m';
+const WARN_TAG = '\u001b[43m\u001b[30m';
+const ERROR_TAG = '\u001b[41m\u001b[97m';
+const SUCCESS_TAG = '\u001b[42m\u001b[97m';
+const TITLE_TAG = '\u001b[48;2;140;176;132m\u001b[30m';
+
+let handlingSigint = false;
+
+function info(message) {
+  process.stdout.write(`${INFO_TAG} INFO ${NC} ${message}\n`);
+}
+
+function warn(message) {
+  process.stdout.write(`${WARN_TAG} WARN ${NC} ${message}\n`);
+}
+
+function success(message) {
+  process.stdout.write(`${SUCCESS_TAG} OK ${NC} ${message}\n`);
+}
+
+function title(message) {
+  process.stdout.write(`\n${TITLE_TAG} ${message} ${NC}\n\n`);
+}
+
+function fail(message, exitCode = 1) {
+  process.stderr.write(`${ERROR_TAG} ERROR ${NC} ${message}\n`);
+  process.exit(exitCode);
+}
+
+function cancelAndExit() {
+  if (handlingSigint) {
+    return;
+  }
+  handlingSigint = true;
+  process.stdout.write(`\n${WARN_TAG} CANCELLED ${NC} Aborted by user.\n`);
+  process.exit(130);
+}
+
+function clearScreenIfInteractive() {
+  if (process.stdin.isTTY && process.stdout.isTTY) {
+    process.stdout.write('\u001bc');
+  }
+}
+
+function showLogo() {
+  clearScreenIfInteractive();
+  const fullLogo = [
+    '',
+    '░██       ░██ ░██           ░██               ░██       ░██    ',
+    '░██       ░██               ░██               ░██       ░██    ',
+    '░██  ░██  ░██ ░██ ░███████  ░██  ░███████  ░████████ ░████████ ',
+    '░██ ░████ ░██ ░██░██    ░██ ░██ ░██    ░██    ░██       ░██    ',
+    '░██░██ ░██░██ ░██░██    ░██ ░██ ░█████████    ░██       ░██    ',
+    '░████   ░████ ░██░██    ░██ ░██ ░██           ░██       ░██    ',
+    '░███     ░███ ░██ ░███████  ░██  ░███████      ░████     ░████ ',
+    '',
+    `${BRAND_MINT}░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░${NC}`,
+    `${BRAND_MINT}░░░█▄█░█▀█░█▀▄░█░█░█▀▀░▀█▀░█▀█░█░░░█▀█░█▀▀░█▀▀░░░░░░░░░░░░░░░░${NC}`,
+    `${BRAND_MINT}░░░█░█░█▀█░█▀▄░█▀▄░█▀▀░░█░░█▀▀░█░░░█▀█░█░░░█▀▀░░▀░▀░▀░▀░▀░▀░░░${NC}`,
+    `${BRAND_MINT}░░░▀░▀░▀░▀░▀░▀░▀░▀░▀▀▀░░▀░░▀░░░▀▀▀░▀░▀░▀▀▀░▀▀▀░░░░░░░░░░░░░░░░${NC}`,
+    `${BRAND_MINT}░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░${NC}`,
+    '',
+  ];
+
+  const smallLogo = [
+    '',
+    `${BRAND_MINT}░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░${NC}`,
+    `${BRAND_MINT}░░█░█░▀█▀░█▀█░█░░░█▀▀░▀█▀░▀█▀░░${NC}`,
+    `${BRAND_MINT}░░█▄█░░█░░█░█░█░░░█▀▀░░█░░░█░░░${NC}`,
+    `${BRAND_MINT}░░▀░▀░▀▀▀░▀▀▀░▀▀▀░▀▀▀░░▀░░░▀░░░${NC}`,
+    `${BRAND_MINT}░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░${NC}`,
+    '',
+  ];
+
+  const fullWidth = Math.max(...fullLogo.map((line) => line.replace(/\u001b\[[0-9;]*m/g, '').length));
+  const columns = process.stdout.columns ?? fullWidth;
+  const selectedLogo = columns >= fullWidth ? fullLogo : smallLogo;
+
+  process.stdout.write(
+    selectedLogo.join('\n')
+  );
+}
 
 function printHelp() {
+  showLogo();
   process.stdout.write(
     [
       'Usage:',
       '  npx @wiolett/marketplace',
-      '  npx @wiolett/marketplace install [--ref <ref>] [--source <source>] [--verbose] [--yes]',
+      '  npx @wiolett/marketplace install [--ref <ref>] [--source <source>] [--verbose] [--yes] [--openai-api-key <key>] [--openai-api-key-env <ENV_VAR>]',
+      '  npx @wiolett/marketplace uninstall [--yes]',
       '',
       'Commands:',
-      '  install   Register the Wiolett marketplace in Codex via `codex marketplace add`.',
-      '  help      Show this help message.',
+      '  install     Register the Wiolett marketplace in Codex.',
+      '  uninstall   Remove the Wiolett marketplace registration from Codex config.',
+      '  help        Show this help message.',
       '',
       'Options:',
       '  --ref <ref>       Git ref to pass through to `codex marketplace add --ref`.',
       '  --source <value>  Marketplace source. Defaults to wiolett-industries/marketplace.',
-      '  --verbose         Print the exact Codex command before running it.',
+      '  --openai-api-key <key>',
+      '                     Configure OPENAI_API_KEY for agent-memory directly.',
+      '  --openai-api-key-env <ENV_VAR>',
+      '                     Read the OpenAI API key from an environment variable.',
+      '  --verbose         Print the exact Codex command and config changes before applying.',
       '  --yes             Skip the confirmation prompt.',
       '',
       'Bare invocation defaults to `install`.',
       '',
     ].join('\n')
   );
-}
-
-function fail(message, exitCode = 1) {
-  process.stderr.write(`${message}\n`);
-  process.exit(exitCode);
 }
 
 function parseArgs(argv) {
@@ -46,6 +139,8 @@ function parseArgs(argv) {
   let source = DEFAULT_SOURCE;
   let verbose = false;
   let yes = false;
+  let openaiApiKey = null;
+  let openaiApiKeyEnv = null;
 
   while (args.length > 0) {
     const token = args.shift();
@@ -57,6 +152,16 @@ function parseArgs(argv) {
 
     if (token === '--source') {
       source = args.shift() ?? fail('Missing value for --source.');
+      continue;
+    }
+
+    if (token === '--openai-api-key') {
+      openaiApiKey = args.shift() ?? fail('Missing value for --openai-api-key.');
+      continue;
+    }
+
+    if (token === '--openai-api-key-env') {
+      openaiApiKeyEnv = args.shift() ?? fail('Missing value for --openai-api-key-env.');
       continue;
     }
 
@@ -78,7 +183,11 @@ function parseArgs(argv) {
     fail(`Unknown argument: ${token}`);
   }
 
-  return { command, ref, source, verbose, yes };
+  if (openaiApiKey && openaiApiKeyEnv) {
+    fail('Use either --openai-api-key or --openai-api-key-env, not both.');
+  }
+
+  return { command, ref, source, verbose, yes, openaiApiKey, openaiApiKeyEnv };
 }
 
 function ensureCodexExists() {
@@ -88,7 +197,236 @@ function ensureCodexExists() {
   }
 }
 
-async function confirmInstall(args) {
+function getConfigPath() {
+  return path.join(os.homedir(), '.codex', 'config.toml');
+}
+
+function ensureConfigDir() {
+  mkdirSync(path.dirname(getConfigPath()), { recursive: true });
+}
+
+function escapeTomlString(value) {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function readConfig() {
+  const configPath = getConfigPath();
+  return existsSync(configPath) ? readFileSync(configPath, 'utf8') : '';
+}
+
+function writeConfig(content) {
+  ensureConfigDir();
+  const configPath = getConfigPath();
+  const tempPath = `${configPath}.tmp`;
+  writeFileSync(tempPath, content, 'utf8');
+  renameSync(tempPath, configPath);
+}
+
+function replaceOrAppendSection(content, header, sectionBody) {
+  const escapedHeader = header.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const sectionPattern = new RegExp(`${escapedHeader}[\\s\\S]*?(?=\\n\\[|$)`, 'm');
+
+  if (sectionPattern.test(content)) {
+    return content.replace(sectionPattern, `${header}\n${sectionBody}`);
+  }
+
+  return `${content.trimEnd()}\n\n${header}\n${sectionBody}\n`.replace(/^\n+/, '');
+}
+
+function removeSection(content, header) {
+  const lines = content.split('\n');
+  const nextLines = [];
+  let skipping = false;
+
+  for (const line of lines) {
+    if (line.trim() === header.trim()) {
+      skipping = true;
+      continue;
+    }
+
+    if (skipping && line.startsWith('[')) {
+      skipping = false;
+    }
+
+    if (!skipping) {
+      nextLines.push(line);
+    }
+  }
+
+  return nextLines.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '').trimEnd();
+}
+
+function buildEnvSection(apiKey) {
+  return `OPENAI_API_KEY = "${escapeTomlString(apiKey)}"\n`;
+}
+
+function upsertAgentMemoryOpenAIKey(apiKey) {
+  const envHeader = `[mcp_servers.${MCP_SERVER_NAME}.env]`;
+  const next = replaceOrAppendSection(readConfig(), envHeader, buildEnvSection(apiKey));
+  writeConfig(next);
+}
+
+function removeMarketplaceRegistration() {
+  const header = `[marketplaces.${MARKETPLACE_NAME}]`;
+  const current = readConfig();
+  const next = removeSection(current, header);
+  if (next === current) {
+    return false;
+  }
+  writeConfig(next);
+  return true;
+}
+
+async function promptYesNo(question, defaultNo = true) {
+  const rl = readline.createInterface({ input, output });
+  try {
+    const answer = (await rl.question(question)).trim().toLowerCase();
+    if (!answer) {
+      return !defaultNo;
+    }
+    return answer === 'y' || answer === 'yes';
+  } finally {
+    rl.close();
+  }
+}
+
+async function promptHidden(question) {
+  process.stdout.write(question);
+  const wasRaw = Boolean(input.isRaw);
+
+  return await new Promise((resolve, reject) => {
+    let value = '';
+
+    const cleanup = () => {
+      input.off('data', onData);
+      if (input.isTTY) {
+        input.setRawMode(wasRaw);
+      }
+      input.pause();
+      process.stdout.write('\n');
+    };
+
+    const onData = (chunk) => {
+      const text = chunk.toString('utf8');
+
+      if (text === '\u0003') {
+        cleanup();
+        reject(new Error('__USER_CANCELLED__'));
+        return;
+      }
+
+      if (text === '\r' || text === '\n') {
+        cleanup();
+        resolve(value);
+        return;
+      }
+
+      if (text === '\u007f') {
+        value = value.slice(0, -1);
+        return;
+      }
+
+      value += text;
+    };
+
+    if (input.isTTY) {
+      input.setRawMode(true);
+    }
+    input.resume();
+    input.on('data', onData);
+  });
+}
+
+function resolveOpenAIKeyFromArgs({ openaiApiKey, openaiApiKeyEnv }) {
+  if (openaiApiKey) {
+    return {
+      apiKey: openaiApiKey.trim(),
+      source: 'flag',
+    };
+  }
+
+  if (openaiApiKeyEnv) {
+    const value = process.env[openaiApiKeyEnv];
+    if (!value) {
+      fail(`Environment variable ${openaiApiKeyEnv} is not set or empty.`);
+    }
+    return {
+      apiKey: value.trim(),
+      source: `env:${openaiApiKeyEnv}`,
+    };
+  }
+
+  return null;
+}
+
+async function collectOpenAIKeyForInstall(args) {
+  const fromArgs = resolveOpenAIKeyFromArgs(args);
+  if (fromArgs) {
+    return fromArgs;
+  }
+
+  const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
+
+  if (!interactive) {
+    return {
+      apiKey: null,
+      source: 'none',
+    };
+  }
+
+  title('OpenAI Configuration');
+  info('Agent Memory works without OpenAI, but embeddings and AI-generated memory names are strongly recommended.');
+  process.stdout.write(`${GRAY}The key will be written to ~/.codex/config.toml under [mcp_servers.${MCP_SERVER_NAME}.env].${NC}\n\n`);
+
+  const apiKey = String(
+    await promptHidden('OpenAI API key (press Enter to skip): ')
+  ).trim();
+
+  if (!apiKey) {
+    warn('Skipping OPENAI_API_KEY configuration.');
+    return {
+      apiKey: null,
+      source: 'none',
+    };
+  }
+
+  return {
+    apiKey,
+    source: 'prompt',
+  };
+}
+
+function buildInstallPlan({ source, ref, apiKey }) {
+  const commandPreview = ['codex', 'marketplace', 'add', source];
+  if (ref) {
+    commandPreview.push('--ref', ref);
+  }
+
+  const changes = [
+    `Run: ${commandPreview.join(' ')}`,
+  ];
+
+  if (apiKey) {
+    changes.push(`Update: ~/.codex/config.toml -> [mcp_servers.${MCP_SERVER_NAME}.env].OPENAI_API_KEY`);
+  } else {
+    changes.push('No OPENAI_API_KEY changes will be made.');
+  }
+
+  return {
+    commandPreview,
+    changes,
+  };
+}
+
+function printPlan(titleText, changes) {
+  title(titleText);
+  for (const change of changes) {
+    process.stdout.write(`- ${change}\n`);
+  }
+  process.stdout.write('\n');
+}
+
+async function confirmInstall(args, plan) {
   if (args.yes) {
     return true;
   }
@@ -98,29 +436,41 @@ async function confirmInstall(args) {
     fail('Refusing to install without confirmation in a non-interactive shell. Re-run with --yes to proceed.');
   }
 
-  const commandPreview = ['codex', 'marketplace', 'add', args.source];
-  if (args.ref) {
-    commandPreview.push('--ref', args.ref);
-  }
-
-  process.stdout.write(`This will run: ${commandPreview.join(' ')}\n`);
-  const rl = readline.createInterface({ input, output });
-
-  try {
-    const answer = (await rl.question('Proceed? [y/N] ')).trim().toLowerCase();
-    return answer === 'y' || answer === 'yes';
-  } finally {
-    rl.close();
-  }
+  printPlan('Planned Changes', plan.changes);
+  return await promptYesNo('Proceed with installation? [y/N] ');
 }
 
-async function runInstall({ source, ref, verbose, yes }) {
-  ensureCodexExists();
+async function confirmUninstall(args, changes) {
+  if (args.yes) {
+    return true;
+  }
 
-  const confirmed = await confirmInstall({ source, ref, yes });
+  const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
+  if (!interactive) {
+    fail('Refusing to uninstall without confirmation in a non-interactive shell. Re-run with --yes to proceed.');
+  }
+
+  printPlan('Planned Changes', changes);
+  return await promptYesNo('Proceed with uninstall? [y/N] ');
+}
+
+async function runInstall(options) {
+  const { source, ref, verbose, yes } = options;
+  ensureCodexExists();
+  showLogo();
+
+  const { apiKey } = await collectOpenAIKeyForInstall(options);
+  const plan = buildInstallPlan({ source, ref, apiKey });
+
+  const confirmed = await confirmInstall({ yes }, plan);
   if (!confirmed) {
     process.stdout.write('Cancelled.\n');
     process.exit(0);
+  }
+
+  if (apiKey) {
+    upsertAgentMemoryOpenAIKey(apiKey);
+    success(`Saved OPENAI_API_KEY under [mcp_servers.${MCP_SERVER_NAME}.env] in ~/.codex/config.toml.`);
   }
 
   const args = ['marketplace', 'add', source];
@@ -129,7 +479,7 @@ async function runInstall({ source, ref, verbose, yes }) {
   }
 
   if (verbose) {
-    process.stdout.write(`Running: codex ${args.join(' ')}\n`);
+    info(`Running: codex ${args.join(' ')}`);
   }
 
   const result = spawnSync('codex', args, {
@@ -140,19 +490,63 @@ async function runInstall({ source, ref, verbose, yes }) {
     fail(`Failed to run Codex CLI: ${result.error.message}`);
   }
 
-  process.exit(result.status ?? 1);
+  if ((result.status ?? 1) !== 0) {
+    process.exit(result.status ?? 1);
+  }
+
+  success('Marketplace installed successfully.');
+  process.exit(0);
+}
+
+async function runUninstall({ yes, verbose }) {
+  showLogo();
+
+  const changes = [
+    `Remove: [marketplaces.${MARKETPLACE_NAME}] from ~/.codex/config.toml`,
+    `Keep: [mcp_servers.${MCP_SERVER_NAME}.env] unchanged`,
+  ];
+
+  const confirmed = await confirmUninstall({ yes }, changes);
+  if (!confirmed) {
+    process.stdout.write('Cancelled.\n');
+    process.exit(0);
+  }
+
+  const removed = removeMarketplaceRegistration();
+  if (!removed) {
+    warn(`No [marketplaces.${MARKETPLACE_NAME}] section was found in ~/.codex/config.toml.`);
+    process.exit(0);
+  }
+
+  if (verbose) {
+    info(`Removed [marketplaces.${MARKETPLACE_NAME}] from ~/.codex/config.toml`);
+  }
+
+  success('Marketplace uninstalled successfully.');
+  process.exit(0);
 }
 
 const parsed = parseArgs(process.argv.slice(2));
+process.on('SIGINT', cancelAndExit);
 
-if (parsed.command === 'help') {
-  printHelp();
-  process.exit(0);
+try {
+  if (parsed.command === 'help') {
+    printHelp();
+    process.exit(0);
+  }
+
+  if (parsed.command === 'install') {
+    await runInstall(parsed);
+  }
+
+  if (parsed.command === 'uninstall') {
+    await runUninstall(parsed);
+  }
+
+  fail(`Unknown command: ${parsed.command}`);
+} catch (error) {
+  if (error instanceof Error && error.message === '__USER_CANCELLED__') {
+    cancelAndExit();
+  }
+  throw error;
 }
-
-if (parsed.command === 'install') {
-  await runInstall(parsed);
-  process.exit(0);
-}
-
-fail(`Unknown command: ${parsed.command}`);

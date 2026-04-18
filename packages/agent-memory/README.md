@@ -115,6 +115,21 @@ npx @wiolett/marketplace install
 
 Then install `agent-memory` from that marketplace in Codex.
 
+To enable semantic search and AI-generated memory names, configure:
+
+```toml
+[mcp_servers.agent-memory.env]
+OPENAI_API_KEY = "your-key"
+```
+
+The marketplace installer CLI can prompt for this automatically during interactive install before it applies any changes.
+
+For non-interactive installs, the CLI also supports:
+
+```bash
+npx @wiolett/marketplace install --openai-api-key-env OPENAI_API_KEY --yes
+```
+
 ## Usage
 
 At conversation start, the bundled skill tells Codex to read global lite memory first:

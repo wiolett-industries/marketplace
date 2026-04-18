@@ -32,7 +32,19 @@ Optional flags:
 ```bash
 npx @wiolett/marketplace install --ref main
 npx @wiolett/marketplace install --source /absolute/path/to/local/marketplace
+npx @wiolett/marketplace install --openai-api-key-env OPENAI_API_KEY --yes
+npx @wiolett/marketplace install --openai-api-key sk-proj-... --yes
 npx @wiolett/marketplace install --yes
+npx @wiolett/marketplace uninstall
+```
+
+During interactive installation, the CLI first prompts for an OpenAI API key for `agent-memory` embeddings and naming, then shows a confirmation screen with the exact marketplace and config changes before applying them.
+
+The installer writes the key using the Codex MCP config shape:
+
+```toml
+[mcp_servers.agent-memory.env]
+OPENAI_API_KEY = "your-key"
 ```
 
 After the marketplace is registered, install the plugin you want from Codex.
