@@ -10,9 +10,7 @@
   "engines": {
     "node": ">=20"
   },
-  "bin": {
-    "wiolett-marketplace": "./bin/cli.mjs"
-  },
+  "bin": "./bin/cli.mjs",
   "workspaces": [
     "packages/*"
   ],

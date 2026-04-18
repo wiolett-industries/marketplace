@@ -98,7 +98,6 @@ function showLogo() {
 }
 
 function printHelp() {
-  showLogo();
   process.stdout.write(
     [
       'Usage:',
