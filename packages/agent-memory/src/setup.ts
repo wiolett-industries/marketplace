@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { getResolvedOpenAIApiKey } from './openai.js';
 import { resetMemoryReady } from './runtime.js';
 import { getGlobalMemoryRoot } from './scope.js';
 
@@ -82,6 +83,7 @@ export function setupProjectMemory(): SetupResult {
   const { gitignorePath, updated } = updateGitignore(projectPath);
   resetMemoryReady('project', projectPath);
 
+  const { apiKey } = getResolvedOpenAIApiKey();
   return {
     scope: 'project',
     project_path: projectPath,
@@ -92,7 +94,7 @@ export function setupProjectMemory(): SetupResult {
     db_path: dbPath,
     gitignore_path: gitignorePath,
     gitignore_updated: updated,
-    semantic_search_enabled: Boolean(process.env.OPENAI_API_KEY),
+    semantic_search_enabled: Boolean(apiKey),
   };
 }
 
@@ -109,6 +111,7 @@ export function setupGlobalMemory(): SetupResult {
   ensureDatabase(dbPath);
   resetMemoryReady('global');
 
+  const { apiKey } = getResolvedOpenAIApiKey();
   return {
     scope: 'global',
     project_path: memoryDir,
@@ -119,6 +122,6 @@ export function setupGlobalMemory(): SetupResult {
     db_path: dbPath,
     gitignore_path: null,
     gitignore_updated: false,
-    semantic_search_enabled: Boolean(process.env.OPENAI_API_KEY),
+    semantic_search_enabled: Boolean(apiKey),
   };
 }

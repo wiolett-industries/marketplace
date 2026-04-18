@@ -1,7 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import * as z from 'zod/v4';
+import { persistOpenAIKeyFromEnvironment, setStoredOpenAIApiKey } from './config.js';
 import { GRAPH_RELATIONS } from './graph.js';
+import { getResolvedOpenAIApiKey, resetOpenAIClient } from './openai.js';
 import { ensureMemoryReady } from './runtime.js';
 import type { MemoryScope } from './scope.js';
 import { handleDelete } from './tools/delete.js';
@@ -13,7 +15,7 @@ import { handleSearch } from './tools/search.js';
 import { handleWrite } from './tools/write.js';
 import { setupProjectMemory } from './setup.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 
 function asTextResult(payload: unknown) {
   return {
@@ -210,6 +212,8 @@ function registerCommonMemoryTools(server: McpServer, scope: MemoryScope, prefix
 }
 
 async function main(): Promise<void> {
+  persistOpenAIKeyFromEnvironment();
+
   const server = new McpServer(
     {
       name: 'agent-memory',
@@ -218,6 +222,29 @@ async function main(): Promise<void> {
     {
       instructions:
         'Use memory_setup to initialize project memory in the current repo, global_memory_read_lite at conversation start for persistent user preferences, memory_write or global_memory_write to store reusable knowledge, memory_get or global_memory_get for pointer IDs, memory_search or global_memory_search for topic lookup, graph tools for deep-memory relationships, and *_read_all only for cleanup.',
+    }
+  );
+
+  server.registerTool(
+    'agent_memory_configure',
+    {
+      title: 'Configure Agent Memory',
+      description:
+        'Persist the OpenAI API key for agent-memory under ~/.agents/agent-memory/config.json so embeddings and AI-generated memory names work across Codex restarts without re-exporting OPENAI_API_KEY every time.',
+      inputSchema: z.object({
+        openai_api_key: z.string().min(1).describe('OpenAI API key to store for agent-memory.'),
+      }),
+    },
+    async ({ openai_api_key }) => {
+      const configPath = setStoredOpenAIApiKey(openai_api_key);
+      resetOpenAIClient();
+      const resolved = getResolvedOpenAIApiKey();
+      return asTextResult({
+        configured: true,
+        config_path: configPath,
+        source: resolved.source,
+        semantic_search_enabled: Boolean(resolved.apiKey),
+      });
     }
   );
 

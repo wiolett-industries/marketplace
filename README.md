@@ -38,14 +38,15 @@ npx @wiolett/marketplace install --yes
 npx @wiolett/marketplace uninstall
 ```
 
-During interactive installation, the CLI first prompts for an OpenAI API key for `agent-memory` embeddings and naming, then shows a confirmation screen with the exact marketplace and config changes before applying them.
+During interactive installation, the CLI can ask for an OpenAI API key and persist it for `agent-memory` before applying the marketplace change.
 
-The installer writes the key using the Codex MCP config shape:
+If you provide a key during install, it is stored at:
 
-```toml
-[mcp_servers.agent-memory.env]
-OPENAI_API_KEY = "your-key"
+```text
+~/.agents/agent-memory/config.json
 ```
+
+`agent-memory` prefers `OPENAI_API_KEY` from the environment when present, and otherwise falls back to the stored key automatically.
 
 After the marketplace is registered, install the plugin you want from Codex.
 
@@ -65,7 +66,7 @@ Learn more in [`packages/agent-memory/README.md`](./packages/agent-memory/README
 - marketplace manifest: [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json)
 - plugin wrapper: [`plugins/agent-memory`](./plugins/agent-memory)
 - MCP implementation: [`packages/agent-memory`](./packages/agent-memory)
-- npm installer CLI: [`bin/cli.mjs`](./bin/cli.mjs)
+- npm installer CLI: [`bin/marketplace`](./bin/marketplace)
 
 ## Publish
 

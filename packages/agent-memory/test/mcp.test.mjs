@@ -6,6 +6,7 @@ describe('MCP launcher smoke test', () => {
     const result = runHarness('mcp');
     expect(result.toolNames).toEqual(
       expect.arrayContaining([
+        'agent_memory_configure',
         'memory_setup',
         'memory_write',
         'memory_get',
@@ -29,6 +30,7 @@ describe('MCP launcher smoke test', () => {
         'global_memory_read_all',
       ])
     );
+    expect(result.configure.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.setup.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.write.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.globalWrite.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
@@ -36,5 +38,7 @@ describe('MCP launcher smoke test', () => {
     expect(result.globalLite.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.lite.content[0].text).toContain('Smoke memory');
     expect(result.globalLite.content[0].text).toContain('Smoke global preference');
+    expect(result.configPath).toContain('/agent-memory/config.json');
+    expect(result.storedConfig.openaiApiKey).toBe('sk-test-configured');
   }, 30000);
 });

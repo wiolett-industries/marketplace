@@ -115,14 +115,24 @@ npx @wiolett/marketplace install
 
 Then install `agent-memory` from that marketplace in Codex.
 
-To enable semantic search and AI-generated memory names, configure:
+To enable semantic search and AI-generated memory names, either:
 
-```toml
-[mcp_servers.agent-memory.env]
-OPENAI_API_KEY = "your-key"
+```bash
+export OPENAI_API_KEY="your-key"
+codex
 ```
 
-The marketplace installer CLI can prompt for this automatically during interactive install before it applies any changes.
+or save the key once through the marketplace installer or the `agent_memory_configure` MCP tool. Agent Memory stores the saved key in:
+
+```text
+~/.agents/agent-memory/config.json
+```
+
+At runtime, Agent Memory uses this precedence:
+
+1. `OPENAI_API_KEY` from the environment
+2. stored key from `~/.agents/agent-memory/config.json`
+3. no key, which disables embeddings and AI naming
 
 For non-interactive installs, the CLI also supports:
 

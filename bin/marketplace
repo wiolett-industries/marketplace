@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline/promises';
@@ -114,9 +114,9 @@ function printHelp() {
       '  --ref <ref>       Git ref to pass through to `codex marketplace add --ref`.',
       '  --source <value>  Marketplace source. Defaults to wiolett-industries/marketplace.',
       '  --openai-api-key <key>',
-      '                     Configure OPENAI_API_KEY for agent-memory directly.',
+      '                     Persist an OpenAI API key for agent-memory.',
       '  --openai-api-key-env <ENV_VAR>',
-      '                     Read the OpenAI API key from an environment variable.',
+      '                     Read and persist the OpenAI API key from an environment variable.',
       '  --verbose         Print the exact Codex command and config changes before applying.',
       '  --yes             Skip the confirmation prompt.',
       '',
@@ -200,12 +200,16 @@ function getConfigPath() {
   return path.join(os.homedir(), '.codex', 'config.toml');
 }
 
+function getAgentMemoryConfigPath() {
+  return path.join(os.homedir(), '.agents', 'agent-memory', 'config.json');
+}
+
 function ensureConfigDir() {
   mkdirSync(path.dirname(getConfigPath()), { recursive: true });
 }
 
-function escapeTomlString(value) {
-  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+function ensureAgentMemoryConfigDir() {
+  mkdirSync(path.dirname(getAgentMemoryConfigPath()), { recursive: true });
 }
 
 function readConfig() {
@@ -219,17 +223,6 @@ function writeConfig(content) {
   const tempPath = `${configPath}.tmp`;
   writeFileSync(tempPath, content, 'utf8');
   renameSync(tempPath, configPath);
-}
-
-function replaceOrAppendSection(content, header, sectionBody) {
-  const escapedHeader = header.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const sectionPattern = new RegExp(`${escapedHeader}[\\s\\S]*?(?=\\n\\[|$)`, 'm');
-
-  if (sectionPattern.test(content)) {
-    return content.replace(sectionPattern, `${header}\n${sectionBody}`);
-  }
-
-  return `${content.trimEnd()}\n\n${header}\n${sectionBody}\n`.replace(/^\n+/, '');
 }
 
 function removeSection(content, header) {
@@ -255,14 +248,19 @@ function removeSection(content, header) {
   return nextLines.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '').trimEnd();
 }
 
-function buildEnvSection(apiKey) {
-  return `OPENAI_API_KEY = "${escapeTomlString(apiKey)}"\n`;
-}
-
-function upsertAgentMemoryOpenAIKey(apiKey) {
-  const envHeader = `[mcp_servers.${MCP_SERVER_NAME}.env]`;
-  const next = replaceOrAppendSection(readConfig(), envHeader, buildEnvSection(apiKey));
-  writeConfig(next);
+function writeAgentMemoryConfig(apiKey) {
+  ensureAgentMemoryConfigDir();
+  const configPath = getAgentMemoryConfigPath();
+  const tempPath = `${configPath}.tmp`;
+  writeFileSync(
+    tempPath,
+    `${JSON.stringify({ openaiApiKey: apiKey.trim() }, null, 2)}\n`,
+    'utf8'
+  );
+  chmodSync(tempPath, 0o600);
+  renameSync(tempPath, configPath);
+  chmodSync(configPath, 0o600);
+  return configPath;
 }
 
 function removeMarketplaceRegistration() {
@@ -375,7 +373,7 @@ async function collectOpenAIKeyForInstall(args) {
 
   title('OpenAI Configuration');
   info('Agent Memory works without OpenAI, but embeddings and AI-generated memory names are strongly recommended.');
-  process.stdout.write(`${GRAY}The key will be written to ~/.codex/config.toml under [mcp_servers.${MCP_SERVER_NAME}.env].${NC}\n\n`);
+  process.stdout.write(`${GRAY}If you provide a key, the installer will persist it in ~/.agents/agent-memory/config.json so Codex can reuse it across restarts.${NC}\n\n`);
 
   const apiKey = String(
     await promptHidden('OpenAI API key (press Enter to skip): ')
@@ -406,9 +404,9 @@ function buildInstallPlan({ source, ref, apiKey }) {
   ];
 
   if (apiKey) {
-    changes.push(`Update: ~/.codex/config.toml -> [mcp_servers.${MCP_SERVER_NAME}.env].OPENAI_API_KEY`);
+    changes.push(`Write: ${getAgentMemoryConfigPath()}`);
   } else {
-    changes.push('No OPENAI_API_KEY changes will be made.');
+    changes.push('OPENAI_API_KEY is optional and will not be configured automatically.');
   }
 
   return {
@@ -467,11 +465,6 @@ async function runInstall(options) {
     process.exit(0);
   }
 
-  if (apiKey) {
-    upsertAgentMemoryOpenAIKey(apiKey);
-    success(`Saved OPENAI_API_KEY under [mcp_servers.${MCP_SERVER_NAME}.env] in ~/.codex/config.toml.`);
-  }
-
   const args = ['marketplace', 'add', source];
   if (ref) {
     args.push('--ref', ref);
@@ -493,7 +486,17 @@ async function runInstall(options) {
     process.exit(result.status ?? 1);
   }
 
+  if (apiKey) {
+    const configPath = writeAgentMemoryConfig(apiKey);
+    if (verbose) {
+      info(`Wrote agent-memory config to ${configPath}`);
+    }
+  }
+
   success('Marketplace installed successfully.');
+  if (apiKey) {
+    info(`Saved the agent-memory OpenAI key to ${getAgentMemoryConfigPath()}.`);
+  }
   process.exit(0);
 }
 
@@ -502,7 +505,8 @@ async function runUninstall({ yes, verbose }) {
 
   const changes = [
     `Remove: [marketplaces.${MARKETPLACE_NAME}] from ~/.codex/config.toml`,
-    `Keep: [mcp_servers.${MCP_SERVER_NAME}.env] unchanged`,
+    `Remove legacy: [mcp_servers.${MCP_SERVER_NAME}.env] from ~/.codex/config.toml if present`,
+    `Keep: ${getAgentMemoryConfigPath()} unchanged`,
   ];
 
   const confirmed = await confirmUninstall({ yes }, changes);
@@ -512,13 +516,26 @@ async function runUninstall({ yes, verbose }) {
   }
 
   const removed = removeMarketplaceRegistration();
-  if (!removed) {
-    warn(`No [marketplaces.${MARKETPLACE_NAME}] section was found in ~/.codex/config.toml.`);
+  const removedLegacyEnv = (() => {
+    const header = `[mcp_servers.${MCP_SERVER_NAME}.env]`;
+    const current = readConfig();
+    const next = removeSection(current, header);
+    if (next === current) {
+      return false;
+    }
+    writeConfig(next);
+    return true;
+  })();
+  if (!removed && !removedLegacyEnv) {
+    warn(`No [marketplaces.${MARKETPLACE_NAME}] or legacy [mcp_servers.${MCP_SERVER_NAME}.env] sections were found in ~/.codex/config.toml.`);
     process.exit(0);
   }
 
   if (verbose) {
     info(`Removed [marketplaces.${MARKETPLACE_NAME}] from ~/.codex/config.toml`);
+    if (removedLegacyEnv) {
+      info(`Removed legacy [mcp_servers.${MCP_SERVER_NAME}.env] from ~/.codex/config.toml`);
+    }
   }
 
   success('Marketplace uninstalled successfully.');

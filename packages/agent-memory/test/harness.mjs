@@ -4,7 +4,15 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import {
+  getAgentMemoryConfigPath,
+  persistOpenAIKeyFromEnvironment,
+  readAgentMemoryConfig,
+  resolveOpenAIApiKey,
+  setStoredOpenAIApiKey,
+} from '../dist/config.js';
 import { closeDb } from '../dist/db.js';
+import { resetOpenAIClient } from '../dist/openai.js';
 import { setupProjectMemory } from '../dist/setup.js';
 import { detectMemoryState, ensureMemoryReady, resetMemoryReady } from '../dist/runtime.js';
 import { getGlobalMemoryRoot } from '../dist/scope.js';
@@ -17,8 +25,12 @@ import { handleDelete } from '../dist/tools/delete.js';
 import { handleLink, handleNeighbors, handleSubgraph, handleUnlink } from '../dist/tools/graph.js';
 import { rebuildFromFiles } from '../dist/rebuild.js';
 
+if (!process.env.PROJECT_MEMORY_AGENTS_HOME) {
+  process.env.PROJECT_MEMORY_AGENTS_HOME = mkdtempSync(path.join(os.tmpdir(), 'pm-agents-home-'));
+}
+
 if (!process.env.PROJECT_MEMORY_GLOBAL_ROOT) {
-  process.env.PROJECT_MEMORY_GLOBAL_ROOT = mkdtempSync(path.join(os.tmpdir(), 'pm-global-root-'));
+  process.env.PROJECT_MEMORY_GLOBAL_ROOT = path.join(process.env.PROJECT_MEMORY_AGENTS_HOME, 'agent-memory');
 }
 
 function assert(condition, message) {
@@ -38,12 +50,14 @@ async function withProject(projectDir, fn) {
   process.chdir(projectDir);
   resetMemoryReady('project', projectDir);
   resetMemoryReady('global');
+  resetOpenAIClient();
   try {
     return await fn();
   } finally {
     closeDb();
     resetMemoryReady('project', projectDir);
     resetMemoryReady('global');
+    resetOpenAIClient();
     process.chdir(previousCwd);
   }
 }
@@ -290,6 +304,7 @@ async function runMcp() {
     env: {
       PATH: process.env.PATH ?? '',
       HOME: process.env.HOME ?? '',
+      PROJECT_MEMORY_AGENTS_HOME: process.env.PROJECT_MEMORY_AGENTS_HOME ?? '',
       PROJECT_MEMORY_GLOBAL_ROOT: process.env.PROJECT_MEMORY_GLOBAL_ROOT ?? '',
     },
     stderr: 'pipe',
@@ -317,10 +332,19 @@ async function runMcp() {
   });
   const lite = await client.callTool({ name: 'memory_read_lite', arguments: {} });
   const globalLite = await client.callTool({ name: 'global_memory_read_lite', arguments: {} });
+  const configure = await client.callTool({
+    name: 'agent_memory_configure',
+    arguments: {
+      openai_api_key: 'sk-test-configured',
+    },
+  });
   await transport.close();
 
   return {
     toolNames,
+    configPath: getAgentMemoryConfigPath(),
+    storedConfig: readAgentMemoryConfig(),
+    configure,
     setup,
     write,
     lite,
@@ -329,12 +353,43 @@ async function runMcp() {
   };
 }
 
+async function runConfig() {
+  const projectDir = createTempProject('pm-config');
+  return withProject(projectDir, async () => {
+    const previousEnv = process.env.OPENAI_API_KEY;
+    const configPath = getAgentMemoryConfigPath();
+
+    process.env.OPENAI_API_KEY = 'sk-test-env-value';
+    const persisted = persistOpenAIKeyFromEnvironment();
+    resetOpenAIClient();
+    delete process.env.OPENAI_API_KEY;
+    const resolvedAfterEnv = resolveOpenAIApiKey();
+    const storedPath = setStoredOpenAIApiKey('sk-test-manual');
+    resetOpenAIClient();
+    const resolvedAfterManual = resolveOpenAIApiKey();
+
+    if (previousEnv !== undefined) {
+      process.env.OPENAI_API_KEY = previousEnv;
+    }
+
+    return {
+      configPath,
+      persisted,
+      storedPath,
+      fileContents: JSON.parse(readFileSync(configPath, 'utf8')),
+      resolvedAfterEnv,
+      resolvedAfterManual,
+    };
+  });
+}
+
 const mode = process.argv[2];
 
 const runners = {
   setup: runSetup,
   memory: runMemory,
   global: runGlobal,
+  config: runConfig,
   'legacy-json': runLegacyJson,
   'legacy-db': runLegacyDb,
   mcp: runMcp,
