@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "agent-memory": {
+      "command": "bash",
+      "args": [
+        "./scripts/start-mcp.sh"
+      ],
+      "note": "Global MCP server for persistent global and project memory. Use global_memory_* immediately, and call memory_setup once per repo to initialize .memory/. Optional OPENAI_API_KEY enables semantic ranking."
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "agent-memory-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "NODE_NO_WARNINGS=1 tsx src/index.ts",
+    "start": "NODE_NO_WARNINGS=1 node dist/index.js",
+    "test": "npm run build && node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "nanoid": "^5.1.5",
+    "openai": "^6.1.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "jest": "^30.2.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

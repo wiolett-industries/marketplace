@@ -1,0 +1,20 @@
+{
+  "name": "wiolett-industries",
+  "interface": {
+    "displayName": "Wiolett Industries"
+  },
+  "plugins": [
+    {
+      "name": "agent-memory",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agent-memory"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "name": "agent-memory",
+  "version": "0.1.0",
+  "description": "Persistent, searchable agent memory with global and project scopes for Codex and other MCP-capable agents.",
+  "author": {
+    "name": "Wiolett Industries",
+    "url": "https://wiolett.net"
+  },
+  "homepage": "https://github.com/wiolett-industries/agent-marketplace-next/tree/main/packages/agent-memory",
+  "repository": "https://github.com/wiolett-industries/agent-marketplace-next",
+  "license": "MIT",
+  "keywords": [
+    "memory",
+    "codex",
+    "mcp",
+    "knowledge",
+    "project",
+    "global",
+    "preferences"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Agent Memory",
+    "shortDescription": "Global and project memory with lite and deep layers",
+    "longDescription": "Adds persistent agent memory with separate global and project scopes to Codex through one bundled MCP server and a memory skill. The MCP server can initialize repo-local storage on demand, keeps global preferences under ~/.agents/agent-memory, and provides tools for reading, writing, searching, and managing reusable knowledge in both scopes.",
+    "developerName": "Wiolett Industries",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://wiolett.net",
+    "privacyPolicyURL": "https://wiolett.net",
+    "termsOfServiceURL": "https://wiolett.net",
+    "defaultPrompt": [
+      "Read my global memory and apply my preferences",
+      "Enable project memory in this repo",
+      "Search our stored workflow notes",
+      "Save this deployment runbook to memory"
+    ],
+    "brandColor": "#1F6FEB",
+    "screenshots": []
+  }
+}
