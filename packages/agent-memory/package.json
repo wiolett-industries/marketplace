@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "MCP server backing the Agent Memory Codex plugin.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wiolett-industries/marketplace.git",
+    "directory": "packages/agent-memory"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/packages/agent-memory",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "NODE_NO_WARNINGS=1 tsx src/index.ts",

@@ -1,95 +1,147 @@
 # Agent Memory
 
-Persistent, searchable agent memory with separate project and global scopes for Codex and other MCP-capable agents.
+Persistent memory for Codex with separate global and project scopes.
 
-Project memories live inside the current repo under `.memory/`. Global memories live under `~/.agents/agent-memory/`. In both cases, memories live as Markdown files, embeddings live separately, and a local SQLite cache is rebuilt from those files at server startup for fast search.
+`agent-memory` helps Codex retain durable knowledge without turning every session into prompt archaeology. It gives the model a structured way to store and retrieve:
 
-## Requirements
+- user preferences and long-lived behavior rules
+- cross-project coding patterns
+- repository-specific workflows and conventions
+- deployment notes, credentials, setup steps, and operational gotchas
 
-- Node.js 22.5+
-- Codex or another MCP-capable host
-- Optional `OPENAI_API_KEY` for semantic ranking
+The plugin is powered by a bundled MCP server and a Codex skill.
 
-## Install Through Codex
+## Highlights
 
-1. Point Codex at this repo's `.agents/plugins/marketplace.json`.
-2. Install `agent-memory`.
-3. Global memory is available immediately through `global_memory_*` tools.
-4. In the repo where you want project memory enabled, ask Codex to call:
+- global memory stored under `~/.agents/agent-memory/`
+- project memory stored under `<repo>/.memory/`
+- deep and lite memory layers
+- semantic and keyword search
+- meaningful memory filenames
+- weighted links between deep memories
+- deterministic project setup through MCP
+
+## Memory Scopes
+
+### Global Memory
+
+Global memory is for information that should follow the user across repositories:
+
+- response style preferences
+- coding habits and tool choices
+- cross-project requirements for model behavior
+- reusable personal workflows
+
+Global memory is always available through `global_memory_*` tools.
+
+### Project Memory
+
+Project memory is for repository-specific knowledge:
+
+- setup and bootstrap steps
+- deployment and release workflows
+- project conventions
+- undocumented dependencies
+- credentials and environment-specific instructions
+
+Project memory is enabled per repository with:
 
 ```text
 memory_setup()
 ```
 
-The setup tool:
-
-- initializes `.memory/`
-- creates `.memory/memories/`
-- creates `.memory/embeddings/`
-- creates `.memory/graph/`
-- ensures the SQLite cache exists
-- updates `.gitignore` so `.memory/memory.db*` stays ignored
-
-Repeat that tool call in each project where you want project memory enabled.
-
-Legacy project-memory layouts are migrated automatically by the MCP server on the first project-memory tool call after enablement or first use.
-
 ## Storage Model
+
+Global memory:
 
 ```text
 ~/.agents/agent-memory/
   memories/
-    <hash>_<meaningful_name>.md
   embeddings/
-    <hash>_<meaningful_name>.embeddings
   graph/
-    <hash>_<meaningful_name>.edges.json
   memory.db
+```
 
+Project memory:
+
+```text
 .memory/
   memories/
-    <hash>_<meaningful_name>.md
   embeddings/
-    <hash>_<meaningful_name>.embeddings
   graph/
-    <hash>_<meaningful_name>.edges.json
   memory.db
   memory.db-shm
   memory.db-wal
 ```
 
-- project `memories/`, `embeddings/`, and `graph/` are the source of truth and should be committed
-- `memory.db*` is local cache state and should stay ignored
-- global memory under `~/.agents/agent-memory/` is persistent local state and is not part of the repo
+Markdown memory files, embedding files, and graph files are the source of truth. SQLite is used as local cache for fast lookup.
 
-## MCP Tools
+## Tool Surface
 
-- Project tools:
-  - `memory_setup`
-  - `memory_write`
-  - `memory_get`
-  - `memory_read_lite`
-  - `memory_search`
-  - `memory_delete`
-  - `memory_link`
-  - `memory_unlink`
-  - `memory_neighbors`
-  - `memory_subgraph`
-  - `memory_read_all`
-- Global tools:
-  - `global_memory_write`
-  - `global_memory_get`
-  - `global_memory_read_lite`
-  - `global_memory_search`
-  - `global_memory_delete`
-  - `global_memory_link`
-  - `global_memory_unlink`
-  - `global_memory_neighbors`
-  - `global_memory_subgraph`
-  - `global_memory_read_all`
+Project tools:
 
-Both `memory_write` and `global_memory_write` default to `deep` and auto-create the lite pointer. Use `layer="lite"` only for short standalone facts that should always be cheap to load.
+- `memory_setup`
+- `memory_write`
+- `memory_get`
+- `memory_read_lite`
+- `memory_search`
+- `memory_delete`
+- `memory_link`
+- `memory_unlink`
+- `memory_neighbors`
+- `memory_subgraph`
+- `memory_read_all`
 
-## Codex Integration
+Global tools:
 
-This plugin is intentionally Codex-native and avoids unsupported hook behavior. The plugin exposes one global MCP server plus a skill. Global memory is always available, and project-local setup happens through the `memory_setup` MCP tool instead of plugin commands or shell scripts.
+- `global_memory_write`
+- `global_memory_get`
+- `global_memory_read_lite`
+- `global_memory_search`
+- `global_memory_delete`
+- `global_memory_link`
+- `global_memory_unlink`
+- `global_memory_neighbors`
+- `global_memory_subgraph`
+- `global_memory_read_all`
+
+## Install
+
+Register the Wiolett marketplace in Codex:
+
+```bash
+npx @wiolett/marketplace install
+```
+
+Then install `agent-memory` from that marketplace in Codex.
+
+## Usage
+
+At conversation start, the bundled skill tells Codex to read global lite memory first:
+
+```text
+global_memory_read_lite()
+```
+
+When a repository should use project memory, initialize it once:
+
+```text
+memory_setup()
+```
+
+From there, use memory tools to store and retrieve reusable knowledge as needed.
+
+## Development
+
+Requirements:
+
+- Node.js 22.5+
+- optional `OPENAI_API_KEY` for semantic search and AI-generated memory slugs
+
+Useful commands:
+
+```bash
+npm run typecheck
+npm run build
+npm test
+```

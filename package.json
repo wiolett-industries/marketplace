@@ -1,9 +1,18 @@
 {
-  "name": "@wiolett/agent-marketplace",
+  "name": "@wiolett/marketplace",
   "version": "0.1.0",
-  "private": true,
+  "type": "module",
   "description": "Codex-first plugin marketplace for Wiolett Industries.",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "wiolett-marketplace": "./bin/cli.mjs"
+  },
   "workspaces": [
     "packages/*"
   ],
@@ -22,9 +31,14 @@
     "agents"
   ],
   "author": "Wiolett Industries",
-  "homepage": "https://github.com/wiolett-industries/agent-marketplace",
+  "homepage": "https://github.com/wiolett-industries/marketplace",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wiolett-industries/agent-marketplace.git"
-  }
+    "url": "https://github.com/wiolett-industries/marketplace.git"
+  },
+  "files": [
+    "bin/",
+    "README.md",
+    "LICENSE.md"
+  ]
 }

@@ -6,8 +6,8 @@
     "name": "Wiolett Industries",
     "url": "https://wiolett.net"
   },
-  "homepage": "https://github.com/wiolett-industries/agent-marketplace-next/tree/main/packages/agent-memory",
-  "repository": "https://github.com/wiolett-industries/agent-marketplace-next",
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/packages/agent-memory",
+  "repository": "https://github.com/wiolett-industries/marketplace",
   "license": "MIT",
   "keywords": [
     "memory",

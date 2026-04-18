@@ -1,23 +1,71 @@
-# Wiolett Industries Codex Marketplace
+# Wiolett Marketplace
 
-Codex-first plugin marketplace for Wiolett Industries.
+Codex plugin marketplace for Wiolett Industries.
 
-This repo exposes a local Codex marketplace manifest under `.agents/plugins/` and currently ships one plugin:
+This repository publishes:
 
-- `agent-memory` — persistent agent memory with separate global and project scopes, exposed through a bundled Codex MCP server plus a skill
+- a Codex marketplace source, exposed through [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json)
+- a lightweight npm installer CLI published as `@wiolett/marketplace`
 
-## Layout
+The marketplace currently ships:
 
-- Marketplace manifest: `.agents/plugins/marketplace.json`
-- Plugin wrapper: `plugins/agent-memory`
-- MCP implementation: `packages/agent-memory`
+- [`agent-memory`](./packages/agent-memory) — persistent memory for Codex with separate global and project scopes
 
-Point Codex at this repo's `.agents/plugins/marketplace.json` to install the plugin.
+## Install In Codex
 
-## Root Scripts
+The simplest install path is:
 
-- `npm run plugins:install` — install dependencies for all plugin packages in this repo
-- `npm run plugin:agent-memory:install` — install dependencies only for `agent-memory`
-- `npm run build` — build `agent-memory`
-- `npm run test` — run the `agent-memory` test suite
-- `npm run typecheck` — typecheck `agent-memory`
+```bash
+npx @wiolett/marketplace
+```
+
+This registers the Wiolett marketplace in Codex.
+
+You can also run the command explicitly:
+
+```bash
+npx @wiolett/marketplace install
+```
+
+Optional flags:
+
+```bash
+npx @wiolett/marketplace install --ref main
+npx @wiolett/marketplace install --source /absolute/path/to/local/marketplace
+npx @wiolett/marketplace install --yes
+```
+
+After the marketplace is registered, install the plugin you want from Codex.
+
+## Included Plugin
+
+### Agent Memory
+
+`agent-memory` gives Codex durable memory in two scopes:
+
+- global memory for preferences, model behavior, and cross-project patterns
+- project memory for repo-specific workflows, conventions, credentials, and operational knowledge
+
+Learn more in [`packages/agent-memory/README.md`](./packages/agent-memory/README.md).
+
+## Repository Layout
+
+- marketplace manifest: [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json)
+- plugin wrapper: [`plugins/agent-memory`](./plugins/agent-memory)
+- MCP implementation: [`packages/agent-memory`](./packages/agent-memory)
+- npm installer CLI: [`bin/cli.mjs`](./bin/cli.mjs)
+
+## Publish
+
+This repository is configured to publish the installer CLI as:
+
+```text
+@wiolett/marketplace
+```
+
+Standard publish flow:
+
+```bash
+npm pack --dry-run
+npm publish
+```
