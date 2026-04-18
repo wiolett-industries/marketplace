@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline/promises';
@@ -204,6 +204,14 @@ function getAgentMemoryConfigPath() {
   return path.join(os.homedir(), '.agents', 'agent-memory', 'config.json');
 }
 
+function getMarketplaceClonePath() {
+  return path.join(os.homedir(), '.codex', '.tmp', 'marketplaces', MARKETPLACE_NAME);
+}
+
+function getMarketplacePluginCachePath() {
+  return path.join(os.homedir(), '.codex', 'plugins', 'cache', MARKETPLACE_NAME);
+}
+
 function ensureConfigDir() {
   mkdirSync(path.dirname(getConfigPath()), { recursive: true });
 }
@@ -271,6 +279,15 @@ function removeMarketplaceRegistration() {
     return false;
   }
   writeConfig(next);
+  return true;
+}
+
+function removePathIfExists(targetPath) {
+  if (!existsSync(targetPath)) {
+    return false;
+  }
+
+  rmSync(targetPath, { recursive: true, force: true });
   return true;
 }
 
@@ -506,6 +523,8 @@ async function runUninstall({ yes, verbose }) {
   const changes = [
     `Remove: [marketplaces.${MARKETPLACE_NAME}] from ~/.codex/config.toml`,
     `Remove legacy: [mcp_servers.${MCP_SERVER_NAME}.env] from ~/.codex/config.toml if present`,
+    `Remove: ${getMarketplaceClonePath()}`,
+    `Remove: ${getMarketplacePluginCachePath()}`,
     `Keep: ${getAgentMemoryConfigPath()} unchanged`,
   ];
 
@@ -526,8 +545,11 @@ async function runUninstall({ yes, verbose }) {
     writeConfig(next);
     return true;
   })();
-  if (!removed && !removedLegacyEnv) {
-    warn(`No [marketplaces.${MARKETPLACE_NAME}] or legacy [mcp_servers.${MCP_SERVER_NAME}.env] sections were found in ~/.codex/config.toml.`);
+  const removedClone = removePathIfExists(getMarketplaceClonePath());
+  const removedPluginCache = removePathIfExists(getMarketplacePluginCachePath());
+
+  if (!removed && !removedLegacyEnv && !removedClone && !removedPluginCache) {
+    warn(`No marketplace registration, legacy MCP config, or Codex marketplace cache entries were found for ${MARKETPLACE_NAME}.`);
     process.exit(0);
   }
 
@@ -535,6 +557,12 @@ async function runUninstall({ yes, verbose }) {
     info(`Removed [marketplaces.${MARKETPLACE_NAME}] from ~/.codex/config.toml`);
     if (removedLegacyEnv) {
       info(`Removed legacy [mcp_servers.${MCP_SERVER_NAME}.env] from ~/.codex/config.toml`);
+    }
+    if (removedClone) {
+      info(`Removed ${getMarketplaceClonePath()}`);
+    }
+    if (removedPluginCache) {
+      info(`Removed ${getMarketplacePluginCachePath()}`);
     }
   }
 
