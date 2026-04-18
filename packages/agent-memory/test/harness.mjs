@@ -292,14 +292,17 @@ async function runLegacyDb() {
 
 async function runMcp() {
   const projectDir = createTempProject('pm-mcp');
+  const pluginMcpConfig = JSON.parse(
+    readFileSync(path.resolve('../..', 'plugins/agent-memory/.mcp.json'), 'utf8')
+  );
   const client = new Client({
     name: 'agent-memory-jest-client',
     version: '0.1.0',
   });
 
   const transport = new StdioClientTransport({
-    command: 'bash',
-    args: [path.resolve('../..', 'plugins/agent-memory/scripts/start-mcp.sh')],
+    command: process.execPath,
+    args: [path.resolve('dist/index.js')],
     cwd: projectDir,
     env: {
       PATH: process.env.PATH ?? '',
@@ -341,6 +344,7 @@ async function runMcp() {
   await transport.close();
 
   return {
+    pluginMcpConfig,
     toolNames,
     configPath: getAgentMemoryConfigPath(),
     storedConfig: readAgentMemoryConfig(),

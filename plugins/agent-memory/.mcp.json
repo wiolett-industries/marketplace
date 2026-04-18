@@ -1,9 +1,10 @@
 {
   "mcpServers": {
     "agent-memory": {
-      "command": "bash",
+      "command": "npx",
       "args": [
-        "./scripts/start-mcp.sh"
+        "-y",
+        "@wiolett/agent-memory-mcp@0.1.2"
       ],
       "env": {
         "OPENAI_API_KEY": "${OPENAI_API_KEY}"

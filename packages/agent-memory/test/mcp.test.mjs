@@ -2,8 +2,16 @@ import { describe, expect, test } from '@jest/globals';
 import { runHarness } from './run-harness.mjs';
 
 describe('MCP launcher smoke test', () => {
-  test('start-mcp.sh exposes tools and handles basic calls', async () => {
+  test('plugin config uses npx package and the MCP server handles basic calls', async () => {
     const result = runHarness('mcp');
+    expect(result.pluginMcpConfig).toEqual({
+      mcpServers: {
+        'agent-memory': expect.objectContaining({
+          command: 'npx',
+          args: ['-y', '@wiolett/agent-memory-mcp@0.1.2'],
+        }),
+      },
+    });
     expect(result.toolNames).toEqual(
       expect.arrayContaining([
         'agent_memory_configure',

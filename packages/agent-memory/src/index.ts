@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import * as z from 'zod/v4';
@@ -15,7 +17,7 @@ import { handleSearch } from './tools/search.js';
 import { handleWrite } from './tools/write.js';
 import { setupProjectMemory } from './setup.js';
 
-const VERSION = '0.1.1';
+const VERSION = '0.1.2';
 
 function asTextResult(payload: unknown) {
   return {

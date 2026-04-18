@@ -1,10 +1,19 @@
 {
-  "name": "agent-memory-mcp",
-  "version": "0.1.1",
-  "private": true,
+  "name": "@wiolett/agent-memory-mcp",
+  "version": "0.1.2",
   "type": "module",
   "description": "MCP server backing the Agent Memory Codex plugin.",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "agent-memory-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/wiolett-industries/marketplace.git",
@@ -15,6 +24,7 @@
     "build": "tsc -p tsconfig.build.json",
     "dev": "NODE_NO_WARNINGS=1 tsx src/index.ts",
     "start": "NODE_NO_WARNINGS=1 node dist/index.js",
+    "prepack": "npm run build",
     "test": "npm run build && node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
     "typecheck": "tsc --noEmit"
   },
