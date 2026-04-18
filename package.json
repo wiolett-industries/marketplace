@@ -10,7 +10,9 @@
   "engines": {
     "node": ">=20"
   },
-  "bin": "./bin/cli.mjs",
+  "bin": {
+    "marketplace": "bin/marketplace"
+  },
   "workspaces": [
     "packages/*"
   ],
@@ -32,7 +34,7 @@
   "homepage": "https://github.com/wiolett-industries/marketplace",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wiolett-industries/marketplace.git"
+    "url": "git+https://github.com/wiolett-industries/marketplace.git"
   },
   "files": [
     "bin/",
