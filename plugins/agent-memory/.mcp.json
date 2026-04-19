@@ -4,12 +4,12 @@
       "command": "npx",
       "args": [
         "-y",
-        "@wiolett/agent-memory-mcp@0.1.4"
+        "@wiolett/agent-memory-mcp@0.1.5"
       ],
       "env": {
         "OPENAI_API_KEY": "${OPENAI_API_KEY}"
       },
-      "note": "Global MCP server for persistent global and project memory. Use global_memory_* immediately, and call memory_setup once per repo to initialize .memory/. Optional OPENAI_API_KEY enables semantic ranking."
+      "note": "Global MCP server for persistent global and project memory. Use global_memory_* immediately; project memory auto-initializes on first use in a repo. Optional OPENAI_API_KEY enables semantic ranking."
     }
   }
 }

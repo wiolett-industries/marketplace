@@ -1,7 +1,7 @@
 {
   "name": "ui-contract-review",
-  "version": "0.1.0",
-  "description": "Frontend design-contract definition and retroactive UI review for Codex.",
+  "version": "0.1.1",
+  "description": "Frontend UI contract and implementation review workflow for Codex.",
   "author": {
     "name": "Wiolett Industries",
     "url": "https://wiolett.net"
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "UI Contract Review",
     "shortDescription": "Define a UI contract before building and audit the result after",
-    "longDescription": "A frontend-focused Codex plugin for defining a clear UI contract before implementation and auditing the final UI afterward for consistency, hierarchy, copy, spacing, and interaction quality.",
+    "longDescription": "A frontend-focused Codex plugin with one workflow skill for both defining a clear UI contract before implementation and auditing the final UI afterward for consistency, hierarchy, copy, spacing, and interaction quality.",
     "developerName": "Wiolett Industries",
     "category": "Developer Tools",
     "capabilities": [

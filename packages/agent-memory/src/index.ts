@@ -17,7 +17,7 @@ import { handleSearch } from './tools/search.js';
 import { handleWrite } from './tools/write.js';
 import { setupProjectMemory } from './setup.js';
 
-const VERSION = '0.1.4';
+const VERSION = '0.1.5';
 
 function asTextResult(payload: unknown) {
   return {

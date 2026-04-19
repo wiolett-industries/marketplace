@@ -1,6 +1,6 @@
 {
   "name": "agent-memory",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Persistent, searchable agent memory with global and project scopes for Codex and other MCP-capable agents.",
   "author": {
     "name": "Wiolett Industries",

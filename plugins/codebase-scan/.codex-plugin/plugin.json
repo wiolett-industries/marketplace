@@ -1,6 +1,6 @@
 {
   "name": "codebase-scan",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Brownfield codebase scanning and architecture onboarding for Codex.",
   "author": {
     "name": "Wiolett Industries",

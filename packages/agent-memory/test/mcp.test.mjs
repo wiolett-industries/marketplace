@@ -8,7 +8,7 @@ describe('MCP launcher smoke test', () => {
       mcpServers: {
         'agent-memory': expect.objectContaining({
           command: 'npx',
-          args: ['-y', '@wiolett/agent-memory-mcp@0.1.4'],
+          args: ['-y', '@wiolett/agent-memory-mcp@0.1.5'],
         }),
       },
     });

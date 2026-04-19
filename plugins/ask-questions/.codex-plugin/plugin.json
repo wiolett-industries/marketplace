@@ -1,6 +1,6 @@
 {
   "name": "ask-questions",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Clarifying-question workflow for ambiguous requests that asks only the minimum needed to choose the right direction.",
   "author": {
     "name": "Wiolett Industries",
