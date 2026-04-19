@@ -53,6 +53,18 @@
       "category": "Developer Tools"
     },
     {
+      "name": "merge-request-review",
+      "source": {
+        "source": "local",
+        "path": "./plugins/merge-request-review"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
       "name": "ui-contract-review",
       "source": {
         "source": "local",

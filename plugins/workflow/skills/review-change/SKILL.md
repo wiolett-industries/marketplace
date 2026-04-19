@@ -11,6 +11,8 @@ Use it as a hard gate, not as a suggestion pass.
 
 For frontend changes where real in-browser behavior matters, especially auth/session flows or delayed client-side redirects, combine this review with `Using Live Browser Debug` instead of relying only on code inspection.
 
+For GitLab merge requests where discussion intake, fixed review note formats, thread handling, and approval workflow matter, use `Review Merge Request` instead of treating the work as a generic local-only review pass.
+
 ## Activation Rule
 
 Always use this skill when meaningful implementation work is finished and you are about to:

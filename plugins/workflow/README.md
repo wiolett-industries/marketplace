@@ -26,6 +26,7 @@ Related plugins in this marketplace:
 - `test-driven-development` for strict TDD discipline
 - `multi-agent-workflows` for subagent-driven and parallel-agent execution
 - `live-browser-debug` for real-browser frontend debugging and delayed incident capture
+- `merge-request-review` for GitLab merge request review, discussion-aware findings, and approval discipline
 
 ## Attribution
 

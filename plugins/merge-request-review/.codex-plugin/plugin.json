@@ -1,0 +1,43 @@
+{
+  "name": "merge-request-review",
+  "version": "0.1.0",
+  "description": "Careful GitLab merge request review workflow with discussion intake, strict findings, re-review loops, and fixed review note formats.",
+  "author": {
+    "name": "Wiolett Industries",
+    "url": "https://wiolett.net"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/merge-request-review",
+  "repository": "https://github.com/wiolett-industries/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "gitlab",
+    "merge-request",
+    "review",
+    "workflow",
+    "approval",
+    "quality"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Merge Request Review",
+    "shortDescription": "Discussion-aware GitLab merge request review with strict gates and approval discipline",
+    "longDescription": "A generic GitLab merge request review workflow for Codex. It loads existing discussions first, checks MR-backed verification state, runs repo-appropriate local checks when possible, performs structured normal or high-risk review loops, posts fixed-format review notes, and approves only after blocking findings are resolved. Requires an external GitLab MCP.",
+    "developerName": "Wiolett Industries",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/wiolett-industries/marketplace",
+    "privacyPolicyURL": "https://wiolett.net",
+    "termsOfServiceURL": "https://wiolett.net",
+    "defaultPrompt": [
+      "Review this GitLab merge request carefully before approval",
+      "Load the existing discussions first and then review the current MR state",
+      "Run a high-risk merge request review for this GitLab MR",
+      "Re-review this GitLab merge request after the author pushed fixes"
+    ],
+    "brandColor": "#2563EB",
+    "screenshots": []
+  }
+}
