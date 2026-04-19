@@ -4,19 +4,19 @@ Merged Codex workflow plugin for feature discovery, architecture design, impleme
 
 This plugin ships:
 
+- `Using Workflow` as the entry skill for every conversation start and post-compaction restart
 - skills for brainstorming, feature development, planning, plan review, execution, debugging, worktree setup, review, and verification
 - specialist explorer, architect, reviewer, and risk-reviewer agents
 
 The review system is built around three levels:
 
-- `Review Completed Task` after each meaningful task or plan section
-- `Review Completed Feature` for larger finished changes
-- `Review High-Risk Change` for breaking changes, risky refactors, migrations, and codebase-wide verification
+- `Review Change` in `task` mode after each meaningful task or plan section
+- `Review Change` in `feature` mode for larger finished changes
+- `Review Change` in `high-risk` mode for breaking changes, risky refactors, migrations, and codebase-wide verification
 
 Planning discipline includes:
 
-- `Writing Plans` for implementation plans that preserve approved scope
-- `Plan Review` for checking requirement coverage, wiring, dependencies, and hidden scope reduction before execution
+- `Writing Plans` for codebase exploration, comprehensive draft planning, self-review, and final implementation plan creation
 
 Related plugins in this marketplace:
 

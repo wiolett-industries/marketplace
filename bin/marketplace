@@ -103,10 +103,12 @@ function printHelp() {
       'Usage:',
       '  npx @wiolett/marketplace',
       '  npx @wiolett/marketplace install [--ref <ref>] [--source <source>] [--verbose] [--yes] [--openai-api-key <key>] [--openai-api-key-env <ENV_VAR>]',
+      '  npx @wiolett/marketplace update [--ref <ref>] [--source <source>] [--verbose] [--yes] [--openai-api-key <key>] [--openai-api-key-env <ENV_VAR>]',
       '  npx @wiolett/marketplace uninstall [--yes]',
       '',
       'Commands:',
       '  install     Register the Wiolett marketplace in Codex.',
+      '  update      Uninstall and reinstall the Wiolett marketplace in Codex.',
       '  uninstall   Remove the Wiolett marketplace registration from Codex config.',
       '  help        Show this help message.',
       '',
@@ -432,6 +434,16 @@ function buildInstallPlan({ source, ref, apiKey }) {
   };
 }
 
+function buildUninstallChanges() {
+  return [
+    `Remove: [marketplaces.${MARKETPLACE_NAME}] from ~/.codex/config.toml`,
+    `Remove legacy: [mcp_servers.${MCP_SERVER_NAME}.env] from ~/.codex/config.toml if present`,
+    `Remove: ${getMarketplaceClonePath()}`,
+    `Remove: ${getMarketplacePluginCachePath()}`,
+    `Keep: ${getAgentMemoryConfigPath()} unchanged`,
+  ];
+}
+
 function printPlan(titleText, changes) {
   title(titleText);
   for (const change of changes) {
@@ -468,20 +480,21 @@ async function confirmUninstall(args, changes) {
   return await promptYesNo('Proceed with uninstall? [y/N] ');
 }
 
-async function runInstall(options) {
-  const { source, ref, verbose, yes } = options;
-  ensureCodexExists();
-  showLogo();
-
-  const { apiKey } = await collectOpenAIKeyForInstall(options);
-  const plan = buildInstallPlan({ source, ref, apiKey });
-
-  const confirmed = await confirmInstall({ yes }, plan);
-  if (!confirmed) {
-    process.stdout.write('Cancelled.\n');
-    process.exit(0);
+async function confirmUpdate(args, changes) {
+  if (args.yes) {
+    return true;
   }
 
+  const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
+  if (!interactive) {
+    fail('Refusing to update without confirmation in a non-interactive shell. Re-run with --yes to proceed.');
+  }
+
+  printPlan('Planned Changes', changes);
+  return await promptYesNo('Proceed with update? [y/N] ');
+}
+
+function performInstall({ source, ref, verbose, apiKey }) {
   const args = ['marketplace', 'add', source];
   if (ref) {
     args.push('--ref', ref);
@@ -509,33 +522,9 @@ async function runInstall(options) {
       info(`Wrote agent-memory config to ${configPath}`);
     }
   }
-
-  success('Marketplace installed successfully.');
-  if (apiKey) {
-    info(`Saved the agent-memory OpenAI key to ${getAgentMemoryConfigPath()}.`);
-  } else {
-    info('No OpenAI key was configured. That is fine unless you plan to use the agent-memory plugin with embeddings and AI naming.');
-  }
-  process.exit(0);
 }
 
-async function runUninstall({ yes, verbose }) {
-  showLogo();
-
-  const changes = [
-    `Remove: [marketplaces.${MARKETPLACE_NAME}] from ~/.codex/config.toml`,
-    `Remove legacy: [mcp_servers.${MCP_SERVER_NAME}.env] from ~/.codex/config.toml if present`,
-    `Remove: ${getMarketplaceClonePath()}`,
-    `Remove: ${getMarketplacePluginCachePath()}`,
-    `Keep: ${getAgentMemoryConfigPath()} unchanged`,
-  ];
-
-  const confirmed = await confirmUninstall({ yes }, changes);
-  if (!confirmed) {
-    process.stdout.write('Cancelled.\n');
-    process.exit(0);
-  }
-
+function performUninstall({ verbose }) {
   const removed = removeMarketplaceRegistration();
   const removedLegacyEnv = (() => {
     const header = `[mcp_servers.${MCP_SERVER_NAME}.env]`;
@@ -551,8 +540,7 @@ async function runUninstall({ yes, verbose }) {
   const removedPluginCache = removePathIfExists(getMarketplacePluginCachePath());
 
   if (!removed && !removedLegacyEnv && !removedClone && !removedPluginCache) {
-    warn(`No marketplace registration, legacy MCP config, or Codex marketplace cache entries were found for ${MARKETPLACE_NAME}.`);
-    process.exit(0);
+    return false;
   }
 
   if (verbose) {
@@ -568,7 +556,83 @@ async function runUninstall({ yes, verbose }) {
     }
   }
 
+  return true;
+}
+
+async function runInstall(options) {
+  const { source, ref, verbose, yes } = options;
+  ensureCodexExists();
+  showLogo();
+
+  const { apiKey } = await collectOpenAIKeyForInstall(options);
+  const plan = buildInstallPlan({ source, ref, apiKey });
+
+  const confirmed = await confirmInstall({ yes }, plan);
+  if (!confirmed) {
+    process.stdout.write('Cancelled.\n');
+    process.exit(0);
+  }
+
+  performInstall({ source, ref, verbose, apiKey });
+
+  success('Marketplace installed successfully.');
+  if (apiKey) {
+    info(`Saved the agent-memory OpenAI key to ${getAgentMemoryConfigPath()}.`);
+  } else {
+    info('No OpenAI key was configured. That is fine unless you plan to use the agent-memory plugin with embeddings and AI naming.');
+  }
+  process.exit(0);
+}
+
+async function runUninstall({ yes, verbose }) {
+  showLogo();
+
+  const changes = buildUninstallChanges();
+
+  const confirmed = await confirmUninstall({ yes }, changes);
+  if (!confirmed) {
+    process.stdout.write('Cancelled.\n');
+    process.exit(0);
+  }
+
+  const removedAnything = performUninstall({ verbose });
+  if (!removedAnything) {
+    warn(`No marketplace registration, legacy MCP config, or Codex marketplace cache entries were found for ${MARKETPLACE_NAME}.`);
+    process.exit(0);
+  }
+
   success('Marketplace uninstalled successfully.');
+  process.exit(0);
+}
+
+async function runUpdate(options) {
+  const { source, ref, verbose, yes } = options;
+  ensureCodexExists();
+  showLogo();
+
+  const { apiKey } = await collectOpenAIKeyForInstall(options);
+  const installPlan = buildInstallPlan({ source, ref, apiKey });
+  const changes = [
+    ...buildUninstallChanges(),
+    ...installPlan.changes,
+  ];
+
+  const confirmed = await confirmUpdate({ yes }, changes);
+  if (!confirmed) {
+    process.stdout.write('Cancelled.\n');
+    process.exit(0);
+  }
+
+  performUninstall({ verbose });
+  performInstall({ source, ref, verbose, apiKey });
+
+  success('Marketplace updated successfully.');
+  warn('After update, reinstall the plugins you want enabled again in Codex. Marketplace refresh can leave previously installed plugins disabled.');
+  if (apiKey) {
+    info(`Saved the agent-memory OpenAI key to ${getAgentMemoryConfigPath()}.`);
+  } else {
+    info('No OpenAI key was configured. That is fine unless you plan to use the agent-memory plugin with embeddings and AI naming.');
+  }
   process.exit(0);
 }
 
@@ -587,6 +651,10 @@ try {
 
   if (parsed.command === 'uninstall') {
     await runUninstall(parsed);
+  }
+
+  if (parsed.command === 'update') {
+    await runUpdate(parsed);
   }
 
   fail(`Unknown command: ${parsed.command}`);

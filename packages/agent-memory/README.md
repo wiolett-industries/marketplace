@@ -19,7 +19,7 @@ The plugin is powered by a bundled MCP server and a Codex skill.
 - semantic and keyword search
 - meaningful memory filenames
 - weighted links between deep memories
-- deterministic project setup through MCP
+- automatic project-memory setup on first use
 
 ## Memory Scopes
 
@@ -44,11 +44,7 @@ Project memory is for repository-specific knowledge:
 - undocumented dependencies
 - credentials and environment-specific instructions
 
-Project memory is enabled per repository with:
-
-```text
-memory_setup()
-```
+Project memory now auto-initializes on first project-memory use in a repository.
 
 ## Storage Model
 
@@ -80,7 +76,6 @@ Markdown memory files, embedding files, and graph files are the source of truth.
 
 Project tools:
 
-- `memory_setup`
 - `memory_write`
 - `memory_get`
 - `memory_read_lite`
@@ -91,6 +86,10 @@ Project tools:
 - `memory_neighbors`
 - `memory_subgraph`
 - `memory_read_all`
+
+Optional manual maintenance tool:
+
+- `memory_setup` for explicit initialization or repair, though normal use no longer requires it
 
 Global tools:
 
@@ -148,11 +147,7 @@ At conversation start, the bundled skill tells Codex to read global lite memory 
 global_memory_read_lite()
 ```
 
-When a repository should use project memory, initialize it once:
-
-```text
-memory_setup()
-```
+When a repository should use project memory, just start using project memory tools. The first project-memory call will initialize the local `.memory/` store automatically.
 
 From there, use memory tools to store and retrieve reusable knowledge as needed.
 

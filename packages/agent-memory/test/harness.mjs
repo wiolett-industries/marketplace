@@ -88,14 +88,6 @@ async function runSetup() {
 async function runMemory() {
   const projectDir = createTempProject('pm-memory');
   return withProject(projectDir, async () => {
-    let errorMessage = '';
-    try {
-      ensureMemoryReady();
-    } catch (error) {
-      errorMessage = error instanceof Error ? error.message : String(error);
-    }
-
-    setupProjectMemory();
     ensureMemoryReady();
 
     const deep = await handleWrite({
@@ -144,8 +136,8 @@ async function runMemory() {
     const deepAfterDelete = handleGet({ id: deep.id });
 
     return {
-      guard_error: errorMessage,
       ids: { deep: deep.id, service: service.id, lite: lite.id },
+      memoryAutoCreated: existsSync(path.join(projectDir, '.memory')),
       memoryFiles: listRelative(projectDir, '.memory/memories'),
       embeddingFiles: listRelative(projectDir, '.memory/embeddings'),
       liteEntries: handleReadLite(),

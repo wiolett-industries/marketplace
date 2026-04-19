@@ -56,4 +56,4 @@ Summarize:
 - the recommended path
 - the main caveats or unresolved risks
 
-If useful, recommend storing the result in `agent-memory` as a durable project decision once the user agrees.
+If the spike resolves a durable technical decision, confirmed workflow, or recurring constraint, activate `Using Agent Memory` and store the outcome as project memory once the result is clear.

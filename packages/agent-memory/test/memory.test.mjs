@@ -2,9 +2,9 @@ import { describe, expect, test } from '@jest/globals';
 import { runHarness } from './run-harness.mjs';
 
 describe('memory operations', () => {
-  test('requires setup before normal memory operations', async () => {
+  test('auto-initializes memory before normal memory operations', async () => {
     const result = runHarness('memory');
-    expect(result.guard_error).toContain('memory_setup');
+    expect(result.memoryAutoCreated).toBe(true);
     expect(result.memoryFiles).toHaveLength(3);
     expect(result.embeddingFiles).toHaveLength(3);
     expect(result.liteEntries).toHaveLength(2);

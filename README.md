@@ -42,8 +42,11 @@ npx @wiolett/marketplace install --source /absolute/path/to/local/marketplace
 npx @wiolett/marketplace install --openai-api-key-env OPENAI_API_KEY --yes
 npx @wiolett/marketplace install --openai-api-key sk-proj-... --yes
 npx @wiolett/marketplace install --yes
+npx @wiolett/marketplace update --yes
 npx @wiolett/marketplace uninstall
 ```
+
+After `update`, reinstall the plugins you want enabled again in Codex. Refreshing the marketplace can leave previously installed plugins disabled.
 
 During interactive installation, the CLI can ask for an OpenAI API key and persist it for `agent-memory` before applying the marketplace change.
 

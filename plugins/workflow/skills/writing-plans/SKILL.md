@@ -1,6 +1,6 @@
 ---
 name: Writing Plans
-description: Use when you have approved requirements or an approved implementation direction for a multi-step task, before touching code
+description: ALWAYS use when approved requirements or an approved implementation direction need to become a complete implementation plan, including codebase exploration, draft planning, self-review, and final plan creation in plan mode
 ---
 
 # Writing Plans
@@ -13,12 +13,30 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Mode requirement:** If your environment supports plan mode, switch into plan mode before writing or updating the plan.
-
 **Context:** This should be run in a dedicated worktree (created by brainstorming skill).
 
 **Save plans to:** `docs/workflow/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
+
+## Required Workflow
+
+Follow this exact sequence:
+
+1. Explore the codebase broadly enough to understand the repo shape and patterns
+2. Deeply explore the parts directly related to the request
+3. Write a comprehensive implementation plan draft
+4. Self-review that draft and harden it
+5. Switch to plan mode and create the complete implementation plan, then present it to the user
+
+Do not skip the exploration or the review stage.
+
+Do not jump straight into plan mode with shallow context.
+
+If the request is still materially ambiguous before planning starts, activate `Ask Questions` first.
+
+If repository context is still cold, use `Scan Existing Codebase` before writing the draft.
+
+If durable repo knowledge or persistent user instructions may affect the plan, activate `Using Agent Memory` before finalizing direction.
 
 ## Scope Check
 
@@ -135,9 +153,11 @@ Every step must contain the actual content an engineer needs. These are **plan f
 - Exact commands with expected output
 - DRY, YAGNI, TDD, frequent commits
 
-## Self-Review
+## Draft Review Standard
 
-After writing the complete plan, look at the approved requirements with fresh eyes and check the plan against them. This is a checklist you run yourself — not a subagent dispatch.
+After writing the draft plan, review it as if execution has not started yet and you are trying to stop avoidable rework.
+
+This is a self-review checklist, not a separate skill dispatch.
 
 **1. Requirements coverage:** Skim each approved requirement or design decision. Can you point to a task that implements it? List any gaps.
 
@@ -147,7 +167,9 @@ After writing the complete plan, look at the approved requirements with fresh ey
 
 **4. Wiring completeness:** Are you only creating artifacts, or are you also wiring them together? Components need imports and consumers. Routes need callers. Data models need read/write paths. State needs rendering. A plan that creates pieces without their connections is incomplete.
 
-**5. Scope reduction scan:** Check for any language that silently reduces what was approved:
+**5. Dependency correctness:** Task ordering should make sense. Later tasks should not depend on outputs the plan never creates. If work can run independently, that independence should be explicit and real.
+
+**6. Scope reduction scan:** Check for any language that silently reduces what was approved:
 - "simple version"
 - "basic version"
 - "placeholder"
@@ -158,19 +180,29 @@ After writing the complete plan, look at the approved requirements with fresh ey
 
 If any of that language appears without explicit user approval, rewrite the plan or split the work.
 
-**6. Size sanity:** Keep each plan and task small enough to execute cleanly.
+**7. Verification quality:** Tasks should include meaningful verification, not vague "run tests" filler. The plan should prove delivery, not just file creation.
+
+**8. Size sanity:** Keep each plan and task small enough to execute cleanly.
 - Prefer 2-3 meaningful tasks per plan section
 - Prefer focused file sets over huge cross-cutting batches
 - If a task touches too many files or concerns, split it before execution
 
-If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
+If you find issues, fix them inline. If you find a requirement with no task, add the task before switching to plan mode.
+
+## Finalization
+
+After the draft is reviewed and fixed:
+
+1. Switch into plan mode, if your environment supports it
+2. Create the complete implementation plan in its final form
+3. Save it to `docs/workflow/plans/...`
+4. Present the complete implementation plan to the user
+
+The user should see the final plan after it has already gone through the full draft review standard.
 
 ## Execution Handoff
 
 After saving the plan:
-
-- if the plan is substantial, risky, or freshly revised, run `Plan Review` before implementation begins
-- otherwise, hand off directly to execution
 
 - if the `multi-agent-workflows` plugin is installed, offer execution choice:
 

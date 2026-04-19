@@ -31,6 +31,8 @@ Use for ANY technical issue:
 - Build failures
 - Integration issues
 
+If durable repo-specific gotchas, deploy details, or recurring user instructions may matter to the diagnosis, activate `Using Agent Memory` before assuming you are debugging from scratch.
+
 **Use this ESPECIALLY when:**
 - Under time pressure (emergencies make guessing tempting)
 - "Just one quick fix" seems obvious

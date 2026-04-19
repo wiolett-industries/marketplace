@@ -223,7 +223,7 @@ async function main(): Promise<void> {
     },
     {
       instructions:
-        'Use memory_setup to initialize project memory in the current repo, global_memory_read_lite at conversation start for persistent user preferences, memory_write or global_memory_write to store reusable knowledge, memory_get or global_memory_get for pointer IDs, memory_search or global_memory_search for topic lookup, graph tools for deep-memory relationships, and *_read_all only for cleanup.',
+        'Use global_memory_read_lite at conversation start for persistent user preferences, memory_write or global_memory_write to store reusable knowledge, memory_get or global_memory_get for pointer IDs, memory_search or global_memory_search for topic lookup, graph tools for deep-memory relationships, and *_read_all only for cleanup. Project memory auto-initializes on first use in the current repo.',
     }
   );
 
@@ -255,7 +255,7 @@ async function main(): Promise<void> {
     {
       title: 'Setup Project Memory',
       description:
-        'Initialize project-local memory storage for the current repo. Creates .memory/memories, .memory/embeddings, and .memory/graph, ensures the SQLite cache exists, and updates .gitignore to ignore only .memory/memory.db*.',
+        'Manually initialize or repair project-local memory storage for the current repo. Normally this is not required because project memory auto-initializes on first use.',
       inputSchema: z.object({}),
     },
     async () => asTextResult(setupProjectMemory())

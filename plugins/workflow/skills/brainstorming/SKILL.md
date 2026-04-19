@@ -1,6 +1,6 @@
 ---
 name: Brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements, and implementation direction before switching into plan mode."
+description: You MUST ALWAYS use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements, and implementation direction before switching into plan mode.
 ---
 
 # Brainstorming Ideas Into Plans
@@ -58,6 +58,8 @@ digraph brainstorming {
 **Understanding the idea:**
 
 - Check out the current project state first (files, docs, recent commits)
+- If the request is still unclear, larger than it first appears, or materially ambiguous, activate the `Ask Questions` plugin first instead of silently picking a direction.
+- If repo context is cold and the request depends on understanding existing architecture, use `Scan Existing Codebase` before locking a direction.
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
 - If the project is too large for a single plan, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own plan → implementation cycle.
 - For appropriately-scoped projects, ask questions one at a time to refine the idea
@@ -70,6 +72,7 @@ digraph brainstorming {
 - Propose 2-3 different approaches with trade-offs
 - Present options conversationally with your recommendation and reasoning
 - Lead with your recommended option and explain why
+- If feasibility is still uncertain after normal exploration, use `Spike Investigation` before claiming one approach is ready for planning.
 
 **Presenting the direction:**
 
@@ -92,6 +95,7 @@ digraph brainstorming {
 - Explore the current structure before proposing changes. Follow existing patterns.
 - Where existing code has problems that affect the work (e.g., a file that's grown too large, unclear boundaries, tangled responsibilities), include targeted improvements as part of the design - the way a good developer improves code they're working in.
 - Don't propose unrelated refactoring. Stay focused on what serves the current goal.
+- If durable repo conventions or user instructions clearly matter, read `Using Agent Memory` and use memory to avoid rediscovering them.
 
 ## After Approval
 

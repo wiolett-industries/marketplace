@@ -9,7 +9,6 @@ This plugin helps Codex do two things better:
 
 It ships:
 
-- `Define UI Contract`
-- `Review Implemented UI`
+- `Using UI Contract Review`
 
-Use it for frontend work where visual consistency, copy quality, spacing, and interaction behavior matter.
+Use it for frontend work where visual consistency, copy quality, spacing, and interaction behavior matter, both before and after implementation.

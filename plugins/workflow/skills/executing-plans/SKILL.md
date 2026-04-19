@@ -13,6 +13,8 @@ Load plan, review critically, execute all tasks, run the right review loop, and 
 
 **Note:** This workflow works much better with access to subagents. If Codex multi-agent support is available, use `subagent-driven-development` instead of this skill.
 
+If the `multi-agent-workflows` plugin is installed and the plan is substantial but not tightly coupled, activate `Using Multi-Agent Workflows` instead of defaulting to this skill.
+
 ## The Process
 
 ### Step 1: Load and Review Plan
@@ -27,14 +29,14 @@ For each task:
 1. Mark as in_progress
 2. Follow each step exactly (plan has bite-sized steps)
 3. Run verifications as specified
-4. Run `Review Completed Task` after each meaningful task or batch
+4. Run `Review Change` in `task` mode after each meaningful task or batch
 5. Mark as completed
 
 ### Step 3: Hand Off for Branch Completion
 
 After all tasks complete and verified:
-- Run `Review Completed Feature` by default
-- Use `Review High-Risk Change` instead when the change is risky, breaking, or codebase-wide
+- Run `Review Change` in `feature` mode by default
+- Use `Review Change` in `high-risk` mode instead when the change is risky, breaking, or codebase-wide
 - Summarize what was implemented
 - Report the verification you ran and its results
 - Ask the user how they want to finish the branch:
@@ -76,6 +78,4 @@ Do not perform branch cleanup, merge, deletion, or PR creation unless the user e
 **Required workflow skills:**
 - **using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **writing-plans** - Creates the plan this skill executes
-- **review-completed-task** - Review each meaningful task or batch
-- **review-completed-feature** - Final review for larger completed work
-- **review-high-risk-change** - Final review for risky or breaking changes
+- **review-change** - Review each meaningful task or batch and run the final gated review

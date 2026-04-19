@@ -31,7 +31,7 @@ Do not use this skill for:
 Follow this sequence:
 
 1. Discovery
-   Clarify the request, scope boundaries, and success criteria.
+   Clarify the request, scope boundaries, and success criteria. If the request is still ambiguous or may be larger than it first appears, use `Ask Questions` before choosing a direction.
 
 2. Codebase Exploration
    Use the specialist workflow agents to understand the relevant code and patterns. If the codebase is unfamiliar and the `codebase-scan` plugin is installed, run `Scan Existing Codebase` first.
@@ -43,10 +43,10 @@ Follow this sequence:
    Choose one implementation approach that fits the codebase and the user's constraints. If feasibility is uncertain and the `spike-investigation` plugin is installed, use `Spike Investigation` before committing to a build direction.
 
 5. Implementation
-   Build only after the direction is approved or clearly confirmed. If the work is frontend-heavy and the `ui-contract-review` plugin is installed, use `Define UI Contract` before locking the implementation plan.
+   Build only after the direction is approved or clearly confirmed. If the work is frontend-heavy and the `ui-contract-review` plugin is installed, use `Using UI Contract Review` in `define` mode before locking the implementation plan.
 
 6. Quality Review
-   Use `Review Completed Task`, `Review Completed Feature`, or `Review High-Risk Change` depending on change size and risk.
+   Use `Review Change` with the appropriate review mode depending on change size and risk.
 
 7. Summary
    Explain what was built, what was decided, and what remains.
@@ -57,3 +57,5 @@ Follow this sequence:
 - Read the files returned by exploration before making architecture claims.
 - Do not start implementation without explicit approval.
 - Use `workflow-code-reviewer` for primary review and `workflow-risk-reviewer` when the change is risky enough to justify dual review.
+- If the work benefits from per-task subagents or parallel execution and the `multi-agent-workflows` plugin is installed, route execution through `Using Multi-Agent Workflows`.
+- If durable user preferences or repo-specific operational knowledge are likely to matter, activate `Using Agent Memory`.

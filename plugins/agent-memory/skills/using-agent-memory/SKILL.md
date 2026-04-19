@@ -1,9 +1,13 @@
 ---
 name: Using Agent Memory
-description: Use at conversation start and after learning durable user preferences, project conventions, credentials, setup steps, deployments, or other non-obvious workflows
+description: ALWAYS use at conversation start and after compaction or context loss, and proactively write durable user preferences, project conventions, credentials, setup steps, deployments, and other non-obvious workflows as soon as they are learned
 ---
 
 # Using Agent Memory
+
+This skill should be loaded at the start of every conversation and again after compaction, context reset, or any other loss of working context.
+
+Do not wait for the user to mention memory first. Load the relevant memory state before normal work.
 
 ## Core Model
 
@@ -25,7 +29,7 @@ Deep writes automatically create a lite pointer. Only write directly to `lite` f
 
 ## Session Start
 
-At the beginning of every conversation:
+At the beginning of every conversation, and again after compaction or context loss:
 
 1. Call `global_memory_read_lite()`
 2. Read the returned lite entries before doing normal work
@@ -33,19 +37,13 @@ At the beginning of every conversation:
 
 Do this even if the current task is not tied to one project. Global memory is where durable user instructions and cross-project preferences live.
 
-## Project Activation Guard
+If a conversation continues after compaction, treat that like a fresh start for memory loading.
 
-Project memory is separate and should only be used when the current repo actually has it enabled.
+## Project Memory
 
-Treat project memory as enabled when `.memory/` exists in the current project root.
+Project memory is separate from global memory and scoped to the current repository.
 
-If `.memory/` does not exist:
-
-- ignore project-memory tools for normal repo work
-- do not call project read or write tools just because this skill is present
-- only call `memory_setup()` if the user explicitly asks to enable or set up project memory for this repo
-
-If legacy project-memory storage is present, especially `.memory/entries/*.json` or DB-only older layouts, the MCP server handles migration or cache reset automatically on the first project-memory tool call.
+It initializes automatically on the first project-memory tool call in a repo. That first use creates `.memory/`, the SQLite cache, and the other storage directories if they do not exist yet.
 
 ## Reading Memory
 
@@ -60,7 +58,6 @@ Global memory:
 
 Project memory:
 
-- `memory_setup()` when the user explicitly wants project memory enabled in the current repo
 - `memory_read_lite()` when project memory already exists and the task may depend on prior repo knowledge
 - `memory_get(id)` when you already have a project deep entry ID
 - `memory_search(query)` when you know the repo topic but not the exact entry
@@ -122,12 +119,31 @@ memory_write(
 
 ## Save Proactively
 
-Write memory without waiting for the user when you learn durable information that will materially improve future sessions.
+Default to writing memory when you learn durable information that will materially improve future sessions.
+
+Do not wait for the user to ask for a save when the information is clearly reusable.
+
+When in doubt, save if all of these are true:
+
+- it is likely to matter again in a future session
+- it is not obvious from the code alone
+- forgetting it would cost time or cause mistakes
+
+Write as soon as the durable fact becomes clear, not only at the end of the task.
 
 Prefer:
 
 - `global_memory_write(...)` for user preferences and cross-project instructions
 - `memory_write(...)` for repo-specific knowledge
+
+Common proactive save triggers:
+
+- the user states a stable preference about how you should behave
+- you discover the real deploy, release, setup, or bootstrap workflow
+- you learn a non-obvious credential, environment, or integration detail
+- you find a convention that the repo follows but the code does not explain clearly
+- you resolve a gotcha that is likely to recur
+- you confirm a cross-project habit or requirement that should persist
 
 ## What Not To Save
 
