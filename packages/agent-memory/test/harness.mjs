@@ -254,8 +254,8 @@ async function runLegacyJson() {
     );
 
     ensureMemoryReady();
-    const migratedDeepId = 'qrpwic';
-    const migratedLiteId = 'pointe';
+    const migratedDeepId = 'qrpwicqn';
+    const migratedLiteId = 'pointerr';
     return {
       memoryFiles: listRelative(projectDir, '.memory/memories'),
       embeddingFiles: listRelative(projectDir, '.memory/embeddings'),

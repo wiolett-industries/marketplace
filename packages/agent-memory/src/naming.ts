@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { customAlphabet } from 'nanoid';
 import { getOpenAIClient } from './openai.js';
 
-const createId = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 6);
+const createId = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 8);
 const STOP_WORDS = new Set([
   'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'how', 'in', 'is',
   'it', 'of', 'on', 'or', 'that', 'the', 'this', 'to', 'with', 'we', 'you', 'your',
@@ -81,8 +81,10 @@ export function createLegacyFileName(id: string, content: string, tags: string[]
   return `${id}_${fallbackSlug(content, tags)}`;
 }
 
+const NORMALIZED_ID_LENGTH = 8;
+
 function isNormalizedId(value: string): boolean {
-  return /^[a-z0-9]{6}$/.test(value);
+  return new RegExp(`^[a-z0-9]{${NORMALIZED_ID_LENGTH}}$`).test(value);
 }
 
 function legacyHash(value: string): string {
@@ -95,26 +97,26 @@ function legacyBaseId(value: string): string {
   }
 
   const normalized = value.toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (normalized.length >= 6) {
-    return normalized.slice(0, 6);
+  if (normalized.length >= NORMALIZED_ID_LENGTH) {
+    return normalized.slice(0, NORMALIZED_ID_LENGTH);
   }
 
-  return `${normalized}${legacyHash(value)}`.slice(0, 6);
+  return `${normalized}${legacyHash(value)}`.slice(0, NORMALIZED_ID_LENGTH);
 }
 
 function collisionCandidates(base: string, hash: string): string[] {
   const candidates = [base];
 
-  for (let suffixLength = 1; suffixLength <= 6; suffixLength += 1) {
-    const prefixLength = 6 - suffixLength;
-    candidates.push(`${base.slice(0, prefixLength)}${hash.slice(0, suffixLength)}`.slice(0, 6));
+  for (let suffixLength = 1; suffixLength <= NORMALIZED_ID_LENGTH; suffixLength += 1) {
+    const prefixLength = NORMALIZED_ID_LENGTH - suffixLength;
+    candidates.push(`${base.slice(0, prefixLength)}${hash.slice(0, suffixLength)}`.slice(0, NORMALIZED_ID_LENGTH));
   }
 
-  for (let offset = 0; offset <= hash.length - 6; offset += 1) {
-    candidates.push(hash.slice(offset, offset + 6));
+  for (let offset = 0; offset <= hash.length - NORMALIZED_ID_LENGTH; offset += 1) {
+    candidates.push(hash.slice(offset, offset + NORMALIZED_ID_LENGTH));
   }
 
-  return Array.from(new Set(candidates.filter((candidate) => candidate.length === 6)));
+  return Array.from(new Set(candidates.filter((candidate) => candidate.length === NORMALIZED_ID_LENGTH)));
 }
 
 export function remapLegacyIds(ids: string[]): Map<string, string> {

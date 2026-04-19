@@ -29,7 +29,7 @@ At the beginning of every conversation:
 
 1. Call `global_memory_read_lite()`
 2. Read the returned lite entries before doing normal work
-3. If a pointer like `[→ abc123]` is relevant, call `global_memory_get("abc123")`
+3. If a pointer like `[→ abc123xy]` is relevant, call `global_memory_get("abc123xy")`
 
 Do this even if the current task is not tied to one project. Global memory is where durable user instructions and cross-project preferences live.
 
