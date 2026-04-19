@@ -393,6 +393,11 @@ async function runConfig() {
     const storedPath = setStoredOpenAIApiKey('sk-test-manual');
     resetOpenAIClient();
     const resolvedAfterManual = resolveOpenAIApiKey();
+    process.env.OPENAI_API_KEY = '${OPENAI_API_KEY}';
+    const placeholderPersisted = persistOpenAIKeyFromEnvironment();
+    resetOpenAIClient();
+    delete process.env.OPENAI_API_KEY;
+    const resolvedAfterPlaceholder = resolveOpenAIApiKey();
 
     if (previousEnv !== undefined) {
       process.env.OPENAI_API_KEY = previousEnv;
@@ -402,9 +407,11 @@ async function runConfig() {
       configPath,
       persisted,
       storedPath,
+      placeholderPersisted,
       fileContents: JSON.parse(readFileSync(configPath, 'utf8')),
       resolvedAfterEnv,
       resolvedAfterManual,
+      resolvedAfterPlaceholder,
     };
   });
 }

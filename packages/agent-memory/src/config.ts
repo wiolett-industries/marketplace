@@ -12,7 +12,15 @@ function ensureConfigDir(): void {
 
 function normalizeApiKey(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
+  if (!trimmed) {
+    return null;
+  }
+
+  if (/^\$\{[A-Z0-9_]+\}$/.test(trimmed)) {
+    return null;
+  }
+
+  return trimmed;
 }
 
 export function getAgentMemoryConfigPath(): string {
