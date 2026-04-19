@@ -1,0 +1,41 @@
+{
+  "name": "codebase-scan",
+  "version": "0.1.0",
+  "description": "Brownfield codebase scanning and architecture onboarding for Codex.",
+  "author": {
+    "name": "Wiolett Industries",
+    "url": "https://wiolett.net"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/codebase-scan",
+  "repository": "https://github.com/wiolett-industries/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "codebase",
+    "scan",
+    "brownfield",
+    "architecture"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codebase Scan",
+    "shortDescription": "Scan an existing codebase before making changes",
+    "longDescription": "A brownfield onboarding plugin for Codex that scans an existing codebase, identifies architecture and conventions, and highlights integration points, risks, and likely change surfaces before implementation starts.",
+    "developerName": "Wiolett Industries",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/wiolett-industries/marketplace",
+    "privacyPolicyURL": "https://wiolett.net",
+    "termsOfServiceURL": "https://wiolett.net",
+    "defaultPrompt": [
+      "Scan this codebase before we change it",
+      "Map the relevant architecture for this feature",
+      "Show me the likely integration points and risks"
+    ],
+    "brandColor": "#0F9D58",
+    "screenshots": []
+  }
+}

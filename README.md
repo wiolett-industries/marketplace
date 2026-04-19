@@ -10,6 +10,13 @@ This repository publishes:
 The marketplace currently ships:
 
 - [`agent-memory`](./packages/agent-memory) — persistent memory for Codex with separate global and project scopes
+- [`workflow`](./plugins/workflow) — engineering workflow core for discovery, planning, plan review, debugging, review loops, and verification
+- [`codebase-scan`](./plugins/codebase-scan) — brownfield codebase scanning before planning or implementation
+- [`ui-contract-review`](./plugins/ui-contract-review) — frontend UI contract definition and retroactive interface review
+- [`spike-investigation`](./plugins/spike-investigation) — bounded feasibility spikes before committing to an implementation path
+- [`test-driven-development`](./plugins/test-driven-development) — strict red-green-refactor discipline as a standalone plugin
+- [`multi-agent-workflows`](./plugins/multi-agent-workflows) — parallel investigation and subagent-driven execution workflows
+- [`ask-questions`](./plugins/ask-questions) — ask only the minimum clarifying questions before ambiguous implementation work
 
 ## Install In Codex
 
@@ -40,6 +47,8 @@ npx @wiolett/marketplace uninstall
 
 During interactive installation, the CLI can ask for an OpenAI API key and persist it for `agent-memory` before applying the marketplace change.
 
+That key is only relevant if you plan to install and use `agent-memory`. The marketplace itself and the other plugins do not require it.
+
 If you provide a key during install, it is stored at:
 
 ```text
@@ -50,7 +59,7 @@ If you provide a key during install, it is stored at:
 
 After the marketplace is registered, install the plugin you want from Codex.
 
-## Included Plugin
+## Included Plugins
 
 ### Agent Memory
 
@@ -61,10 +70,33 @@ After the marketplace is registered, install the plugin you want from Codex.
 
 Learn more in [`packages/agent-memory/README.md`](./packages/agent-memory/README.md).
 
+### Workflow
+
+`workflow` covers discovery, planning, plan review, execution, debugging, review loops, and verification discipline for general engineering work.
+
+### Codebase Scan
+
+`codebase-scan` helps Codex map an unfamiliar repository before planning or implementing a substantial change.
+
+### UI Contract Review
+
+`ui-contract-review` adds a frontend-oriented contract-before-build and review-after-build workflow.
+
+### Spike Investigation
+
+`spike-investigation` gives Codex a clean way to run bounded technical experiments before committing to a design path.
+
 ## Repository Layout
 
 - marketplace manifest: [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json)
 - plugin wrapper: [`plugins/agent-memory`](./plugins/agent-memory)
+- plugin: [`plugins/workflow`](./plugins/workflow)
+- plugin: [`plugins/codebase-scan`](./plugins/codebase-scan)
+- plugin: [`plugins/ui-contract-review`](./plugins/ui-contract-review)
+- plugin: [`plugins/spike-investigation`](./plugins/spike-investigation)
+- plugin: [`plugins/test-driven-development`](./plugins/test-driven-development)
+- plugin: [`plugins/multi-agent-workflows`](./plugins/multi-agent-workflows)
+- plugin: [`plugins/ask-questions`](./plugins/ask-questions)
 - MCP implementation: [`packages/agent-memory`](./packages/agent-memory)
 - npm installer CLI: [`bin/marketplace`](./bin/marketplace)
 

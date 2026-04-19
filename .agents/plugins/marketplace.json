@@ -15,6 +15,90 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Productivity"
+    },
+    {
+      "name": "workflow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/workflow"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "codebase-scan",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codebase-scan"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "ui-contract-review",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ui-contract-review"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "spike-investigation",
+      "source": {
+        "source": "local",
+        "path": "./plugins/spike-investigation"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "test-driven-development",
+      "source": {
+        "source": "local",
+        "path": "./plugins/test-driven-development"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "multi-agent-workflows",
+      "source": {
+        "source": "local",
+        "path": "./plugins/multi-agent-workflows"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "ask-questions",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ask-questions"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
     }
   ]
 }

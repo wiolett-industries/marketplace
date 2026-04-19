@@ -1,0 +1,44 @@
+{
+  "name": "workflow",
+  "version": "0.1.0",
+  "description": "Structured engineering workflows for Codex: discovery, planning, plan review, debugging, review loops, and verification discipline.",
+  "author": {
+    "name": "Wiolett Industries",
+    "url": "https://wiolett.net"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/workflow",
+  "repository": "https://github.com/wiolett-industries/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "workflow",
+    "planning",
+    "debugging",
+    "review",
+    "agents",
+    "feature-development"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Workflow",
+    "shortDescription": "Discovery, planning, plan review, implementation, review, and verification workflows",
+    "longDescription": "A merged workflow plugin for Codex that combines disciplined implementation skills with specialist explorer, architect, and reviewer agents. It covers brainstorming, feature discovery, planning, plan review, execution, debugging, verification, and multi-stage code review loops.",
+    "developerName": "Wiolett Industries",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/wiolett-industries/marketplace",
+    "privacyPolicyURL": "https://wiolett.net",
+    "termsOfServiceURL": "https://wiolett.net",
+    "defaultPrompt": [
+      "Run the workflow feature process for this change",
+      "Write an implementation plan for this task",
+      "Review this implementation plan before coding",
+      "Run a task review before we move on"
+    ],
+    "brandColor": "#0F9D58",
+    "screenshots": []
+  }
+}

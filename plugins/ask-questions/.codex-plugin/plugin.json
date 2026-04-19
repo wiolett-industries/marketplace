@@ -1,0 +1,40 @@
+{
+  "name": "ask-questions",
+  "version": "0.1.0",
+  "description": "Clarifying-question workflow for ambiguous requests that asks only the minimum needed to choose the right direction.",
+  "author": {
+    "name": "Wiolett Industries",
+    "url": "https://wiolett.net"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/ask-questions",
+  "repository": "https://github.com/wiolett-industries/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "clarification",
+    "requirements",
+    "planning",
+    "safety"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Ask Questions",
+    "shortDescription": "Clarify ambiguous work before acting",
+    "longDescription": "A focused Codex plugin for clarification discipline. It teaches the model to ask the smallest useful set of questions when a request is materially ambiguous, without blocking on things that can be resolved by quick low-risk discovery.",
+    "developerName": "Wiolett Industries",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://github.com/wiolett-industries/marketplace",
+    "privacyPolicyURL": "https://wiolett.net",
+    "termsOfServiceURL": "https://wiolett.net",
+    "defaultPrompt": [
+      "Ask only the minimum clarifying questions here",
+      "Check whether this request is underspecified first",
+      "Proceed only after confirming assumptions"
+    ],
+    "brandColor": "#D97706",
+    "screenshots": []
+  }
+}

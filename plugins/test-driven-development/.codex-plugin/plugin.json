@@ -1,0 +1,40 @@
+{
+  "name": "test-driven-development",
+  "version": "0.1.0",
+  "description": "Strict test-driven development workflow for Codex with red-green-refactor discipline and testing anti-pattern guidance.",
+  "author": {
+    "name": "Wiolett Industries",
+    "url": "https://wiolett.net"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/test-driven-development",
+  "repository": "https://github.com/wiolett-industries/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "tdd",
+    "testing",
+    "workflow"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Test-Driven Development",
+    "shortDescription": "Strict red-green-refactor workflow",
+    "longDescription": "A standalone TDD plugin for Codex. It enforces write-the-test-first discipline, verifies red before green, and includes anti-pattern guidance for mocks and production-test boundaries.",
+    "developerName": "Wiolett Industries",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/wiolett-industries/marketplace",
+    "privacyPolicyURL": "https://wiolett.net",
+    "termsOfServiceURL": "https://wiolett.net",
+    "defaultPrompt": [
+      "Use strict TDD for this fix",
+      "Write the failing test first",
+      "Check this test setup for anti-patterns"
+    ],
+    "brandColor": "#0F9D58",
+    "screenshots": []
+  }
+}

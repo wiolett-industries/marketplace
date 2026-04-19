@@ -1,0 +1,41 @@
+{
+  "name": "multi-agent-workflows",
+  "version": "0.1.0",
+  "description": "Parallel and subagent-driven execution workflows for Codex, including task-level orchestration and isolated prompt templates.",
+  "author": {
+    "name": "Wiolett Industries",
+    "url": "https://wiolett.net"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/multi-agent-workflows",
+  "repository": "https://github.com/wiolett-industries/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "agents",
+    "parallel",
+    "orchestration",
+    "workflow"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Multi-Agent Workflows",
+    "shortDescription": "Parallel and subagent-driven execution workflows",
+    "longDescription": "A standalone Codex plugin for multi-agent work. It bundles parallel investigation guidance and subagent-driven implementation with prompt templates for implementer, spec-review, and task-review loops.",
+    "developerName": "Wiolett Industries",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/wiolett-industries/marketplace",
+    "privacyPolicyURL": "https://wiolett.net",
+    "termsOfServiceURL": "https://wiolett.net",
+    "defaultPrompt": [
+      "Use subagent-driven development for this plan",
+      "Split these independent failures across parallel agents",
+      "Run this implementation through a multi-agent workflow"
+    ],
+    "brandColor": "#0F9D58",
+    "screenshots": []
+  }
+}

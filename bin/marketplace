@@ -114,9 +114,9 @@ function printHelp() {
       '  --ref <ref>       Git ref to pass through to `codex marketplace add --ref`.',
       '  --source <value>  Marketplace source. Defaults to wiolett-industries/marketplace.',
       '  --openai-api-key <key>',
-      '                     Persist an OpenAI API key for agent-memory.',
+      '                     Persist an OpenAI API key for the optional agent-memory plugin only.',
       '  --openai-api-key-env <ENV_VAR>',
-      '                     Read and persist the OpenAI API key from an environment variable.',
+      '                     Read and persist the OpenAI API key for the optional agent-memory plugin only.',
       '  --verbose         Print the exact Codex command and config changes before applying.',
       '  --yes             Skip the confirmation prompt.',
       '',
@@ -389,8 +389,8 @@ async function collectOpenAIKeyForInstall(args) {
   }
 
   title('OpenAI Configuration');
-  info('Agent Memory works without OpenAI, but embeddings and AI-generated memory names are strongly recommended.');
-  process.stdout.write(`${GRAY}If you provide a key, the installer will persist it in ~/.agents/agent-memory/config.json so Codex can reuse it across restarts.${NC}\n\n`);
+  info('This key is only used by the optional agent-memory plugin. The marketplace itself and the other plugins do not need it.');
+  process.stdout.write(`${GRAY}If you plan to use agent-memory, providing a key enables embeddings and AI-generated memory names. The installer will persist it in ~/.agents/agent-memory/config.json so Codex can reuse it across restarts.${NC}\n\n`);
 
   const apiKey = String(
     await promptHidden('OpenAI API key (press Enter to skip): ')
@@ -421,9 +421,9 @@ function buildInstallPlan({ source, ref, apiKey }) {
   ];
 
   if (apiKey) {
-    changes.push(`Write: ${getAgentMemoryConfigPath()}`);
+    changes.push(`Write: ${getAgentMemoryConfigPath()} (agent-memory only)`);
   } else {
-    changes.push('OPENAI_API_KEY is optional and will not be configured automatically.');
+    changes.push('OpenAI key is optional and only needed for the agent-memory plugin. It will not be configured automatically.');
   }
 
   return {
@@ -513,6 +513,8 @@ async function runInstall(options) {
   success('Marketplace installed successfully.');
   if (apiKey) {
     info(`Saved the agent-memory OpenAI key to ${getAgentMemoryConfigPath()}.`);
+  } else {
+    info('No OpenAI key was configured. That is fine unless you plan to use the agent-memory plugin with embeddings and AI naming.');
   }
   process.exit(0);
 }

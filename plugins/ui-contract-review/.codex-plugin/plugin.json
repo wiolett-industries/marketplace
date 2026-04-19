@@ -1,0 +1,41 @@
+{
+  "name": "ui-contract-review",
+  "version": "0.1.0",
+  "description": "Frontend design-contract definition and retroactive UI review for Codex.",
+  "author": {
+    "name": "Wiolett Industries",
+    "url": "https://wiolett.net"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/ui-contract-review",
+  "repository": "https://github.com/wiolett-industries/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "frontend",
+    "ui",
+    "design",
+    "review"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "UI Contract Review",
+    "shortDescription": "Define a UI contract before building and audit the result after",
+    "longDescription": "A frontend-focused Codex plugin for defining a clear UI contract before implementation and auditing the final UI afterward for consistency, hierarchy, copy, spacing, and interaction quality.",
+    "developerName": "Wiolett Industries",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/wiolett-industries/marketplace",
+    "privacyPolicyURL": "https://wiolett.net",
+    "termsOfServiceURL": "https://wiolett.net",
+    "defaultPrompt": [
+      "Define the UI contract for this frontend change",
+      "Audit this implemented UI against the intended design",
+      "Review this screen for hierarchy, spacing, copy, and interaction quality"
+    ],
+    "brandColor": "#0F9D58",
+    "screenshots": []
+  }
+}

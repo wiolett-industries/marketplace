@@ -1,0 +1,41 @@
+{
+  "name": "spike-investigation",
+  "version": "0.1.0",
+  "description": "Bounded technical spikes and feasibility investigation for Codex.",
+  "author": {
+    "name": "Wiolett Industries",
+    "url": "https://wiolett.net"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/spike-investigation",
+  "repository": "https://github.com/wiolett-industries/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "spike",
+    "investigation",
+    "feasibility",
+    "research"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Spike Investigation",
+    "shortDescription": "Run bounded feasibility spikes before committing to an implementation path",
+    "longDescription": "A Codex plugin for bounded technical spikes. It helps explore uncertain approaches through small throwaway experiments, compare findings, and turn the result into a grounded recommendation before planning full implementation.",
+    "developerName": "Wiolett Industries",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/wiolett-industries/marketplace",
+    "privacyPolicyURL": "https://wiolett.net",
+    "termsOfServiceURL": "https://wiolett.net",
+    "defaultPrompt": [
+      "Run a bounded spike before we commit to this architecture",
+      "Test a few implementation approaches and summarize the findings",
+      "Use a spike to reduce uncertainty before planning"
+    ],
+    "brandColor": "#0F9D58",
+    "screenshots": []
+  }
+}
