@@ -216,11 +216,13 @@ async function runLegacyJson() {
   const projectDir = createTempProject('pm-legacy-json');
   return withProject(projectDir, async () => {
     mkdirSync(path.join(projectDir, '.memory', 'entries'), { recursive: true });
+    const legacyDeepId = '-QrPW_icQNLYbf9YPiUWH';
+    const legacyLiteId = 'PointerRef_QrPW_icQNLY';
     writeFileSync(
-      path.join(projectDir, '.memory', 'entries', 'abc123.json'),
+      path.join(projectDir, '.memory', 'entries', 'deep.json'),
       JSON.stringify(
         {
-          id: 'abc123',
+          id: legacyDeepId,
           content: 'Legacy MinIO workflow stored in JSON format',
           tags: ['legacy', 'minio'],
           layer: 'deep',
@@ -233,12 +235,32 @@ async function runLegacyJson() {
         2
       )
     );
+    writeFileSync(
+      path.join(projectDir, '.memory', 'entries', 'lite.json'),
+      JSON.stringify(
+        {
+          id: legacyLiteId,
+          content: `[→ ${legacyDeepId}] Legacy MinIO workflow`,
+          tags: ['legacy', 'minio'],
+          layer: 'lite',
+          ref: legacyDeepId,
+          embedding: [],
+          created_at: 1700000000000,
+          updated_at: 1700000001000,
+        },
+        null,
+        2
+      )
+    );
 
     ensureMemoryReady();
+    const migratedDeepId = 'qrpwic';
+    const migratedLiteId = 'pointe';
     return {
       memoryFiles: listRelative(projectDir, '.memory/memories'),
       embeddingFiles: listRelative(projectDir, '.memory/embeddings'),
-      migrated: handleGet({ id: 'abc123' }),
+      migrated: handleGet({ id: migratedDeepId }),
+      migratedPointer: handleGet({ id: migratedLiteId }),
     };
   });
 }

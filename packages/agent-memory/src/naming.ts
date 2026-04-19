@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { customAlphabet } from 'nanoid';
 import { getOpenAIClient } from './openai.js';
 
@@ -78,4 +79,60 @@ export async function createEntryIdentity(content: string, tags: string[]): Prom
 
 export function createLegacyFileName(id: string, content: string, tags: string[]): string {
   return `${id}_${fallbackSlug(content, tags)}`;
+}
+
+function isNormalizedId(value: string): boolean {
+  return /^[a-z0-9]{6}$/.test(value);
+}
+
+function legacyHash(value: string): string {
+  return createHash('sha1').update(value, 'utf8').digest('hex');
+}
+
+function legacyBaseId(value: string): string {
+  if (isNormalizedId(value)) {
+    return value;
+  }
+
+  const normalized = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (normalized.length >= 6) {
+    return normalized.slice(0, 6);
+  }
+
+  return `${normalized}${legacyHash(value)}`.slice(0, 6);
+}
+
+function collisionCandidates(base: string, hash: string): string[] {
+  const candidates = [base];
+
+  for (let suffixLength = 1; suffixLength <= 6; suffixLength += 1) {
+    const prefixLength = 6 - suffixLength;
+    candidates.push(`${base.slice(0, prefixLength)}${hash.slice(0, suffixLength)}`.slice(0, 6));
+  }
+
+  for (let offset = 0; offset <= hash.length - 6; offset += 1) {
+    candidates.push(hash.slice(offset, offset + 6));
+  }
+
+  return Array.from(new Set(candidates.filter((candidate) => candidate.length === 6)));
+}
+
+export function remapLegacyIds(ids: string[]): Map<string, string> {
+  const mapping = new Map<string, string>();
+  const used = new Set<string>();
+
+  for (const id of ids) {
+    const base = legacyBaseId(id);
+    const hash = legacyHash(id);
+    const candidate = collisionCandidates(base, hash).find((value) => !used.has(value));
+
+    if (!candidate) {
+      throw new Error(`Unable to assign a unique migrated ID for legacy memory "${id}".`);
+    }
+
+    mapping.set(id, candidate);
+    used.add(candidate);
+  }
+
+  return mapping;
 }

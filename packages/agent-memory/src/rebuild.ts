@@ -3,9 +3,20 @@ import { replaceOutgoingEdges, resetDbCacheFiles, upsertEntry } from './db.js';
 import { getEmbeddingsDir, getGraphDir, getLegacyEntriesDir, getMemoriesDir, listEntryFileNames, listGraphFileNames, readEntryFileByFileName, readGraphFile, writeEntryFile } from './files.js';
 import type { GraphEdgeRecord } from './graph.js';
 import { isGraphRelation, normalizeWeight } from './graph.js';
-import { createLegacyFileName } from './naming.js';
+import { createLegacyFileName, remapLegacyIds } from './naming.js';
 import { hashEntry } from './entry.js';
 import type { MemoryScope } from './scope.js';
+
+function remapLegacyPointerContent(content: string, ref: string): string {
+  const match = content.match(/^\[→ [^\]]+\]\s*([\s\S]*)$/);
+  const summary = match ? match[1].trimStart() : content.trim();
+  return summary ? `[→ ${ref}] ${summary}` : `[→ ${ref}]`;
+}
+
+function pointerSummary(content: string): string {
+  const match = content.match(/^\[→ [^\]]+\]\s*([\s\S]*)$/);
+  return match ? match[1].trimStart() : content;
+}
 
 function migrateLegacyJsonFilesToSplitFiles(scope: MemoryScope): void {
   const legacyDir = getLegacyEntriesDir(scope);
@@ -25,8 +36,7 @@ function migrateLegacyJsonFilesToSplitFiles(scope: MemoryScope): void {
 
   process.stderr.write(`[agent-memory] migrating ${legacyFiles.length} legacy JSON entries to split files...\n`);
 
-  for (const fileName of legacyFiles) {
-    const raw = JSON.parse(readFileSync(`${legacyDir}/${fileName}`, 'utf8')) as {
+  const rawEntries = legacyFiles.map((fileName) => JSON.parse(readFileSync(`${legacyDir}/${fileName}`, 'utf8')) as {
       id: string;
       content: string;
       tags: string[];
@@ -35,11 +45,25 @@ function migrateLegacyJsonFilesToSplitFiles(scope: MemoryScope): void {
       embedding: number[];
       created_at: number;
       updated_at: number;
-    };
+    });
+  const idMap = remapLegacyIds(rawEntries.map((entry) => entry.id));
+
+  for (const raw of rawEntries) {
+    const id = idMap.get(raw.id) ?? raw.id;
+    const ref = raw.ref ? (idMap.get(raw.ref) ?? raw.ref) : null;
+    const content = raw.layer === 'lite' && ref
+      ? remapLegacyPointerContent(raw.content, ref)
+      : raw.content;
+    const slugSourceContent = raw.layer === 'lite' && ref
+      ? pointerSummary(content)
+      : content;
 
     writeEntryFile({
       ...raw,
-      file_name: createLegacyFileName(raw.id, raw.content, raw.tags),
+      id,
+      ref,
+      content,
+      file_name: createLegacyFileName(id, slugSourceContent, raw.tags),
     }, scope);
   }
 
