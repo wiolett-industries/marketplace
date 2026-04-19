@@ -33,6 +33,8 @@ Use for ANY technical issue:
 
 If durable repo-specific gotchas, deploy details, or recurring user instructions may matter to the diagnosis, activate `Using Agent Memory` before assuming you are debugging from scratch.
 
+If the bug depends on the actual browser session the user is running, especially auth state, local storage, delayed redirects, or suspicious client-side behavior, activate `Using Live Browser Debug` before relying on Playwright or point-in-time inspection.
+
 **Use this ESPECIALLY when:**
 - Under time pressure (emergencies make guessing tempting)
 - "Just one quick fix" seems obvious

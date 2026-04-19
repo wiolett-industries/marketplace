@@ -14,6 +14,8 @@ Use it for both phases of meaningful frontend work:
 
 This skill usually sits inside a broader engineering flow. If the `workflow` plugin is installed, use it alongside `Using Workflow`, `Brainstorming`, `Feature Development`, or `Writing Plans` rather than as a standalone replacement for them.
 
+If the final UI review depends on the user's real browser session, delayed redirects, or other session-specific browser behavior, pair this skill with `Using Live Browser Debug`.
+
 ## Activation Rule
 
 Always use this skill when the task includes substantial UI work, especially when:

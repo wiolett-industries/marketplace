@@ -41,6 +41,18 @@
       "category": "Developer Tools"
     },
     {
+      "name": "live-browser-debug",
+      "source": {
+        "source": "local",
+        "path": "./plugins/live-browser-debug"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
       "name": "ui-contract-review",
       "source": {
         "source": "local",

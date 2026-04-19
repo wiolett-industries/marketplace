@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "live-browser-debug": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wiolett/live-browser-debug-mcp@0.1.0"
+      ],
+      "note": "Local MCP bridge for real-browser frontend debugging. Use browser_debug_prepare first, temporarily patch the app to load the client, then inspect sessions, recordings, redirects, logs, DOM snapshots, and cleanup instructions."
+    }
+  }
+}

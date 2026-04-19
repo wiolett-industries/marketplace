@@ -5,3 +5,4 @@ packages/*/dist/
 .env
 .DS_Store
 .memory/memory.db*
+.playwright-mcp/

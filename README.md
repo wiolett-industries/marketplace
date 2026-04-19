@@ -10,8 +10,9 @@ This repository publishes:
 The marketplace currently ships:
 
 - [`agent-memory`](./packages/agent-memory) — persistent memory for Codex with separate global and project scopes
-- [`workflow`](./plugins/workflow) — engineering workflow core for discovery, planning, plan review, debugging, review loops, and verification
+- [`workflow`](./plugins/workflow) — engineering workflow core for discovery, planning, debugging, review loops, and verification
 - [`codebase-scan`](./plugins/codebase-scan) — brownfield codebase scanning before planning or implementation
+- [`live-browser-debug`](./plugins/live-browser-debug) — real-browser debugging bridge for local frontend apps and incident recording
 - [`ui-contract-review`](./plugins/ui-contract-review) — frontend UI contract definition and retroactive interface review
 - [`spike-investigation`](./plugins/spike-investigation) — bounded feasibility spikes before committing to an implementation path
 - [`test-driven-development`](./plugins/test-driven-development) — strict red-green-refactor discipline as a standalone plugin
@@ -75,11 +76,15 @@ Learn more in [`packages/agent-memory/README.md`](./packages/agent-memory/README
 
 ### Workflow
 
-`workflow` covers discovery, planning, plan review, execution, debugging, review loops, and verification discipline for general engineering work.
+`workflow` covers discovery, planning, execution, debugging, review loops, and verification discipline for general engineering work.
 
 ### Codebase Scan
 
 `codebase-scan` helps Codex map an unfamiliar repository before planning or implementing a substantial change.
+
+### Live Browser Debug
+
+`live-browser-debug` lets Codex temporarily wire a local debug client into a frontend app so it can inspect the user's real browser session, record delayed incidents, and review console, network, DOM, and approximate visual state.
 
 ### UI Contract Review
 
@@ -95,6 +100,7 @@ Learn more in [`packages/agent-memory/README.md`](./packages/agent-memory/README
 - plugin wrapper: [`plugins/agent-memory`](./plugins/agent-memory)
 - plugin: [`plugins/workflow`](./plugins/workflow)
 - plugin: [`plugins/codebase-scan`](./plugins/codebase-scan)
+- plugin: [`plugins/live-browser-debug`](./plugins/live-browser-debug)
 - plugin: [`plugins/ui-contract-review`](./plugins/ui-contract-review)
 - plugin: [`plugins/spike-investigation`](./plugins/spike-investigation)
 - plugin: [`plugins/test-driven-development`](./plugins/test-driven-development)

@@ -1,0 +1,45 @@
+{
+  "name": "live-browser-debug",
+  "version": "0.1.0",
+  "description": "Debug the real browser session by temporarily wiring a local bridge client into a frontend app during development.",
+  "author": {
+    "name": "Wiolett Industries",
+    "url": "https://wiolett.net"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/packages/live-browser-debug",
+  "repository": "https://github.com/wiolett-industries/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "browser",
+    "debugging",
+    "frontend",
+    "mcp",
+    "network",
+    "console",
+    "dom"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Live Browser Debug",
+    "shortDescription": "Record and inspect the user's real browser session during local frontend debugging",
+    "longDescription": "Adds a local MCP bridge for real-browser frontend debugging. Codex can prepare a temporary injection patch, attach to live tabs, record incident timelines, inspect console logs, DOM snapshots, network activity, redirects, and approximate visual captures, then remove the temporary integration when debugging ends.",
+    "developerName": "Wiolett Industries",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://wiolett.net",
+    "privacyPolicyURL": "https://wiolett.net",
+    "termsOfServiceURL": "https://wiolett.net",
+    "defaultPrompt": [
+      "Prepare live browser debugging for this frontend app",
+      "Attach to the redirected tab and record the next 30 seconds",
+      "Show me the browser timeline around the redirect",
+      "Clean up the temporary debug integration when done"
+    ],
+    "brandColor": "#0F766E",
+    "screenshots": []
+  }
+}

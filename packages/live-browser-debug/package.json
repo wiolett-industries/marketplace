@@ -1,0 +1,33 @@
+{
+  "name": "@wiolett/live-browser-debug-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MCP server backing the Live Browser Debug Codex plugin.",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "live-browser-debug-mcp": "src/index.js"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wiolett-industries/marketplace.git",
+    "directory": "packages/live-browser-debug"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/packages/live-browser-debug",
+  "scripts": {
+    "start": "NODE_NO_WARNINGS=1 node src/index.js",
+    "prepack": "npm test",
+    "test": "node --test ./test/*.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "ws": "^8.18.3",
+    "zod": "^4.1.12"
+  }
+}

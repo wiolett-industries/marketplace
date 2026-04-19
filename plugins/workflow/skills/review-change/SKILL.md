@@ -9,6 +9,8 @@ This is the single review skill for the `workflow` plugin.
 
 Use it as a hard gate, not as a suggestion pass.
 
+For frontend changes where real in-browser behavior matters, especially auth/session flows or delayed client-side redirects, combine this review with `Using Live Browser Debug` instead of relying only on code inspection.
+
 ## Activation Rule
 
 Always use this skill when meaningful implementation work is finished and you are about to:

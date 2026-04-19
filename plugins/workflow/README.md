@@ -1,11 +1,11 @@
 # Workflow
 
-Merged Codex workflow plugin for feature discovery, architecture design, implementation discipline, plan quality, review loops, and verification.
+Merged Codex workflow plugin for feature discovery, architecture design, implementation discipline, review loops, and verification.
 
 This plugin ships:
 
 - `Using Workflow` as the entry skill for every conversation start and post-compaction restart
-- skills for brainstorming, feature development, planning, plan review, execution, debugging, worktree setup, review, and verification
+- skills for brainstorming, feature development, planning, execution, debugging, worktree setup, review, and verification
 - specialist explorer, architect, reviewer, and risk-reviewer agents
 
 The review system is built around three levels:
@@ -25,6 +25,7 @@ Related plugins in this marketplace:
 - `spike-investigation` for bounded feasibility spikes before planning
 - `test-driven-development` for strict TDD discipline
 - `multi-agent-workflows` for subagent-driven and parallel-agent execution
+- `live-browser-debug` for real-browser frontend debugging and delayed incident capture
 
 ## Attribution
 

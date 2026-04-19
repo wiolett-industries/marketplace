@@ -19,8 +19,9 @@
   "scripts": {
     "plugins:install": "npm install --workspaces",
     "plugin:agent-memory:install": "npm install --workspace packages/agent-memory",
+    "plugin:live-browser-debug:install": "npm install --workspace packages/live-browser-debug",
     "build": "npm run build --workspace packages/agent-memory",
-    "test": "npm run test --workspace packages/agent-memory",
+    "test": "npm run test --workspace packages/agent-memory && npm run test --workspace packages/live-browser-debug",
     "typecheck": "npm run typecheck --workspace packages/agent-memory"
   },
   "keywords": [
