@@ -2,10 +2,7 @@
 
 Codex plugin marketplace for Wiolett Industries.
 
-This repository publishes:
-
-- a Codex marketplace source, exposed through [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json)
-- a lightweight npm installer CLI published as `@wiolett/marketplace`
+This repository provides a Codex marketplace source, exposed through [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json).
 
 The marketplace currently ships:
 
@@ -22,47 +19,34 @@ The marketplace currently ships:
 
 ## Install In Codex
 
-The simplest install path is:
+Register the marketplace with Codex:
 
 ```bash
-npx @wiolett/marketplace
+codex plugin marketplace add wiolett-industries/marketplace
 ```
 
-This registers the Wiolett marketplace in Codex.
-
-You can also run the command explicitly:
+To pin a specific ref:
 
 ```bash
-npx @wiolett/marketplace install
+codex plugin marketplace add wiolett-industries/marketplace --ref main
 ```
 
-Optional flags:
+To register a local checkout:
 
 ```bash
-npx @wiolett/marketplace install --ref main
-npx @wiolett/marketplace install --source /absolute/path/to/local/marketplace
-npx @wiolett/marketplace install --openai-api-key-env OPENAI_API_KEY --yes
-npx @wiolett/marketplace install --openai-api-key sk-proj-... --yes
-npx @wiolett/marketplace install --yes
-npx @wiolett/marketplace update --yes
-npx @wiolett/marketplace uninstall
+codex plugin marketplace add /absolute/path/to/local/marketplace
 ```
 
-After `update`, reinstall the plugins you want enabled again in Codex. Refreshing the marketplace can leave previously installed plugins disabled.
+To refresh or remove the marketplace:
 
-During interactive installation, the CLI can ask for an OpenAI API key and persist it for `agent-memory` before applying the marketplace change.
-
-That key is only relevant if you plan to install and use `agent-memory`. The marketplace itself and the other plugins do not require it.
-
-If you provide a key during install, it is stored at:
-
-```text
-~/.agents/agent-memory/config.json
+```bash
+codex plugin marketplace upgrade wiolett-industries
+codex plugin marketplace remove wiolett-industries
 ```
-
-`agent-memory` prefers `OPENAI_API_KEY` from the environment when present, and otherwise falls back to the stored key automatically.
 
 After the marketplace is registered, install the plugin you want from Codex.
+
+The marketplace itself does not require an OpenAI API key. If you install `agent-memory`, it prefers `OPENAI_API_KEY` from the environment and otherwise falls back to a stored key at `~/.agents/agent-memory/config.json` when configured.
 
 ## Included Plugins
 
@@ -113,19 +97,3 @@ Learn more in [`packages/agent-memory/README.md`](./packages/agent-memory/README
 - plugin: [`plugins/multi-agent-workflows`](./plugins/multi-agent-workflows)
 - plugin: [`plugins/ask-questions`](./plugins/ask-questions)
 - MCP implementation: [`packages/agent-memory`](./packages/agent-memory)
-- npm installer CLI: [`bin/marketplace`](./bin/marketplace)
-
-## Publish
-
-This repository is configured to publish the installer CLI as:
-
-```text
-@wiolett/marketplace
-```
-
-Standard publish flow:
-
-```bash
-npm pack --dry-run
-npm publish
-```
