@@ -38,6 +38,15 @@ If repository context is still cold, use `Scan Existing Codebase` before writing
 
 If durable repo knowledge or persistent user instructions may affect the plan, activate `Using Agent Memory` before finalizing direction.
 
+## Lint And Quality Constraints
+
+Before defining implementation tasks, detect whether the project has a linter or lint-like quality gate. Check scripts, config files, CI config, and nearby documentation.
+
+- If a linter exists, the plan must include the exact lint command in the relevant task verification and final verification.
+- Do not plan to disable, suppress, remove, loosen, or bypass lint rules. This includes broad ignore comments, config downgrades, excluded files, warning suppression, or deleting lint plugins.
+- Treat lint warnings as failures to fix during implementation. The plan should tell the executor to resolve both errors and warnings.
+- If lint output conflicts with the current approach, change the code structure or implementation approach, not the lint standard.
+
 ## Scope Check
 
 If the approved direction covers multiple independent subsystems, it should have been broken into sub-project plans during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
@@ -63,7 +72,8 @@ Before defining tasks, map out which files will be created or modified and what 
 - Design units with clear boundaries and well-defined interfaces. Each file should have one clear responsibility.
 - You reason best about code you can hold in context at once, and your edits are more reliable when files are focused. Prefer smaller, focused files over large ones that do too much.
 - Files that change together should live together. Split by responsibility, not by technical layer.
-- In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure - but if a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
+- Keep code files under 500 lines. Treat 500 lines as a hard limit; if planned work would cross it, split the touched responsibility into focused files.
+- In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure unrelated areas - but if a file you're modifying has grown unwieldy or mixes responsibilities, include a targeted split in the plan.
 
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
 
@@ -182,7 +192,11 @@ If any of that language appears without explicit user approval, rewrite the plan
 
 **7. Verification quality:** Tasks should include meaningful verification, not vague "run tests" filler. The plan should prove delivery, not just file creation.
 
-**8. Size sanity:** Keep each plan and task small enough to execute cleanly.
+**8. Lint fidelity:** If a linter exists, does the plan run it and require fixing all reported errors and warnings? Search for any instruction that disables, suppresses, removes, or bypasses lint rules. Remove that instruction and change the implementation instead.
+
+**9. File size and responsibility:** Will any touched code file exceed 500 lines or combine unrelated domains? If yes, split the responsibility before execution. Do not accept a plan that adds more code to an oversized mixed-purpose file without a focused decomposition step.
+
+**10. Size sanity:** Keep each plan and task small enough to execute cleanly.
 - Prefer 2-3 meaningful tasks per plan section
 - Prefer focused file sets over huge cross-cutting batches
 - If a task touches too many files or concerns, split it before execution

@@ -18,6 +18,12 @@ Planning discipline includes:
 
 - `Writing Plans` for codebase exploration, comprehensive draft planning, self-review, and final implementation plan creation
 
+Coding discipline is always on:
+
+- existing linters are treated as mandatory feedback; errors and warnings must be fixed, not suppressed
+- workflow plans, execution, review, and verification must preserve lint rules instead of disabling or bypassing them
+- code files should stay under 500 lines and maintain one clear responsibility, with targeted splits when touched files become too large or mixed-purpose
+
 Related plugins in this marketplace:
 
 - `codebase-scan` for brownfield codebase onboarding and architecture scanning

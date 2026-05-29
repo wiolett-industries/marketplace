@@ -1,6 +1,6 @@
 {
   "name": "multi-agent-workflows",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Parallel and subagent-driven execution workflows for Codex with plugin-level multi-agent roles.",
   "author": {
     "name": "Wiolett Industries",

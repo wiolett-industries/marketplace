@@ -20,17 +20,20 @@ If the `multi-agent-workflows` plugin is installed and the plan is substantial b
 ### Step 1: Load and Review Plan
 1. Read plan file
 2. Review critically - identify any questions or concerns about the plan
-3. If concerns: Raise them with your human partner before starting
-4. If no concerns: create a plan tracker and proceed
+3. Check whether the plan preserves project lint rules, runs the relevant lint command when one exists, and avoids files over 500 lines or mixed responsibilities
+4. If concerns: Raise them with your human partner before starting
+5. If no concerns: create a plan tracker and proceed
 
 ### Step 2: Execute Tasks
 
 For each task:
 1. Mark as in_progress
 2. Follow each step exactly (plan has bite-sized steps)
-3. Run verifications as specified
-4. Run `Review Change` in `task` mode after each meaningful task or batch
-5. Mark as completed
+3. Keep files focused and under 500 lines; split the touched responsibility instead of adding more unrelated code to a large file
+4. Do not disable, suppress, loosen, or bypass lint rules. Fix lint errors and warnings in code
+5. Run verifications as specified
+6. Run `Review Change` in `task` mode after each meaningful task or batch
+7. Mark as completed
 
 ### Step 3: Hand Off for Branch Completion
 
@@ -69,6 +72,8 @@ Do not perform branch cleanup, merge, deletion, or PR creation unless the user e
 - Review plan critically first
 - Follow plan steps exactly
 - Don't skip verifications
+- Respect existing linters; never mute them to make progress
+- Keep responsibilities separated and code files below 500 lines
 - Reference skills when plan says to
 - Stop when blocked, don't guess
 - Never start implementation on main/master branch without explicit user consent

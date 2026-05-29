@@ -1,6 +1,6 @@
 {
   "name": "workflow",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Structured engineering workflows for Codex: discovery, planning, debugging, review gates, and verification discipline.",
   "author": {
     "name": "Wiolett Industries",

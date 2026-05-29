@@ -14,8 +14,17 @@ Prioritize, in order:
 1. requirement and plan fit
 2. functional correctness and regression risk
 3. verification quality and missing tests
-4. project-fit and local conventions
-5. maintainability introduced by the change
+4. linter fidelity: existing lint rules must be respected, not disabled, suppressed, removed, loosened, or bypassed
+5. file size and responsibility boundaries: changed code files should stay under 500 lines and keep one clear responsibility
+6. project-fit and local conventions
+7. maintainability introduced by the change
+
+Treat these as blocking by default:
+
+- introduced lint disables, broad ignore directives, rule removals, config downgrades, or warning suppression
+- unresolved lint errors or warnings when the project has a linter
+- new or touched code files over 500 lines
+- adding unrelated domains or responsibilities to a large mixed-purpose file instead of splitting the touched responsibility
 
 ## Severity
 

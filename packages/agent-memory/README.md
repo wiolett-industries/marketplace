@@ -109,7 +109,7 @@ Global tools:
 Register the Wiolett marketplace in Codex:
 
 ```bash
-npx @wiolett/marketplace install
+codex plugin marketplace add wiolett-industries/marketplace
 ```
 
 Then install `agent-memory` from that marketplace in Codex.
@@ -121,7 +121,7 @@ export OPENAI_API_KEY="your-key"
 codex
 ```
 
-or save the key once through the marketplace installer or the `agent_memory_configure` MCP tool. Agent Memory stores the saved key in:
+or save the key once through the `agent_memory_configure` MCP tool. Agent Memory stores the saved key in:
 
 ```text
 ~/.agents/agent-memory/config.json
@@ -132,12 +132,6 @@ At runtime, Agent Memory uses this precedence:
 1. `OPENAI_API_KEY` from the environment
 2. stored key from `~/.agents/agent-memory/config.json`
 3. no key, which disables embeddings and AI naming
-
-For non-interactive installs, the CLI also supports:
-
-```bash
-npx @wiolett/marketplace install --openai-api-key-env OPENAI_API_KEY --yes
-```
 
 ## Usage
 

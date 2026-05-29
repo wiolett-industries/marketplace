@@ -87,6 +87,8 @@ Use these plugin agents directly for the subagent-driven path:
    - one clear scope
    - one clear goal
    - constraints that prevent scope drift
+   - any project lint command or lint rule constraints; agents must fix lint errors and warnings, not suppress them
+   - file-structure constraints: keep code files under 500 lines and preserve focused responsibilities
    - a concrete expected output
 
 3. Dispatch in parallel.
@@ -141,6 +143,7 @@ Do not keep retrying unchanged when the implementer already told you it is block
 - do not collapse clearly parallel work into serial work out of habit
 - do not dispatch multiple implementers in parallel against overlapping files
 - do not make a subagent read a whole plan file when you can provide the exact task text and context
+- do not let subagents bypass linters or grow large mixed-purpose files to finish faster
 
 ## Anti-Patterns
 

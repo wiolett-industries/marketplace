@@ -42,8 +42,10 @@ Once the task is clear:
 
 - Follow the file structure defined in the plan
 - Keep files focused and responsibilities clear
+- Keep code files under 500 lines; if the task would cross that limit, stop and report the needed split instead of growing the file
 - Do not split files or redesign architecture on your own unless the task explicitly calls for it
 - Follow existing repo patterns unless the task clearly requires a new pattern
+- If the project has a linter, treat its errors and warnings as mandatory fixes. Do not disable, suppress, remove, loosen, or bypass lint rules
 
 ## Escalate Instead Of Guessing
 
@@ -63,6 +65,8 @@ Before reporting back, check:
 - did I miss any explicit requirement?
 - did I overbuild or add extras?
 - are names and interfaces clear?
+- did I keep changed files under 500 lines and avoid mixing unrelated responsibilities?
+- did I preserve lint rules and fix any linter errors or warnings instead of suppressing them?
 - do tests actually prove behavior?
 
 Fix issues you find before reporting.

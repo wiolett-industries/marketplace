@@ -40,10 +40,10 @@ Follow this sequence:
    Resolve the material unknowns before choosing a direction.
 
 4. Architecture Direction
-   Choose one implementation approach that fits the codebase and the user's constraints. If feasibility is uncertain and the `spike-investigation` plugin is installed, use `Spike Investigation` before committing to a build direction.
+   Choose one implementation approach that fits the codebase and the user's constraints. Include the project's lint expectations and file-responsibility boundaries in the direction. If feasibility is uncertain and the `spike-investigation` plugin is installed, use `Spike Investigation` before committing to a build direction.
 
 5. Implementation
-   Build only after the direction is approved or clearly confirmed. If the work is frontend-heavy and the `ui-contract-review` plugin is installed, use `Using UI Contract Review` in `define` mode before locking the implementation plan.
+   Build only after the direction is approved or clearly confirmed. Respect any project linter as mandatory feedback: fix errors and warnings, and do not disable or suppress lint rules to pass. Keep files below 500 lines and split mixed responsibilities before they become monoliths. If the work is frontend-heavy and the `ui-contract-review` plugin is installed, use `Using UI Contract Review` in `define` mode before locking the implementation plan.
 
 6. Quality Review
    Use `Review Change` with the appropriate review mode depending on change size and risk.
@@ -56,6 +56,8 @@ Follow this sequence:
 - Use plan tracking throughout.
 - Read the files returned by exploration before making architecture claims.
 - Do not start implementation without explicit approval.
+- Do not add code to a file that is already too large or domain-mixed without considering a focused split for the touched responsibility.
+- Do not silence linters, comment out lint rules, add broad ignore directives, or downgrade warnings to unblock completion.
 - Use `workflow-code-reviewer` for primary review and `workflow-risk-reviewer` when the change is risky enough to justify dual review.
 - If the work benefits from per-task subagents or parallel execution and the `multi-agent-workflows` plugin is installed, route execution through `Using Multi-Agent Workflows`.
 - If durable user preferences or repo-specific operational knowledge are likely to matter, activate `Using Agent Memory`.

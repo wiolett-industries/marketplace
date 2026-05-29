@@ -57,6 +57,17 @@ Do not jump straight into implementation, review, or “done” claims if a work
 
 If the task looks non-trivial, assume a workflow skill is needed and choose it explicitly.
 
+## Always-On Coding Discipline
+
+These rules apply to every code-writing task handled through the workflow plugin:
+
+- If the project has a linter, respect it as a source of truth. Do not disable, suppress, remove, or work around lint rules to make the output look clean.
+- Treat lint warnings as work to fix, not noise to ignore. If a linter reports warnings or minor findings, address them.
+- Before coding, identify the relevant lint command or lint configuration when it exists. Carry that command into planning, execution, review, and final verification.
+- Keep files focused on one clear responsibility. Avoid mixing unrelated domains, UI, data access, orchestration, parsing, and infrastructure in one file.
+- Keep code files under 500 lines. Treat 500 lines as a hard limit; crossing it is strongly discouraged and should trigger decomposition into smaller files.
+- If a change would push an existing file toward or past the limit, split the touched responsibility instead of adding more mixed-purpose code.
+
 ## Compaction Rule
 
 After compaction or context loss, treat the session like a fresh start:

@@ -38,6 +38,12 @@ Prioritize:
 4. **System-level fit**
    - Does the change conflict with existing architecture, repo conventions, or nearby systems?
 
+5. **Quality-gate erosion**
+   - Did the change weaken lint configuration, add broad suppressions, ignore warnings, or remove quality checks?
+   - Did it create or worsen files over 500 lines or concentrate unrelated responsibilities in one place?
+
+Treat quality-gate erosion as at least `Important` because it raises future regression risk even when behavior appears unchanged.
+
 ## Output Contract
 
 Use the same output structure as `workflow-code-reviewer`:

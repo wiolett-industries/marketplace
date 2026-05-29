@@ -16,8 +16,9 @@ Review for:
 - regression risk
 - maintainability
 - test quality
+- linter fidelity: no disabled, suppressed, loosened, or bypassed lint rules; lint warnings must be fixed
 - fit to the intended task structure
-- unnecessary large-file growth or unclear boundaries
+- unnecessary large-file growth or unclear boundaries; changed code files should stay under 500 lines
 
 ## Output
 
@@ -30,3 +31,5 @@ Return the standard workflow review structure:
 - `Review Summary`
 
 `Critical` and `Important` block task completion.
+
+Treat linter suppression, unresolved linter warnings, new or worsened files over 500 lines, and mixed unrelated responsibilities as `Important`.

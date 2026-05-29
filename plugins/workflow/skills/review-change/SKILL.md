@@ -80,6 +80,8 @@ For `task` and `feature`, use:
   - requirements alignment
   - regression risk
   - verification quality
+  - linter fidelity
+  - file size and responsibility boundaries
   - maintainability
 
 For `high-risk`, use both:
@@ -90,6 +92,8 @@ For `high-risk`, use both:
   - requirements alignment
   - regressions
   - tests
+  - linter fidelity
+  - file size and responsibility boundaries
   - maintainability
 
 - `workflow-risk-reviewer`
@@ -117,6 +121,8 @@ For `high-risk`, use both:
    Always fix:
    - all `Critical`
    - all `Important`
+   - any lint suppression, lint downgrade, or ignored linter warning introduced by the change
+   - any new or worsened code file over 500 lines
 
    `Minor` findings may be deferred only if doing so is an explicit choice, not silent drift.
 
@@ -171,6 +177,13 @@ Treat review output as structured gate information:
 - `Critical` and `Important` block progress
 - `Minor` can be consciously deferred
 - verdict should tell you whether the selected review mode is actually satisfied
+
+Lint and file-size findings are not cosmetic:
+
+- introduced lint disables, broad ignore directives, rule removals, warning suppression, or config downgrades are at least `Important`
+- linter errors or warnings left unresolved are at least `Important`
+- new files over 500 lines, or existing touched files pushed over 500 lines, are at least `Important`
+- adding unrelated responsibilities to an already large or mixed-purpose file is at least `Important`
 
 ## Anti-Patterns
 

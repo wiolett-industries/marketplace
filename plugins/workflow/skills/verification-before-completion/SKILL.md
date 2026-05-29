@@ -50,12 +50,32 @@ When the claim is about delivered functionality, verify in this order:
 
 Do not stop at "the file exists" or "the task was completed." Completion is not the same as delivery.
 
+## Lint Verification
+
+If the project has a linter, running it is mandatory before completion claims for code changes.
+
+- Run the project's real lint command, not a narrower substitute, unless the user explicitly scoped the verification differently.
+- Treat lint warnings as verification failures that need code fixes.
+- Do not satisfy lint by disabling, suppressing, removing, downgrading, or bypassing lint rules.
+- If lint cannot run because of environment constraints, report that blocker clearly. Do not claim lint cleanliness.
+- If no linter exists, say that explicitly when reporting verification.
+
+## File Structure Verification
+
+Before claiming completion for code changes, inspect the changed files:
+
+- No new or touched code file should exceed 500 lines.
+- No changed file should mix unrelated responsibilities that should be separated by domain or interface.
+- If a changed code file would exceed 500 lines, split the file before claiming completion.
+
 ## Common Failures
 
 | Claim | Requires | Not Sufficient |
 |-------|----------|----------------|
 | Tests pass | Test command output: 0 failures | Previous run, "should pass" |
 | Linter clean | Linter output: 0 errors | Partial check, extrapolation |
+| Lint respected | No introduced suppressions and 0 lint errors/warnings | Disabled rules, ignored warnings |
+| File boundaries respected | Changed files under 500 lines with focused responsibilities | "It still works" |
 | Build succeeds | Build command: exit 0 | Linter passing, logs look good |
 | Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
 | Regression test works | Red-green cycle verified | Test passes once |
