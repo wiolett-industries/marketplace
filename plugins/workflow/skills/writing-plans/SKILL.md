@@ -1,242 +1,255 @@
 ---
 name: Writing Plans
-description: ALWAYS use when approved requirements or an approved implementation direction need to become a complete implementation plan, including codebase exploration, draft planning, self-review, and final plan creation in plan mode
+description: Use when an approved or sufficiently clear direction must become a durable decision-complete implementation plan under .workflow/plans/
 ---
 
 # Writing Plans
 
-## Overview
+Write a durable plan-run that another agent can execute without making product or architecture decisions.
 
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+Plans are stored in the repository, not in chat.
 
-Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+When workflow MCP tools are available, use `workflow_plan_create` to create the plan-run and `workflow_plan_update` / `workflow_plan_artifact_write` for later state and artifact writes. The model still writes the actual plan text; MCP only performs deterministic filesystem operations.
 
-**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+Before creating `.workflow/` plan artifacts in a git repository, ensure `.workflow/` is ignored where possible. Prefer adding `.workflow/` to the repository root `.gitignore` when missing, unless the user explicitly wants workflow artifacts versioned.
 
-**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+If `.workflow/audits/<audit-slug>/planning-input.md` exists and the user wants to plan from audit findings, treat it as a primary input alongside `master-audit.md` and confirmed entries from `findings.json`. When an audit handoff exists in `handoffs/*.json` or `state.json.latest_handoff`, use it as the structured source for artifacts, decisions, risks, open questions, and next actions.
 
-**Save plans to:** `docs/workflow/plans/YYYY-MM-DD-<feature-name>.md`
-- (User preferences for plan location override this default)
+## Plan-Run Directory
 
-## Required Workflow
+Create:
 
-Follow this exact sequence:
-
-1. Explore the codebase broadly enough to understand the repo shape and patterns
-2. Deeply explore the parts directly related to the request
-3. Write a comprehensive implementation plan draft
-4. Self-review that draft and harden it
-5. Switch to plan mode and create the complete implementation plan, then present it to the user
-
-Do not skip the exploration or the review stage.
-
-Do not jump straight into plan mode with shallow context.
-
-If the request is still materially ambiguous before planning starts, activate `Ask Questions` first.
-
-If repository context is still cold, use `Scan Existing Codebase` before writing the draft.
-
-If durable repo knowledge or persistent user instructions may affect the plan, activate `Using Agent Memory` before finalizing direction.
-
-## Lint And Quality Constraints
-
-Before defining implementation tasks, detect whether the project has a linter or lint-like quality gate. Check scripts, config files, CI config, and nearby documentation.
-
-- If a linter exists, the plan must include the exact lint command in the relevant task verification and final verification.
-- Do not plan to disable, suppress, remove, loosen, or bypass lint rules. This includes broad ignore comments, config downgrades, excluded files, warning suppression, or deleting lint plugins.
-- Treat lint warnings as failures to fix during implementation. The plan should tell the executor to resolve both errors and warnings.
-- If lint output conflicts with the current approach, change the code structure or implementation approach, not the lint standard.
-
-## Scope Check
-
-If the approved direction covers multiple independent subsystems, it should have been broken into sub-project plans during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
-
-## Decision Fidelity
-
-Approved decisions are part of the contract, not suggestions.
-
-- Treat approved user constraints and design decisions as locked.
-- Do not quietly reinterpret them into something easier, smaller, or more generic.
-- Do not write fake staging language such as "v1", "placeholder", "basic version", "static for now", "wire later", or "future enhancement" unless the user explicitly approved that reduction.
-- If the approved scope does not fit into a clean plan, split the work. Do not shrink it silently.
-
-When a request is too large for one plan:
-- propose the split explicitly
-- preserve the original requirements across the smaller plans
-- make clear what each plan will fully deliver
-
-## File Structure
-
-Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
-
-- Design units with clear boundaries and well-defined interfaces. Each file should have one clear responsibility.
-- You reason best about code you can hold in context at once, and your edits are more reliable when files are focused. Prefer smaller, focused files over large ones that do too much.
-- Files that change together should live together. Split by responsibility, not by technical layer.
-- Keep code files under 500 lines. Treat 500 lines as a hard limit; if planned work would cross it, split the touched responsibility into focused files.
-- In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure unrelated areas - but if a file you're modifying has grown unwieldy or mixes responsibilities, include a targeted split in the plan.
-
-This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
-
-## Bite-Sized Task Granularity
-
-**Each step is one action (2-5 minutes):**
-- "Write the failing test" - step
-- "Run it to make sure it fails" - step
-- "Implement the minimal code to make the test pass" - step
-- "Run the tests and make sure they pass" - step
-- "Commit" - step
-
-## Plan Document Header
-
-**Every plan MUST start with this header:**
-
-```markdown
-# [Feature Name] Implementation Plan
-
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `executing-plans` by default, or `subagent-driven-development` when the `multi-agent-workflows` plugin is installed and you want same-session multi-agent execution. Steps use checkbox (`- [ ]`) syntax for tracking.
-
-**Goal:** [One sentence describing what this builds]
-
-**Architecture:** [2-3 sentences about approach]
-
-**Tech Stack:** [Key technologies/libraries]
-
----
+```text
+.workflow/plans/MM-DD-YY-slug/
+  plan.md
+  manifest.json
+  state.json
+  context.md
+  questions.md
+  decisions.md
+  ui-contract.md
+  artifacts/
+  chunks/
+  handoffs/
 ```
 
-## Task Structure
+Use the current local date. Keep the slug short and stable.
 
-````markdown
-### Task N: [Component Name]
+## Required Artifacts
 
-**Files:**
-- Create: `exact/path/to/file.py`
-- Modify: `exact/path/to/existing.py:123-145`
-- Test: `tests/exact/path/to/test.py`
+`manifest.json` indexes the run:
 
-- [ ] **Step 1: Write the failing test**
-
-```python
-def test_specific_behavior():
-    result = function(input)
-    assert result == expected
+```json
+{
+  "slug": "MM-DD-YY-slug",
+  "phase": "planning",
+  "complexity": "simple",
+  "plan": "plan.md",
+  "state": "state.json",
+  "created_at": "ISO-8601",
+  "updated_at": "ISO-8601"
+}
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+`state.json` is machine state:
 
-Run: `pytest tests/path/test.py::test_name -v`
-Expected: FAIL with "function not defined"
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-def function(input):
-    return expected
+```json
+{
+  "phase": "planning",
+  "complexity": "simple",
+  "tasks": [],
+  "review_round": 0,
+  "clean_streak": 0,
+  "open_findings": [],
+  "handoffs": []
+}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+`context.md` captures repo facts and constraints.
 
-Run: `pytest tests/path/test.py::test_name -v`
-Expected: PASS
+`questions.md` captures asked questions and answers.
 
-- [ ] **Step 5: Commit**
+`decisions.md` captures locked decisions and defaults.
 
-```bash
-git add tests/path/test.py src/path/file.py
-git commit -m "feat: add specific feature"
+`plan.md` contains the executable plan.
+
+`ui-contract.md` is required for substantial frontend/UI work. For non-UI plans, either omit it or write a short note that no UI contract applies.
+
+## Chunked Plans
+
+Use chunking when a plan would be too large or coupled for reliable single-pass execution.
+
+Chunking is required when any of these are true:
+
+- complexity is `complex` or `very_complex`
+- the plan has more than 7 substantial tasks
+- the work spans independent subsystems
+- different agents can own independent file/module sets
+- a single plan would be hard to restore after compaction
+- one `state.json` would become too noisy to operate safely
+
+Chunking is optional for `medium` work and should be skipped for genuinely `simple` work.
+
+Use one level only:
+
+```text
+.workflow/plans/MM-DD-YY-slug/
+  plan.md
+  manifest.json
+  state.json
+  context.md
+  decisions.md
+  artifacts/
+  chunks/
+    MM-DD-YY-slug-chunk-01/
+      plan.md
+      manifest.json
+      state.json
+      context.md
+      questions.md
+      decisions.md
+      ui-contract.md
+      artifacts/
 ```
-````
 
-## No Placeholders
+Do not create chunks inside chunks.
 
-Every step must contain the actual content an engineer needs. These are **plan failures** — never write them:
-- "TBD", "TODO", "implement later", "fill in details"
-- "Add appropriate error handling" / "add validation" / "handle edge cases"
-- "Write tests for the above" (without actual test code)
-- "Similar to Task N" (repeat the code — the engineer may be reading tasks out of order)
-- Steps that describe what to do without showing how (code blocks required for code steps)
-- References to types, functions, or methods not defined in any task
+The root plan is the orchestration plan. It owns:
 
-## Remember
-- Exact file paths always
-- Complete code in every step — if a step changes code, show the code
-- Exact commands with expected output
-- DRY, YAGNI, TDD, frequent commits
+- overall goal and success criteria
+- shared architecture decisions
+- cross-chunk constraints
+- chunk order and dependencies
+- integration and finalization requirements
 
-## Draft Review Standard
+Each chunk is an executable plan-run. It owns:
 
-After writing the draft plan, review it as if execution has not started yet and you are trying to stop avoidable rework.
+- one bounded scope
+- allowed files/modules
+- local task state
+- local verification
+- local artifacts
 
-This is a self-review checklist, not a separate skill dispatch.
+Root `manifest.json` should include chunk index data:
 
-**1. Requirements coverage:** Skim each approved requirement or design decision. Can you point to a task that implements it? List any gaps.
+```json
+{
+  "type": "root",
+  "chunks": [
+    {
+      "id": "chunk-01",
+      "path": "chunks/MM-DD-YY-slug-chunk-01",
+      "status": "pending",
+      "depends_on": [],
+      "scope": ["path/or/module"]
+    }
+  ]
+}
+```
 
-**2. Placeholder scan:** Search your plan for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
+Chunk `manifest.json` should include parent data:
 
-**3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks? A function called `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7 is a bug.
+```json
+{
+  "type": "chunk",
+  "parent": "../../manifest.json",
+  "chunk_id": "chunk-01"
+}
+```
 
-**4. Wiring completeness:** Are you only creating artifacts, or are you also wiring them together? Components need imports and consumers. Routes need callers. Data models need read/write paths. State needs rendering. A plan that creates pieces without their connections is incomplete.
+Chunk scopes must be disjoint unless the root plan explicitly defines a shared integration point. Cross-chunk scope changes require updating the root `decisions.md` and `state.json`.
 
-**5. Dependency correctness:** Task ordering should make sense. Later tasks should not depend on outputs the plan never creates. If work can run independently, that independence should be explicit and real.
+When using MCP, create the root run with `workflow_plan_create`, then write chunk files with `workflow_plan_artifact_write` under `chunks/<chunk-slug>/...` and update the root chunk index through `workflow_plan_update`.
 
-**6. Scope reduction scan:** Check for any language that silently reduces what was approved:
-- "simple version"
-- "basic version"
-- "placeholder"
-- "stub"
-- "wire later"
-- "future enhancement"
-- "for now"
+## Plan Requirements
 
-If any of that language appears without explicit user approval, rewrite the plan or split the work.
+The plan must be decision-complete:
 
-**7. Verification quality:** Tasks should include meaningful verification, not vague "run tests" filler. The plan should prove delivery, not just file creation.
+- exact goal and success criteria
+- scope and non-goals
+- audit findings being addressed, if the plan comes from an audit
+- implementation approach
+- task list with clear ownership
+- chunk list and dependency order when chunking is used
+- expected artifacts and file areas
+- subagent delegation guidance
+- verification commands and acceptance checks
+- lint command/config when the project has one
+- UI contract and visible acceptance criteria when frontend/UI is in scope
+- file-boundary risks, including any touched file near 500 lines
+- explicit note when the work is an interactive user-testing loop where heavy mid-work checks should be avoided
+- finalization complexity and review requirements
 
-**8. Lint fidelity:** If a linter exists, does the plan run it and require fixing all reported errors and warnings? Search for any instruction that disables, suppresses, removes, or bypasses lint rules. Remove that instruction and change the implementation instead.
+Do not write:
 
-**9. File size and responsibility:** Will any touched code file exceed 500 lines or combine unrelated domains? If yes, split the responsibility before execution. Do not accept a plan that adds more code to an oversized mixed-purpose file without a focused decomposition step.
+- `TBD`
+- `TODO`
+- `later`
+- `choose appropriate`
+- vague placeholders
+- fake staging language unless explicitly approved
 
-**10. Size sanity:** Keep each plan and task small enough to execute cleanly.
-- Prefer 2-3 meaningful tasks per plan section
-- Prefer focused file sets over huge cross-cutting batches
-- If a task touches too many files or concerns, split it before execution
+## Engineering Constraints
 
-If you find issues, fix them inline. If you find a requirement with no task, add the task before switching to plan mode.
+Plans for code changes must preserve:
 
-## Finalization
+- existing lint rules and warning standards
+- focused file responsibilities
+- the 500-line code file limit
+- approved scope and non-goals
+- real wiring, not created-but-unused artifacts
 
-After the draft is reviewed and fixed:
+If a planned change would violate one of these constraints, the plan must include the split or alternative structure that avoids it.
 
-1. Switch into plan mode, if your environment supports it
-2. Create the complete implementation plan in its final form
-3. Save it to `docs/workflow/plans/...`
-4. Present the complete implementation plan to the user
+## UI Plans
 
-The user should see the final plan after it has already gone through the full draft review standard.
+For substantial frontend/UI work, use `UI Contract` in `define` mode before treating the plan as ready.
 
-## Execution Handoff
+The plan-run must include:
 
-After saving the plan:
+- `ui-contract.md` with the buildable UI contract
+- UI acceptance criteria in `plan.md`
+- affected routes, screens, panels, components, and states
+- desktop/mobile expectations
+- required loading, error, empty, disabled, hover/focus, and success states
+- browser/screenshot verification expectations when the app can run locally
+- explicit note when user-led inline testing should avoid heavy mid-work checks
 
-- if the `multi-agent-workflows` plugin is installed, offer execution choice:
+The implementation plan must treat `ui-contract.md` as an acceptance source. Do not allow the execution phase to reinterpret hierarchy, copy, or interaction behavior without updating `decisions.md`.
 
-  **"Plan complete and saved to `docs/workflow/plans/<filename>.md`. Two execution options:**
+## Complexity
 
-  **1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
+Set complexity from all available context:
 
-  **2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
+- `simple`: narrow, low-risk, small surface
+- `medium`: several files or moderate reasoning
+- `complex`: multiple subsystems, migrations, broad behavior, or substantial coordination
+- `very_complex`: high blast radius, sensitive domains, or many dependent tasks
 
-  **Which approach?"**
+Later modules may raise or lower complexity when they have more evidence. Later decisions have higher weight.
 
-  **If Subagent-Driven chosen:**
-  - **REQUIRED SUB-SKILL:** Use `subagent-driven-development`
-  - Fresh subagent per task + spec review + task review loops
+## Plan Review
 
-  **If Inline Execution chosen:**
-  - **REQUIRED SUB-SKILL:** Use `executing-plans`
-  - Batch execution with checkpoints for review
+After writing the plan, always run agent review when available and subagent authorization is explicit:
 
-- if the `multi-agent-workflows` plugin is not installed:
-  - report that the plan is complete and saved
-  - recommend `executing-plans` as the default execution path
-  - do not ask the user to choose between unavailable workflows
+- `simple`: one combined `sanity + overall` agent, `workflow_combined_reviewer`
+- `medium`, `complex`, `very_complex`: separate `workflow_plan_sanity_reviewer` and `workflow_plan_overall_reviewer` agents
+
+Review agents are read-only. The parent workflow writes returned findings to `artifacts/plan-review-*.md`.
+
+If a named workflow custom agent is unavailable, stop plan review and report that workflow agent sync/setup is missing.
+
+Fix blocking plan findings before treating the plan as ready.
+
+If subagent authorization is missing, ask for it before plan review. If the user does not authorize subagents, perform a local plan self-review and record in `decisions.md` that agent review was not authorized.
+
+## Output
+
+At handoff, report:
+
+- plan-run path
+- complexity
+- review result
+- whether it is ready for `Executing Plans`
+
+When workflow MCP tools are available, write the planning-to-execution handoff with `workflow_handoff_write` using `kind: "plan"`, `from_module: "writing-plans"`, and `to_module: "executing-plans"`.

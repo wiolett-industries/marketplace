@@ -1,14 +1,19 @@
 {
   "name": "@wiolett/agent-memory-mcp",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "type": "module",
-  "description": "MCP server backing the Agent Memory Codex plugin.",
+  "description": "MCP server backing Agent Memory with scoped storage, model-gated writes, compiled recall, and automatic graph links.",
   "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
   "bin": {
     "agent-memory-mcp": "dist/index.js"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./init": "./dist/init.js",
+    "./register": "./dist/register.js"
   },
   "files": [
     "dist/",
@@ -21,17 +26,18 @@
   },
   "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/packages/agent-memory",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "build": "pnpm run clean && tsc -p tsconfig.build.json",
     "dev": "NODE_NO_WARNINGS=1 tsx src/index.ts",
     "start": "NODE_NO_WARNINGS=1 node dist/index.js",
-    "prepack": "npm run build",
-    "test": "npm run build && node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+    "prepack": "pnpm run build",
+    "test": "pnpm run build && node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@wiolett/oai-auth": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "nanoid": "^5.1.5",
-    "openai": "^6.1.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {

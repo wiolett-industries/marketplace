@@ -4,7 +4,7 @@ import type { MemoryScope } from '../scope.js';
 
 export function handleReadAll(scope: MemoryScope = 'project') {
   return getAllEntries(scope).map((entry) => {
-    if (entry.layer !== 'deep') {
+    if (entry.layer === 'lite' && entry.ref) {
       return entry;
     }
 

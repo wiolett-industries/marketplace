@@ -1,0 +1,53 @@
+import type { EmbeddingClient } from './types.js';
+import { resolveOpenAIProviderConfig, type OpenAIProviderConfigOptions } from './openai-provider-config.js';
+import { isJsonObject, sanitizeErrorText } from './utils.js';
+
+export type OpenAIEmbeddingsOptions = OpenAIProviderConfigOptions;
+
+export class OpenAIEmbeddingsClient implements EmbeddingClient {
+  private readonly apiKey: string | undefined;
+  private readonly baseUrl: string;
+  private readonly model: string;
+  private readonly userAgent: string;
+  private readonly headers: Record<string, string>;
+
+  constructor(options: OpenAIEmbeddingsOptions = {}) {
+    const config = resolveOpenAIProviderConfig(options);
+    this.apiKey = config?.apiKey;
+    this.baseUrl = options.baseUrl ?? config?.baseUrl ?? 'https://api.openai.com/v1';
+    this.model = options.embeddingModel ?? config?.embeddingModel ?? 'text-embedding-3-small';
+    this.userAgent = options.userAgent ?? '@wiolett/oai-auth';
+    this.headers = config?.headers ?? {};
+  }
+
+  async createEmbedding(input: string, options: { signal?: AbortSignal } = {}): Promise<number[]> {
+    if (!this.apiKey) {
+      return [];
+    }
+
+    const response = await fetch(`${this.baseUrl.replace(/\/+$/u, '')}/embeddings`, {
+      method: 'POST',
+      headers: {
+        ...this.headers,
+        Authorization: `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'User-Agent': this.userAgent,
+      },
+      body: JSON.stringify({
+        model: this.model,
+        input,
+      }),
+      signal: options.signal,
+    });
+    const text = await response.text();
+    if (!response.ok) {
+      throw new Error(`OpenAI Embeddings request failed: HTTP ${response.status} ${sanitizeErrorText(text)}`);
+    }
+
+    const body = JSON.parse(text) as unknown;
+    if (!isJsonObject(body) || !Array.isArray(body.data)) return [];
+    const first = body.data[0];
+    if (!isJsonObject(first) || !Array.isArray(first.embedding)) return [];
+    return first.embedding.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+  }
+}

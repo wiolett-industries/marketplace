@@ -1,8 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { replaceOutgoingEdges, resetDbCacheFiles, upsertEntry } from './db.js';
-import { getEmbeddingsDir, getGraphDir, getLegacyEntriesDir, getMemoriesDir, listEntryFileNames, listGraphFileNames, readEntryFileByFileName, readGraphFile, writeEntryFile } from './files.js';
+import { deleteEntryFile, getEmbeddingsDir, getGraphDir, getIndexDir, getLegacyEntriesDir, getMemoriesDir, listEntryFileNames, listGraphFileNames, listMemoryFileNames, readEntryFileByFileName, readGraphFile, writeEntryFile } from './files.js';
 import type { GraphEdgeRecord } from './graph.js';
-import { isGraphRelation, normalizeWeight } from './graph.js';
+import { canParticipateInGraph, isGraphRelation, normalizeWeight } from './graph.js';
 import { createLegacyFileName, remapLegacyIds } from './naming.js';
 import { hashEntry } from './entry.js';
 import type { MemoryScope } from './scope.js';
@@ -72,13 +72,14 @@ function migrateLegacyJsonFilesToSplitFiles(scope: MemoryScope): void {
 
 export function rebuildFromFiles(scope: MemoryScope = 'project'): void {
   getMemoriesDir(scope);
+  getIndexDir(scope);
   getEmbeddingsDir(scope);
   getGraphDir(scope);
   migrateLegacyJsonFilesToSplitFiles(scope);
   resetDbCacheFiles(scope);
 
   const fileNames = listEntryFileNames(scope);
-  const deepIds = new Set<string>();
+  const graphNodeIds = new Set<string>();
 
   for (const fileName of fileNames) {
     const entry = readEntryFileByFileName(fileName, scope);
@@ -86,17 +87,22 @@ export function rebuildFromFiles(scope: MemoryScope = 'project'): void {
       continue;
     }
 
-    if (entry.layer === 'deep') {
-      deepIds.add(entry.id);
+    if (canParticipateInGraph(entry)) {
+      graphNodeIds.add(entry.id);
     }
 
     upsertEntry(entry, hashEntry(entry), scope);
+
+    if (entry.layer === 'lite' && listMemoryFileNames(scope).includes(entry.file_name)) {
+      deleteEntryFile(entry, scope);
+      writeEntryFile(entry, scope);
+    }
   }
 
   const graphFileNames = new Set(listGraphFileNames(scope));
-  for (const fileName of fileNames) {
+  for (const fileName of listEntryFileNames(scope)) {
     const entry = readEntryFileByFileName(fileName, scope);
-    if (!entry || entry.layer !== 'deep') {
+    if (!entry || !canParticipateInGraph(entry)) {
       continue;
     }
 
@@ -112,8 +118,8 @@ export function rebuildFromFiles(scope: MemoryScope = 'project'): void {
       continue;
     }
 
-    if (owner.layer !== 'deep') {
-      process.stderr.write(`[agent-memory] skipping graph file for non-deep memory "${owner.id}".\n`);
+    if (!canParticipateInGraph(owner)) {
+      process.stderr.write(`[agent-memory] skipping graph file for index pointer "${owner.id}".\n`);
       replaceOutgoingEdges(owner.id, [], scope);
       continue;
     }
@@ -130,7 +136,7 @@ export function rebuildFromFiles(scope: MemoryScope = 'project'): void {
         continue;
       }
 
-      if (!deepIds.has(edge.to_id)) {
+      if (!graphNodeIds.has(edge.to_id)) {
         process.stderr.write(`[agent-memory] skipping dangling graph edge ${edge.from_id} -> ${edge.to_id}.\n`);
         continue;
       }
@@ -139,6 +145,7 @@ export function rebuildFromFiles(scope: MemoryScope = 'project'): void {
         validEdges.push({
           ...edge,
           weight: normalizeWeight(edge.weight),
+          source: edge.source === 'auto' ? 'auto' : 'manual',
         });
       } catch {
         process.stderr.write(`[agent-memory] skipping graph edge with invalid weight from "${edge.from_id}" to "${edge.to_id}".\n`);

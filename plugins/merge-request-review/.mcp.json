@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "merge-request-review": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wiolett/merge-request-review@latest"
+      ],
+      "note": "Merge Request Review MCP. Syncs merge_request_* custom agents and registers .workflow/mr-reviews artifact/state tools. GitLab access still comes from an external GitLab MCP."
+    }
+  }
+}

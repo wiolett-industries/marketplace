@@ -1,6 +1,7 @@
-import { getDeepEntries, searchFTS } from '../db.js';
+import { getDeepEntries, getLiteEntries, searchFTS } from '../db.js';
 import { embed } from '../embeddings.js';
 import { withLinks } from './graph.js';
+import type { EntryRecord } from '../entry.js';
 import { cosineSimilarity } from '../utils/cosine.js';
 import { normalizeScores } from '../utils/normalize.js';
 import type { MemoryScope } from '../scope.js';
@@ -14,7 +15,7 @@ function tokenize(input: string): string[] {
 }
 
 function buildLexicalScores(
-  entries: ReturnType<typeof getDeepEntries>,
+  entries: EntryRecord[],
   query: string
 ): Map<string, number> {
   const normalizedQuery = query.trim().toLowerCase();
@@ -51,7 +52,10 @@ export async function handleSearch(args: { query: string; limit?: number; scope?
   const query = args.query.trim();
   const limit = args.limit ?? 10;
   const scope = args.scope ?? 'project';
-  const entries = getDeepEntries(scope);
+  const entries = [
+    ...getDeepEntries(scope),
+    ...getLiteEntries(scope).filter((entry) => entry.ref === null),
+  ];
 
   if (!query || entries.length === 0) {
     return [];

@@ -1,7 +1,7 @@
 import { getEdgeSummaries, getEntryById, getFilteredEdgeRows, getNeighborSummaries, getOutgoingEdgeRecords, replaceOutgoingEdges } from '../db.js';
 import { deleteGraphFile, listGraphFileNames, readGraphFile, readEntryFileByFileName, writeGraphFile } from '../files.js';
 import { type EntryRecord, type EntryWithLinks, withoutEmbedding } from '../entry.js';
-import { assertDeepGraphNode, type GraphDirection, type GraphEdgeRecord, type GraphRelation, type GraphSubgraph, isSymmetricRelation, normalizeWeight } from '../graph.js';
+import { assertGraphNode, type GraphDirection, type GraphEdgeRecord, type GraphRelation, type GraphSubgraph, isSymmetricRelation, normalizeWeight } from '../graph.js';
 import type { MemoryScope } from '../scope.js';
 
 function now(): number {
@@ -13,6 +13,7 @@ function persistOutgoingEdges(owner: EntryRecord, edges: GraphEdgeRecord[], scop
     .map((edge) => ({
       ...edge,
       weight: normalizeWeight(edge.weight),
+      source: edge.source === 'auto' ? 'auto' as const : 'manual' as const,
     }))
     .sort((left, right) =>
       left.to_id.localeCompare(right.to_id) ||
@@ -69,8 +70,8 @@ export function handleLink(args: {
     throw new Error('Self-links are not allowed.');
   }
 
-  const fromEntry = assertDeepGraphNode(getEntryById(args.from_id, scope), args.from_id);
-  const toEntry = assertDeepGraphNode(getEntryById(args.to_id, scope), args.to_id);
+  const fromEntry = assertGraphNode(getEntryById(args.from_id, scope), args.from_id);
+  const toEntry = assertGraphNode(getEntryById(args.to_id, scope), args.to_id);
   const weight = normalizeWeight(args.weight);
   const timestamp = now();
   const reason = args.reason?.trim() || null;
@@ -85,6 +86,7 @@ export function handleLink(args: {
     relation: args.relation,
     weight,
     reason,
+    source: 'manual',
     created_at: forwardExisting?.created_at ?? timestamp,
     updated_at: timestamp,
   }, scope);
@@ -100,6 +102,7 @@ export function handleLink(args: {
       relation: args.relation,
       weight,
       reason,
+      source: 'manual',
       created_at: reverseExisting?.created_at ?? timestamp,
       updated_at: timestamp,
     }, scope);
@@ -118,8 +121,8 @@ export function handleUnlink(args: {
   scope?: MemoryScope;
 }): { removed: boolean; mirrored_removed: boolean } {
   const scope = args.scope ?? 'project';
-  const fromEntry = assertDeepGraphNode(getEntryById(args.from_id, scope), args.from_id);
-  const toEntry = assertDeepGraphNode(getEntryById(args.to_id, scope), args.to_id);
+  const fromEntry = assertGraphNode(getEntryById(args.from_id, scope), args.from_id);
+  const toEntry = assertGraphNode(getEntryById(args.to_id, scope), args.to_id);
 
   const removed = removeOutgoingEdge(fromEntry, toEntry.id, args.relation, scope);
   let mirroredRemoved = false;
@@ -143,7 +146,7 @@ export function handleNeighbors(args: {
   scope?: MemoryScope;
 }) {
   const scope = args.scope ?? 'project';
-  const entry = assertDeepGraphNode(getEntryById(args.id, scope), args.id);
+  const entry = assertGraphNode(getEntryById(args.id, scope), args.id);
   return {
     memory: {
       id: entry.id,
@@ -203,7 +206,7 @@ export function handleSubgraph(args: {
   scope?: MemoryScope;
 }): GraphSubgraph {
   const scope = args.scope ?? 'project';
-  const root = assertDeepGraphNode(getEntryById(args.id, scope), args.id);
+  const root = assertGraphNode(getEntryById(args.id, scope), args.id);
   const depth = Math.max(1, Math.min(args.depth ?? 1, 4));
   const direction = args.direction ?? 'both';
   const maxNodes = Math.max(1, Math.min(args.max_nodes ?? 50, 200));

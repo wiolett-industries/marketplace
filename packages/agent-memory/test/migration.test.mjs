@@ -5,11 +5,12 @@ describe('legacy migration behavior', () => {
   test('migrates legacy JSON entries into split file layout with normalized ids', async () => {
     const result = runHarness('legacy-json');
     expect(result.memoryFiles).toEqual([
-      'pointerr_legacy_minio_workflow.md',
       'qrpwicqn_legacy_minio_workflow.md',
     ]);
+    expect(result.indexFiles).toEqual([
+      'pointerr_legacy_minio_workflow.md',
+    ]);
     expect(result.embeddingFiles).toEqual([
-      'pointerr_legacy_minio_workflow.embeddings',
       'qrpwicqn_legacy_minio_workflow.embeddings',
     ]);
     expect(result.migrated).toEqual(

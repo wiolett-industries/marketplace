@@ -1,8 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 import { getDb } from './db.js';
-import { getEmbeddingsDir, getGraphDir, getMemoriesDir } from './files.js';
+import { getEmbeddingsDir, getGraphDir, getIndexDir, getMemoriesDir } from './files.js';
 import { rebuildFromFiles } from './rebuild.js';
 import type { MemoryScope } from './scope.js';
 import { getMemoryRoot } from './scope.js';
@@ -23,11 +22,12 @@ export function detectMemoryState(scope: MemoryScope = 'project', projectPath: s
 
   const currentLayout =
     existsSync(path.join(memoryDir, 'memories')) ||
+    existsSync(path.join(memoryDir, 'index')) ||
     existsSync(path.join(memoryDir, 'embeddings')) ||
     existsSync(path.join(memoryDir, 'graph'));
 
   const legacyJsonLayout = existsSync(path.join(memoryDir, 'entries'));
-  const legacyDbLayout = existsSync(path.join(memoryDir, 'memory.db'));
+  const legacyDbLayout = existsSync(path.join(memoryDir, 'memory.db')) && !currentLayout;
 
   return {
     scope,
@@ -41,35 +41,10 @@ export function detectMemoryState(scope: MemoryScope = 'project', projectPath: s
 
 function bootstrapGlobalMemory(): void {
   getMemoriesDir('global');
+  getIndexDir('global');
   getEmbeddingsDir('global');
   getGraphDir('global');
   getDb('global');
-}
-
-function ensureDatabase(dbPath: string): void {
-  const db = new DatabaseSync(dbPath);
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS entries (
-      id TEXT PRIMARY KEY,
-      content TEXT NOT NULL,
-      tags TEXT NOT NULL DEFAULT '[]',
-      layer TEXT NOT NULL DEFAULT 'deep',
-      ref TEXT DEFAULT NULL,
-      hash TEXT DEFAULT NULL,
-      embedding TEXT NOT NULL DEFAULT '[]',
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    )
-  `).run();
-  db.prepare(`
-    CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
-      content,
-      tags,
-      content='entries',
-      content_rowid='rowid'
-    )
-  `).run();
-  db.close();
 }
 
 function updateGitignore(projectPath: string): void {
@@ -95,9 +70,10 @@ function updateGitignore(projectPath: string): void {
 function bootstrapProjectMemory(projectPath: string = process.cwd()): void {
   const memoryDir = getMemoryRoot('project', projectPath);
   mkdirSync(path.join(memoryDir, 'memories'), { recursive: true });
+  mkdirSync(path.join(memoryDir, 'index'), { recursive: true });
   mkdirSync(path.join(memoryDir, 'embeddings'), { recursive: true });
   mkdirSync(path.join(memoryDir, 'graph'), { recursive: true });
-  ensureDatabase(path.join(memoryDir, 'memory.db'));
+  getDb('project');
   updateGitignore(projectPath);
 }
 
@@ -118,6 +94,22 @@ export function ensureMemoryReady(scope: MemoryScope = 'project'): void {
 
   rebuildFromFiles(scope);
   ensuredRoots.add(memoryRoot);
+}
+
+export function ensureMemoryReadable(scope: MemoryScope = 'project'): boolean {
+  const memoryRoot = getMemoryRoot(scope);
+  if (ensuredRoots.has(memoryRoot)) {
+    return true;
+  }
+
+  const state = detectMemoryState(scope);
+  if (!state.enabled) {
+    return false;
+  }
+
+  rebuildFromFiles(scope);
+  ensuredRoots.add(memoryRoot);
+  return true;
 }
 
 export function markMemoryReady(scope: MemoryScope = 'project', projectPath: string = process.cwd()): void {

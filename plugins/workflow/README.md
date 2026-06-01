@@ -1,45 +1,59 @@
 # Workflow
 
-Merged Codex workflow plugin for feature discovery, architecture design, implementation discipline, review loops, and verification.
+Modular Codex workflow framework for intent checks, context discovery, audits, frontend UI contracts, durable plans, subagent execution, and review/fix finalization.
+
+Full flow:
+
+```text
+intent-gate -> context-discovery -> writing-plans -> executing-plans -> finalizing-plan
+```
+
+Audit flow can run independently or feed planning:
+
+```text
+intent-gate -> audit-flow
+intent-gate -> audit-flow -> writing-plans
+```
+
+Each module can also be used independently.
 
 This plugin ships:
 
-- `Using Workflow` as the entry skill for every conversation start and post-compaction restart
-- skills for brainstorming, feature development, planning, execution, debugging, worktree setup, review, and verification
-- specialist explorer, architect, reviewer, and risk-reviewer agents
+- `Using Workflow` as the router after conversation start or compaction
+- `Intent Gate` to verify real user intent before acting
+- `Context Discovery` to ask as many material questions as needed
+- `UI Contract` to define frontend/UI acceptance rules and review delivered interfaces
+- `Audit Flow` to create `.workflow/audits/<date-slug>/` review artifacts and planning input
+- `Writing Plans` to create `.workflow/plans/<date-slug>/` artifacts
+- `Executing Plans` to execute plan tasks with state recovery and worktree-isolated subagents
+- `Finalizing Plan` to run complexity-based review/fix loops
+- `Workflow MCP` to describe bundled MCP tool contracts for plan/audit artifact state
+- a bundled workflow MCP server that syncs `workflow_*` custom agents globally at startup and exposes deterministic `.workflow/` plan/audit artifact tools
 
-The review system is built around three levels:
+Workflow artifacts are filesystem-first. The workflow MCP may be used to create, update, inspect, and normalize plan/audit artifacts, but this version does not use a workflow RAG layer.
 
-- `Review Change` in `task` mode after each meaningful task or plan section
-- `Review Change` in `feature` mode for larger finished changes
-- `Review Change` in `high-risk` mode for breaking changes, risky refactors, migrations, and codebase-wide verification
+Subagents are automatic only after the user explicitly authorizes agent/delegation use for the current task, plan, or session. If authorization is absent, the workflow asks once before the first subagent launch and records the decision in plan artifacts when available.
 
-Planning discipline includes:
+## Custom Agents
 
-- `Writing Plans` for codebase exploration, comprehensive draft planning, self-review, and final implementation plan creation
+The workflow custom agents use Codex's custom-agent schema (`name`, `description`, `developer_instructions`, and optional model/sandbox settings). They are shipped by the bundled `@wiolett/workflow` MCP package.
 
-Coding discipline is always on:
+Codex loads custom agents from `.codex/agents/` or `~/.codex/agents/`. The workflow MCP syncs its packaged agent definitions into the correct Codex agents directory at startup and validates that the loaded versions match the package source.
 
-- existing linters are treated as mandatory feedback; errors and warnings must be fixed, not suppressed
-- workflow plans, execution, review, and verification must preserve lint rules instead of disabling or bypassing them
-- code files should stay under 500 lines and maintain one clear responsibility, with targeted splits when touched files become too large or mixed-purpose
+Workflow skills should use the named `workflow_*` custom agents directly. Missing workflow agents are a setup problem, not a reason to silently use generic built-in agents.
 
-Related plugins in this marketplace:
+The sync target is global only: `~/.codex/agents/`. Project-scoped `.codex/agents/` sync is intentionally not used. For other CLI compatibility, the workflow MCP also creates best-effort links under `~/.agents/agents/`.
 
-- `codebase-scan` for brownfield codebase onboarding and architecture scanning
-- `ui-contract-review` for frontend design contracts and retroactive UI audits
-- `spike-investigation` for bounded feasibility spikes before planning
-- `test-driven-development` for strict TDD discipline
-- `multi-agent-workflows` for subagent-driven and parallel-agent execution
-- `live-browser-debug` for real-browser frontend debugging and delayed incident capture
-- `merge-request-review` for GitLab merge request review, discussion-aware findings, and approval discipline
+## MCP Tools
 
-## Attribution
+The MCP tools are state helpers only. They do not generate plan text, audit text, or launch subagents.
 
-This plugin includes adapted material from:
-
-- `obra/superpowers` (MIT)
-
-See:
-- [`NOTICE.md`](./NOTICE.md)
-- [`LICENSE`](./LICENSE)
+- `workflow_status`
+- `workflow_plan_create`
+- `workflow_plan_update`
+- `workflow_plan_artifact_write`
+- `workflow_audit_create`
+- `workflow_audit_update`
+- `workflow_audit_artifact_write`
+- `workflow_handoff_write`
+- `workflow_findings_normalize`

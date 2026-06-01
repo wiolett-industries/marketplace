@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { GraphLinks } from './graph.js';
 
 export type EntryLayer = 'lite' | 'deep';
+export type MemorySource = 'user_explicit' | 'model_inferred' | 'tool_result' | 'repo_fact';
 
 export interface EntryRecord {
   id: string;
@@ -11,6 +12,9 @@ export interface EntryRecord {
   layer: EntryLayer;
   ref: string | null;
   embedding: number[];
+  source?: MemorySource;
+  confidence?: number;
+  importance?: number;
   created_at: number;
   updated_at: number;
 }
@@ -27,6 +31,9 @@ export interface EntryRow {
   ref: string | null;
   hash: string | null;
   embedding: string;
+  source?: string | null;
+  confidence?: number | null;
+  importance?: number | null;
   created_at: number;
   updated_at: number;
 }
@@ -46,7 +53,7 @@ export function buildPointerContent(id: string, content: string, summary?: strin
   return `[→ ${id}] ${pointerText}`;
 }
 
-export function hashEntry(entry: Pick<EntryRecord, 'file_name' | 'content' | 'tags' | 'layer' | 'ref' | 'embedding'>): string {
+export function hashEntry(entry: Pick<EntryRecord, 'file_name' | 'content' | 'tags' | 'layer' | 'ref' | 'embedding' | 'source' | 'confidence' | 'importance'>): string {
   return createHash('sha256')
     .update(
       JSON.stringify({
@@ -56,6 +63,9 @@ export function hashEntry(entry: Pick<EntryRecord, 'file_name' | 'content' | 'ta
         layer: entry.layer,
         ref: entry.ref,
         embedding: entry.embedding,
+        source: entry.source ?? 'model_inferred',
+        confidence: entry.confidence ?? 0.5,
+        importance: entry.importance ?? 0.5,
       }),
       'utf8'
     )
@@ -71,6 +81,9 @@ export function parseEntryRow(row: EntryRow): EntryRecord {
     layer: row.layer as EntryLayer,
     ref: row.ref ?? null,
     embedding: JSON.parse(row.embedding) as number[],
+    source: (row.source as MemorySource | null) ?? 'model_inferred',
+    confidence: row.confidence ?? 0.5,
+    importance: row.importance ?? 0.5,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };

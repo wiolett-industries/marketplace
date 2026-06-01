@@ -1,45 +1,42 @@
 {
   "name": "agent-memory",
-  "version": "0.1.5",
-  "description": "Persistent, searchable agent memory with global and project scopes for Codex and other MCP-capable agents.",
+  "version": "0.2.0",
+  "description": "Persistent, searchable Agent Memory with global/project scopes, compiled recall, and automatic graph links.",
   "author": {
     "name": "Wiolett Industries",
     "url": "https://wiolett.net"
   },
-  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/packages/agent-memory",
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/agent-memory",
   "repository": "https://github.com/wiolett-industries/marketplace",
   "license": "MIT",
   "keywords": [
-    "memory",
     "codex",
+    "memory",
     "mcp",
-    "knowledge",
-    "project",
-    "global",
-    "preferences"
+    "agent-memory",
+    "persistence"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Agent Memory",
-    "shortDescription": "Global and project memory with lite and deep layers",
-    "longDescription": "Adds persistent agent memory with separate global and project scopes to Codex through one bundled MCP server and a memory skill. The MCP server can initialize repo-local storage on demand, keeps global preferences under ~/.agents/agent-memory, and provides tools for reading, writing, searching, and managing reusable knowledge in both scopes.",
+    "shortDescription": "Persistent scoped memory with compiled recall and graph links",
+    "longDescription": "A persistent memory plugin for Codex. It stores durable global preferences and project-specific workflows, supports deep memories, lite indexes, automatic/manual graph links, semantic search when embeddings are configured, lazy no-op reads for uninitialized projects, model-gated writes, and an interactive init flow for OpenAI API credentials.",
     "developerName": "Wiolett Industries",
     "category": "Productivity",
     "capabilities": [
       "Interactive",
       "Write"
     ],
-    "websiteURL": "https://wiolett.net",
+    "websiteURL": "https://github.com/wiolett-industries/marketplace",
     "privacyPolicyURL": "https://wiolett.net",
     "termsOfServiceURL": "https://wiolett.net",
     "defaultPrompt": [
-      "Read my global memory and apply my preferences",
-      "Enable project memory in this repo",
-      "Search our stored workflow notes",
-      "Save this deployment runbook to memory"
+      "Read relevant memory for this repo",
+      "Save this durable project convention",
+      "Recall what we know about this workflow"
     ],
-    "brandColor": "#1F6FEB",
+    "brandColor": "#7C3AED",
     "screenshots": []
   }
 }

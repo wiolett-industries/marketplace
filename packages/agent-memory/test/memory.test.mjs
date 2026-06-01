@@ -5,8 +5,16 @@ describe('memory operations', () => {
   test('auto-initializes memory before normal memory operations', async () => {
     const result = runHarness('memory');
     expect(result.memoryAutoCreated).toBe(true);
-    expect(result.memoryFiles).toHaveLength(3);
-    expect(result.embeddingFiles).toHaveLength(3);
+    expect(result.memoryFiles).toHaveLength(1);
+    expect(result.indexFiles).toHaveLength(2);
+    expect(result.embeddingFiles).toHaveLength(1);
+    expect(Array.isArray(JSON.parse(result.embeddingFileContents))).toBe(true);
+    expect(result.autoLinks.service).toBeGreaterThanOrEqual(1);
+    expect(result.serviceAutoEntry.links.outgoing).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: result.ids.deep, source: 'auto' })])
+    );
+    expect(result.autoLinks.lite).toBeGreaterThanOrEqual(1);
+    expect(result.liteAutoEntry.links.outgoing.length).toBeGreaterThanOrEqual(1);
     expect(result.liteEntries).toHaveLength(2);
     expect(result.liteEntries.some((entry) => entry.ref === result.ids.deep && entry.content.includes(`[→ ${result.ids.deep}]`))).toBe(true);
     expect(result.readAll).toEqual(
@@ -29,7 +37,9 @@ describe('memory operations', () => {
       expect.arrayContaining([expect.objectContaining({ relation: 'related_to', id: result.ids.deep })])
     );
     expect(result.neighbors.neighbors.length).toBeGreaterThanOrEqual(2);
-    expect(result.subgraph.nodes.map((node) => node.id).sort()).toEqual([result.ids.deep, result.ids.service].sort());
+    expect(result.subgraph.nodes.map((node) => node.id)).toEqual(
+      expect.arrayContaining([result.ids.deep, result.ids.service, result.ids.lite])
+    );
     expect(result.subgraph.edges).toEqual(
       expect.arrayContaining([expect.objectContaining({ relation: 'uses_service', to_id: result.ids.service })])
     );
@@ -42,6 +52,14 @@ describe('memory operations', () => {
     });
     expect(result.deleted.deleted).toBe(true);
     expect(result.deepAfterDelete.links.outgoing).toHaveLength(0);
-    expect(result.graphFilesAfterDelete).toHaveLength(0);
+    expect(result.rawGraphAfterDelete).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ from_id: result.ids.service }),
+        expect.objectContaining({ to_id: result.ids.service }),
+      ])
+    );
+    expect(result.graphFilesAfterDelete).not.toEqual(
+      expect.arrayContaining([expect.stringContaining(result.ids.service)])
+    );
   });
 });

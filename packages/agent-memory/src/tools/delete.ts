@@ -1,5 +1,6 @@
 import { deleteEntryFromDb, getEntryById, getPointerByRef } from '../db.js';
 import { deleteEntryFile } from '../files.js';
+import { canParticipateInGraph } from '../graph.js';
 import { pruneGraphFilesForDeletedEntry } from './graph.js';
 import type { MemoryScope } from '../scope.js';
 
@@ -17,7 +18,7 @@ export function handleDelete(args: { id: string; scope?: MemoryScope }): { delet
     }
   }
 
-  if (entry.layer === 'deep') {
+  if (canParticipateInGraph(entry)) {
     pruneGraphFilesForDeletedEntry(entry, scope);
   }
 

@@ -1,47 +1,22 @@
-import { DatabaseSync } from 'node:sqlite';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { getResolvedOpenAIApiKey } from './openai.js';
+import { isSemanticSearchEnabled } from './model-provider.js';
 import { resetMemoryReady } from './runtime.js';
 import { getGlobalMemoryRoot } from './scope.js';
+import { getDb } from './db.js';
 
 export interface SetupResult {
   scope: 'project' | 'global';
   project_path: string;
   memory_dir: string;
   memories_dir: string;
+  index_dir: string;
   embeddings_dir: string;
   graph_dir: string;
   db_path: string;
   gitignore_path: string | null;
   gitignore_updated: boolean;
   semantic_search_enabled: boolean;
-}
-
-function ensureDatabase(dbPath: string): void {
-  const db = new DatabaseSync(dbPath);
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS entries (
-      id TEXT PRIMARY KEY,
-      content TEXT NOT NULL,
-      tags TEXT NOT NULL DEFAULT '[]',
-      layer TEXT NOT NULL DEFAULT 'deep',
-      ref TEXT DEFAULT NULL,
-      hash TEXT DEFAULT NULL,
-      embedding TEXT NOT NULL DEFAULT '[]',
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    )
-  `).run();
-  db.prepare(`
-    CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
-      content,
-      tags,
-      content='entries',
-      content_rowid='rowid'
-    )
-  `).run();
-  db.close();
 }
 
 function updateGitignore(projectPath: string): { gitignorePath: string; updated: boolean } {
@@ -71,57 +46,61 @@ export function setupProjectMemory(): SetupResult {
   const projectPath = process.cwd();
   const memoryDir = path.join(projectPath, '.memory');
   const memoriesDir = path.join(memoryDir, 'memories');
+  const indexDir = path.join(memoryDir, 'index');
   const embeddingsDir = path.join(memoryDir, 'embeddings');
   const graphDir = path.join(memoryDir, 'graph');
   const dbPath = path.join(memoryDir, 'memory.db');
 
   mkdirSync(memoriesDir, { recursive: true });
+  mkdirSync(indexDir, { recursive: true });
   mkdirSync(embeddingsDir, { recursive: true });
   mkdirSync(graphDir, { recursive: true });
-  ensureDatabase(dbPath);
+  getDb('project');
 
   const { gitignorePath, updated } = updateGitignore(projectPath);
   resetMemoryReady('project', projectPath);
 
-  const { apiKey } = getResolvedOpenAIApiKey();
   return {
     scope: 'project',
     project_path: projectPath,
     memory_dir: memoryDir,
     memories_dir: memoriesDir,
+    index_dir: indexDir,
     embeddings_dir: embeddingsDir,
     graph_dir: graphDir,
     db_path: dbPath,
     gitignore_path: gitignorePath,
     gitignore_updated: updated,
-    semantic_search_enabled: Boolean(apiKey),
+    semantic_search_enabled: isSemanticSearchEnabled(),
   };
 }
 
 export function setupGlobalMemory(): SetupResult {
   const memoryDir = getGlobalMemoryRoot();
   const memoriesDir = path.join(memoryDir, 'memories');
+  const indexDir = path.join(memoryDir, 'index');
   const embeddingsDir = path.join(memoryDir, 'embeddings');
   const graphDir = path.join(memoryDir, 'graph');
   const dbPath = path.join(memoryDir, 'memory.db');
 
   mkdirSync(memoriesDir, { recursive: true });
+  mkdirSync(indexDir, { recursive: true });
   mkdirSync(embeddingsDir, { recursive: true });
   mkdirSync(graphDir, { recursive: true });
-  ensureDatabase(dbPath);
+  getDb('global');
   resetMemoryReady('global');
 
-  const { apiKey } = getResolvedOpenAIApiKey();
   return {
     scope: 'global',
     project_path: memoryDir,
     memory_dir: memoryDir,
     memories_dir: memoriesDir,
+    index_dir: indexDir,
     embeddings_dir: embeddingsDir,
     graph_dir: graphDir,
     db_path: dbPath,
     gitignore_path: null,
     gitignore_updated: false,
-    semantic_search_enabled: Boolean(apiKey),
+    semantic_search_enabled: isSemanticSearchEnabled(),
   };
 }

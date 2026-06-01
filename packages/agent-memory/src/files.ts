@@ -21,6 +21,14 @@ export function getMemoriesDir(scope: MemoryScope = 'project'): string {
   return memoriesDir;
 }
 
+export function getIndexDir(scope: MemoryScope = 'project'): string {
+  const indexDir = path.join(getMemoryDir(scope), 'index');
+  if (!existsSync(indexDir)) {
+    mkdirSync(indexDir, { recursive: true });
+  }
+  return indexDir;
+}
+
 export function getEmbeddingsDir(scope: MemoryScope = 'project'): string {
   const embeddingsDir = path.join(getMemoryDir(scope), 'embeddings');
   if (!existsSync(embeddingsDir)) {
@@ -45,6 +53,10 @@ function memoryFilePath(fileName: string, scope: MemoryScope): string {
   return path.join(getMemoriesDir(scope), `${fileName}.md`);
 }
 
+function indexFilePath(fileName: string, scope: MemoryScope): string {
+  return path.join(getIndexDir(scope), `${fileName}.md`);
+}
+
 function embeddingFilePath(fileName: string, scope: MemoryScope): string {
   return path.join(getEmbeddingsDir(scope), `${fileName}.embeddings`);
 }
@@ -66,6 +78,9 @@ function serializeMemory(entry: EntryRecord): string {
     tags: entry.tags,
     layer: entry.layer,
     ref: entry.ref,
+    source: entry.source,
+    confidence: entry.confidence,
+    importance: entry.importance,
     created_at: entry.created_at,
     updated_at: entry.updated_at,
   };
@@ -87,19 +102,13 @@ function parseMemory(markdown: string): Omit<EntryRecord, 'embedding'> | null {
 }
 
 export function writeEntryFile(entry: EntryRecord, scope: MemoryScope = 'project'): void {
+  if (entry.layer === 'lite') {
+    atomicWrite(indexFilePath(entry.file_name, scope), serializeMemory(entry));
+    return;
+  }
+
   atomicWrite(memoryFilePath(entry.file_name, scope), serializeMemory(entry));
-  atomicWrite(
-    embeddingFilePath(entry.file_name, scope),
-    JSON.stringify(
-      {
-        id: entry.id,
-        file_name: entry.file_name,
-        embedding: entry.embedding,
-      },
-      null,
-      2
-    )
-  );
+  atomicWrite(embeddingFilePath(entry.file_name, scope), JSON.stringify(entry.embedding));
 }
 
 export function writeGraphFile(fileName: string, edges: GraphEdgeRecord[], scope: MemoryScope = 'project'): void {
@@ -117,7 +126,9 @@ export function writeGraphFile(fileName: string, edges: GraphEdgeRecord[], scope
 }
 
 export function readEntryFileByFileName(fileName: string, scope: MemoryScope = 'project'): EntryRecord | null {
-  const mdPath = memoryFilePath(fileName, scope);
+  const memoryPath = memoryFilePath(fileName, scope);
+  const indexPath = indexFilePath(fileName, scope);
+  const mdPath = existsSync(memoryPath) ? memoryPath : indexPath;
   if (!existsSync(mdPath)) {
     return null;
   }
@@ -128,13 +139,10 @@ export function readEntryFileByFileName(fileName: string, scope: MemoryScope = '
   }
 
   const embPath = embeddingFilePath(fileName, scope);
-  const embeddingPayload = existsSync(embPath)
-    ? JSON.parse(readFileSync(embPath, 'utf8')) as { embedding?: number[] }
-    : { embedding: [] };
 
   return {
     ...memory,
-    embedding: embeddingPayload.embedding ?? [],
+    embedding: memory.layer === 'deep' && existsSync(embPath) ? parseEmbedding(readFileSync(embPath, 'utf8')) : [],
   };
 }
 
@@ -146,6 +154,7 @@ export function readEntryFile(id: string, scope: MemoryScope = 'project'): Entry
 export function deleteEntryFile(entry: Pick<EntryRecord, 'id' | 'file_name'>, scope: MemoryScope = 'project'): void {
   const files = [
     memoryFilePath(entry.file_name, scope),
+    indexFilePath(entry.file_name, scope),
     embeddingFilePath(entry.file_name, scope),
   ];
 
@@ -164,7 +173,18 @@ export function deleteGraphFile(fileName: string, scope: MemoryScope = 'project'
 }
 
 export function listEntryFileNames(scope: MemoryScope = 'project'): string[] {
+  return Array.from(new Set([...listMemoryFileNames(scope), ...listIndexFileNames(scope)])).sort();
+}
+
+export function listMemoryFileNames(scope: MemoryScope = 'project'): string[] {
   return readdirSync(getMemoriesDir(scope))
+    .filter((name) => name.endsWith('.md'))
+    .map((name) => name.slice(0, -3))
+    .sort();
+}
+
+export function listIndexFileNames(scope: MemoryScope = 'project'): string[] {
+  return readdirSync(getIndexDir(scope))
     .filter((name) => name.endsWith('.md'))
     .map((name) => name.slice(0, -3))
     .sort();
@@ -195,5 +215,23 @@ export function readGraphFile(fileName: string, scope: MemoryScope = 'project'):
     edges?: GraphEdgeRecord[];
   };
 
-  return payload.edges ?? [];
+  return (payload.edges ?? []).map((edge) => ({
+    ...edge,
+    source: edge.source === 'auto' ? 'auto' : 'manual',
+  }));
+}
+
+function parseEmbedding(raw: string): number[] {
+  const parsed = JSON.parse(raw) as unknown;
+  if (Array.isArray(parsed)) {
+    return parsed.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+  }
+
+  if (parsed && typeof parsed === 'object' && Array.isArray((parsed as { embedding?: unknown }).embedding)) {
+    return (parsed as { embedding: unknown[] }).embedding.filter(
+      (value): value is number => typeof value === 'number' && Number.isFinite(value)
+    );
+  }
+
+  return [];
 }

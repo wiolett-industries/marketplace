@@ -1,15 +1,10 @@
-import { getOpenAIClient } from './openai.js';
+import { getEmbeddingClient } from './model-provider.js';
 
 export async function embed(text: string): Promise<number[]> {
-  const openai = getOpenAIClient();
-  if (!openai) {
+  const embeddings = await getEmbeddingClient();
+  if (!embeddings) {
     return [];
   }
 
-  const response = await openai.embeddings.create({
-    model: 'text-embedding-3-small',
-    input: text,
-  });
-
-  return response.data[0]?.embedding ?? [];
+  return embeddings.createEmbedding(text);
 }

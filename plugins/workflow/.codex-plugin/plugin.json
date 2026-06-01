@@ -1,7 +1,7 @@
 {
   "name": "workflow",
-  "version": "0.1.2",
-  "description": "Structured engineering workflows for Codex: discovery, planning, debugging, review gates, and verification discipline.",
+  "version": "0.2.0",
+  "description": "Modular agentic workflows for Codex: intent gating, context discovery, audits, UI contracts, durable plans, workflow MCP artifacts, subagent execution, and review/fix loops.",
   "author": {
     "name": "Wiolett Industries",
     "url": "https://wiolett.net"
@@ -13,16 +13,21 @@
     "codex",
     "workflow",
     "planning",
-    "debugging",
+    "audit",
     "review",
+    "ui",
+    "frontend",
     "agents",
-    "feature-development"
+    "intent",
+    "subagents",
+    "worktrees"
   ],
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Workflow",
-    "shortDescription": "Discovery, planning, implementation, review, and verification workflows",
-    "longDescription": "A merged workflow plugin for Codex that combines disciplined implementation skills with specialist explorer, architect, and reviewer agents. It covers brainstorming, feature discovery, planning, execution, debugging, verification, and gated code review workflows.",
+    "shortDescription": "Intent, audits, plans, UI contracts, execution, and review loops",
+    "longDescription": "A modular agentic workflow plugin for Codex. It routes work through intent gating, context discovery, frontend UI contracts, filesystem-backed audits, durable .workflow plan artifacts, workflow MCP artifact helpers, stateful execution, worktree-isolated subagents, and complexity-based final review/fix loops.",
     "developerName": "Wiolett Industries",
     "category": "Developer Tools",
     "capabilities": [
@@ -33,10 +38,13 @@
     "privacyPolicyURL": "https://wiolett.net",
     "termsOfServiceURL": "https://wiolett.net",
     "defaultPrompt": [
-      "Run the workflow feature process for this change",
-      "Write an implementation plan for this task",
-      "Review this implementation plan before coding",
-      "Run a task review before we move on"
+      "Run intent gate for this task",
+      "Run an audit flow for this project",
+      "Define the UI contract for this frontend change",
+      "Discover the requirements before planning",
+      "Write a .workflow plan for this change",
+      "Execute this workflow plan",
+      "Finalize this plan with the review loop"
     ],
     "brandColor": "#0F9D58",
     "screenshots": []

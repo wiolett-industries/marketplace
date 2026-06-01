@@ -6,10 +6,17 @@ describe('setupProjectMemory', () => {
     const result = runHarness('setup');
     expect(result.setup.project_path).toMatch(/pm-setup/);
     expect(result.setup.memories_dir).toContain('/.memory/memories');
+    expect(result.setup.index_dir).toContain('/.memory/index');
     expect(result.setup.embeddings_dir).toContain('/.memory/embeddings');
     expect(result.setup.graph_dir).toContain('/.memory/graph');
     expect(result.setup.db_path).toContain('/.memory/memory.db');
     expect(result.idempotent.same_db_path).toBe(true);
     expect(result.idempotent.gitignore_entries).toBe(1);
+    expect(result.setup.semantic_search_enabled).toBe(false);
+  });
+
+  test('marks semantic search enabled for local embeddings config', async () => {
+    const result = runHarness('setup-local-embeddings');
+    expect(result.semantic_search_enabled).toBe(true);
   });
 });

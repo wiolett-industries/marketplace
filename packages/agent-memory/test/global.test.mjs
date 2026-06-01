@@ -8,8 +8,9 @@ describe('global memory operations', () => {
     expect(result.initialGlobalState.enabled).toBe(false);
     expect(result.finalGlobalState.enabled).toBe(true);
     expect(result.projectMemoryDirCreated).toBe(false);
-    expect(result.globalMemoryFiles).toHaveLength(3);
-    expect(result.globalEmbeddingFiles).toHaveLength(3);
+    expect(result.globalMemoryFiles).toHaveLength(1);
+    expect(result.globalIndexFiles).toHaveLength(2);
+    expect(result.globalEmbeddingFiles).toHaveLength(1);
     expect(result.globalReadLite).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ ref: result.ids.deep, content: expect.stringContaining(`[→ ${result.ids.deep}]`) }),

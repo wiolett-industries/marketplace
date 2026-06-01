@@ -9,17 +9,20 @@ Persistent memory for Codex with separate global and project scopes.
 - repository-specific workflows and conventions
 - deployment notes, credentials, setup steps, and operational gotchas
 
-The plugin is powered by a bundled MCP server and a Codex skill.
+This package backs the standalone Agent Memory plugin.
 
 ## Highlights
 
 - global memory stored under `~/.agents/agent-memory/`
 - project memory stored under `<repo>/.memory/`
-- deep and lite memory layers
+- deep canonical memories plus a separate lightweight index layer
 - semantic and keyword search
 - meaningful memory filenames
-- weighted links between deep memories
-- automatic project-memory setup on first use
+- weighted graph links between deep memories and standalone lite memories
+- automatic graph-link suggestions on save/update without touching manual links
+- sanity-gated saves and stable in-place memory updates
+- compiled recall/query answers with source references
+- automatic project-memory setup on write/mutation use; reads stay no-op when project memory is absent
 
 ## Memory Scopes
 
@@ -44,7 +47,7 @@ Project memory is for repository-specific knowledge:
 - undocumented dependencies
 - credentials and environment-specific instructions
 
-Project memory now auto-initializes on first project-memory use in a repository.
+Project memory auto-initializes on write/mutation use in a repository. Read tools do not create `.memory/` when project memory is absent; they return empty results instead.
 
 ## Storage Model
 
@@ -53,6 +56,7 @@ Global memory:
 ```text
 ~/.agents/agent-memory/
   memories/
+  index/
   embeddings/
   graph/
   memory.db
@@ -63,6 +67,7 @@ Project memory:
 ```text
 .memory/
   memories/
+  index/
   embeddings/
   graph/
   memory.db
@@ -70,39 +75,43 @@ Project memory:
   memory.db-wal
 ```
 
-Markdown memory files, embedding files, and graph files are the source of truth. SQLite is used as local cache for fast lookup.
+Canonical markdown memory files, index files, embedding arrays, and graph files are the source of truth. SQLite is used as local cache for fast lookup.
 
 ## Tool Surface
 
-Project tools:
+Canonical tools:
 
-- `memory_write`
-- `memory_get`
-- `memory_read_lite`
-- `memory_search`
+- `memory_save`
+- `memory_update`
+- `memory_recall`
+- `memory_query`
+- `memory_list`
+- `memory_inspect`
 - `memory_delete`
 - `memory_link`
 - `memory_unlink`
-- `memory_neighbors`
-- `memory_subgraph`
-- `memory_read_all`
+- `memory_graph`
+- `memory_setup`
 
-Optional manual maintenance tool:
+Every canonical tool except `memory_setup` accepts an optional `scope` of `project` or `global`; project is the default. `memory_setup` initializes or repairs project memory for the current repo.
 
-- `memory_setup` for explicit initialization or repair, though normal use no longer requires it
+Compatibility aliases remain available until the bundled skills move to the new names:
 
-Global tools:
+- `memory_write` / `global_memory_write`
+- `memory_get` / `global_memory_get`
+- `memory_search` / `global_memory_search`
+- `memory_read_lite` / `global_memory_read_lite`
+- `memory_read_all` / `global_memory_read_all`
+- `memory_neighbors` / `global_memory_neighbors`
+- `memory_subgraph` / `global_memory_subgraph`
 
-- `global_memory_write`
-- `global_memory_get`
-- `global_memory_read_lite`
-- `global_memory_search`
-- `global_memory_delete`
-- `global_memory_link`
-- `global_memory_unlink`
-- `global_memory_neighbors`
-- `global_memory_subgraph`
-- `global_memory_read_all`
+Normal reads should use:
+
+- `memory_recall` for one compiled memory context
+- `memory_query` for a compiled answer from search results
+- `memory_list` for lightweight index browsing
+
+`memory_inspect` is intentionally raw and meant for maintenance/debugging.
 
 ## Install
 
@@ -114,24 +123,29 @@ codex plugin marketplace add wiolett-industries/marketplace
 
 Then install `agent-memory` from that marketplace in Codex.
 
-To enable semantic search and AI-generated memory names, either:
+Model access is resolved by `@wiolett/oai-auth` using a normal OpenAI-compatible API key. Configure it with:
 
 ```bash
-export OPENAI_API_KEY="your-key"
-codex
+npx -y @wiolett/agent-memory-mcp@latest init
 ```
 
-or save the key once through the `agent_memory_configure` MCP tool. Agent Memory stores the saved key in:
+The init command writes:
 
 ```text
-~/.agents/agent-memory/config.json
+~/.agents/.wiolett/auth-config.json
 ```
 
-At runtime, Agent Memory uses this precedence:
+You can also provide `OPENAI_API_KEY` directly. The config may contain:
 
-1. `OPENAI_API_KEY` from the environment
-2. stored key from `~/.agents/agent-memory/config.json`
-3. no key, which disables embeddings and AI naming
+```json
+{
+  "openAIKey": "sk-proj-...",
+  "endpoint": "https://api.openai.com/v1",
+  "embeddingModel": "text-embedding-3-small"
+}
+```
+
+Without an API key, model-gated writes and semantic search are disabled. Memory still falls back to keyword/FTS plus graph relations where possible.
 
 ## Usage
 
@@ -141,21 +155,30 @@ At conversation start, the bundled skill tells Codex to read global lite memory 
 global_memory_read_lite()
 ```
 
-When a repository should use project memory, just start using project memory tools. The first project-memory call will initialize the local `.memory/` store automatically.
+When a repository should use project memory, save or mutate project memory normally. The first write/mutation call initializes the local `.memory/` store automatically. Read calls against a repo with no project memory return empty results and leave the repo untouched.
 
 From there, use memory tools to store and retrieve reusable knowledge as needed.
+
+Example canonical calls:
+
+```text
+memory_save(content="Project releases use pnpm build before publish.", tags=["release", "pnpm"])
+memory_query(query="How do releases work?")
+memory_recall(memory_id="abc123xy")
+memory_inspect(view="all")
+```
 
 ## Development
 
 Requirements:
 
 - Node.js 22.5+
-- optional `OPENAI_API_KEY` for semantic search and AI-generated memory slugs
+- optional `OPENAI_API_KEY` or `~/.agents/.wiolett/auth-config.json` for model-gated writes, semantic search, and AI-generated memory slugs
 
 Useful commands:
 
 ```bash
-npm run typecheck
-npm run build
-npm test
+pnpm typecheck
+pnpm build
+pnpm test
 ```

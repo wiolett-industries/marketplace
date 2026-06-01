@@ -1,6 +1,7 @@
 import { getDeepEntries, getLiteEntries, getPointerByRef, upsertEntry } from '../db.js';
 import { embed } from '../embeddings.js';
 import { writeEntryFile } from '../files.js';
+import { refreshAutoLinks } from '../auto-link.js';
 import { buildPointerContent, hashEntry, normalizeTags, type EntryRecord } from '../entry.js';
 import { createEntryIdentity } from '../naming.js';
 import type { MemoryScope } from '../scope.js';
@@ -17,6 +18,7 @@ interface WriteResult {
   id: string;
   pointer_id?: string;
   action: 'created' | 'updated';
+  auto_links?: number;
 }
 
 function persist(entry: EntryRecord, scope: MemoryScope): void {
@@ -47,7 +49,8 @@ export async function handleWrite(args: WriteArgs): Promise<WriteResult> {
     };
 
     persist(entry, scope);
-    return { id: entry.id, action: existing ? 'updated' : 'created' };
+    const autoLinks = await refreshAutoLinks(entry, scope);
+    return { id: entry.id, action: existing ? 'updated' : 'created', auto_links: autoLinks.linked };
   }
 
   const existingDeep = getDeepEntries(scope).find((entry) => entry.content === content);
@@ -81,10 +84,12 @@ export async function handleWrite(args: WriteArgs): Promise<WriteResult> {
   };
 
   persist(pointerEntry, scope);
+  const autoLinks = await refreshAutoLinks(deepEntry, scope);
 
   return {
     id: deepEntry.id,
     pointer_id: pointerEntry.id,
     action: existingDeep ? 'updated' : 'created',
+    auto_links: autoLinks.linked,
   };
 }

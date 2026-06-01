@@ -1,5 +1,6 @@
 import { getEntryById } from '../db.js';
 import { withoutEmbedding } from '../entry.js';
+import { canParticipateInGraph } from '../graph.js';
 import { withLinks } from './graph.js';
 import type { MemoryScope } from '../scope.js';
 
@@ -10,5 +11,5 @@ export function handleGet(args: { id: string; scope?: MemoryScope }) {
     return null;
   }
 
-  return entry.layer === 'deep' ? withLinks(entry, scope) : withoutEmbedding(entry);
+  return canParticipateInGraph(entry) ? withLinks(entry, scope) : withoutEmbedding(entry);
 }

@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import os from 'node:os';
 import path from 'node:path';
 
 export function runHarness(mode) {
@@ -10,6 +11,7 @@ export function runHarness(mode) {
       encoding: 'utf8',
       env: {
         ...process.env,
+        WIOLETT_AUTH_CONFIG_PATH: path.join(os.tmpdir(), 'agent-memory-missing-auth-config.json'),
         OPENAI_API_KEY: '',
       },
     }

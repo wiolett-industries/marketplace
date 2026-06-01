@@ -1,5 +1,10 @@
 import type { EntryRecord } from './entry.js';
 
+export type GraphMemoryNode = EntryRecord & (
+  | { layer: 'deep' }
+  | { layer: 'lite'; ref: null }
+);
+
 export const DIRECTIONAL_RELATIONS = [
   'depends_on',
   'supersedes',
@@ -28,6 +33,7 @@ export interface GraphEdgeRecord {
   relation: GraphRelation;
   weight: number;
   reason: string | null;
+  source: 'manual' | 'auto';
   created_at: number;
   updated_at: number;
 }
@@ -38,6 +44,7 @@ export interface GraphEdgeSummary {
   relation: GraphRelation;
   weight: number;
   reason: string | null;
+  source: 'manual' | 'auto';
   direction: 'outgoing' | 'incoming';
 }
 
@@ -75,15 +82,18 @@ export function normalizeWeight(weight: number): number {
   return Number(weight.toFixed(4));
 }
 
-export function assertDeepGraphNode(entry: EntryRecord | null, id: string): EntryRecord {
+export function canParticipateInGraph(entry: EntryRecord | null): entry is GraphMemoryNode {
+  return Boolean(entry && (entry.layer === 'deep' || (entry.layer === 'lite' && entry.ref === null)));
+}
+
+export function assertGraphNode(entry: EntryRecord | null, id: string): GraphMemoryNode {
   if (!entry) {
     throw new Error(`Memory entry "${id}" does not exist.`);
   }
 
-  if (entry.layer !== 'deep') {
-    throw new Error(`Memory entry "${id}" is not a deep memory and cannot participate in the graph.`);
+  if (!canParticipateInGraph(entry)) {
+    throw new Error(`Memory entry "${id}" is an index pointer and cannot participate in the graph.`);
   }
 
   return entry;
 }
-

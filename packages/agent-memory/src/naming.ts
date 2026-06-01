@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { customAlphabet } from 'nanoid';
-import { getOpenAIClient } from './openai.js';
+import { getModelClient } from './model-provider.js';
 
 const createId = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 8);
 const STOP_WORDS = new Set([
@@ -37,13 +37,12 @@ function fallbackSlug(content: string, tags: string[]): string {
 }
 
 async function aiSlug(content: string, tags: string[]): Promise<string | null> {
-  const openai = getOpenAIClient();
-  if (!openai) {
+  const model = await getModelClient();
+  if (!model) {
     return null;
   }
 
-  const response = await openai.responses.create({
-    model: 'gpt-5-nano',
+  const response = await model.createTextResponse({
     instructions: [
       'Generate a concise filename slug for an agent memory entry.',
       'Return only 1 to 3 meaningful lowercase words joined by underscores.',
@@ -56,7 +55,7 @@ async function aiSlug(content: string, tags: string[]): Promise<string | null> {
     }),
   });
 
-  const slug = sanitizeSlug(response.output_text);
+  const slug = sanitizeSlug(response.outputText);
   return slug || null;
 }
 

@@ -4,25 +4,21 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import {
-  getAgentMemoryConfigPath,
-  persistOpenAIKeyFromEnvironment,
-  readAgentMemoryConfig,
-  resolveOpenAIApiKey,
-  setStoredOpenAIApiKey,
-} from '../dist/config.js';
 import { closeDb } from '../dist/db.js';
-import { resetOpenAIClient } from '../dist/openai.js';
+import { resetModelProvider } from '../dist/model-provider.js';
 import { setupProjectMemory } from '../dist/setup.js';
 import { detectMemoryState, ensureMemoryReady, resetMemoryReady } from '../dist/runtime.js';
 import { getGlobalMemoryRoot } from '../dist/scope.js';
 import { handleWrite } from '../dist/tools/write.js';
+import { handleUpdate } from '../dist/tools/update.js';
 import { handleReadLite } from '../dist/tools/read-lite.js';
 import { handleReadAll } from '../dist/tools/read-all.js';
 import { handleGet } from '../dist/tools/get.js';
 import { handleSearch } from '../dist/tools/search.js';
 import { handleDelete } from '../dist/tools/delete.js';
 import { handleLink, handleNeighbors, handleSubgraph, handleUnlink } from '../dist/tools/graph.js';
+import { handleInspect } from '../dist/tools/inspect.js';
+import { handleRecall } from '../dist/tools/recall.js';
 import { rebuildFromFiles } from '../dist/rebuild.js';
 
 if (!process.env.PROJECT_MEMORY_AGENTS_HOME) {
@@ -50,14 +46,14 @@ async function withProject(projectDir, fn) {
   process.chdir(projectDir);
   resetMemoryReady('project', projectDir);
   resetMemoryReady('global');
-  resetOpenAIClient();
+  resetModelProvider();
   try {
     return await fn();
   } finally {
     closeDb();
     resetMemoryReady('project', projectDir);
     resetMemoryReady('global');
-    resetOpenAIClient();
+    resetModelProvider();
     process.chdir(previousCwd);
   }
 }
@@ -85,6 +81,26 @@ async function runSetup() {
   });
 }
 
+async function runSetupLocalEmbeddings() {
+  const projectDir = createTempProject('pm-setup-local-embeddings');
+  return withProject(projectDir, async () => {
+    const previousConfigPath = process.env.WIOLETT_AUTH_CONFIG_PATH;
+    const configPath = path.join(projectDir, 'auth-config.json');
+    writeFileSync(configPath, JSON.stringify({
+      openAIKey: 'sk-test',
+      embeddingModel: 'text-embedding-3-small',
+    }), 'utf8');
+
+    try {
+      process.env.WIOLETT_AUTH_CONFIG_PATH = configPath;
+      return setupProjectMemory();
+    } finally {
+      if (previousConfigPath === undefined) delete process.env.WIOLETT_AUTH_CONFIG_PATH;
+      else process.env.WIOLETT_AUTH_CONFIG_PATH = previousConfigPath;
+    }
+  });
+}
+
 async function runMemory() {
   const projectDir = createTempProject('pm-memory');
   return withProject(projectDir, async () => {
@@ -101,10 +117,12 @@ async function runMemory() {
       summary: 'Static bucket config',
     });
     const lite = await handleWrite({
-      content: 'Preferred stack: Next.js plus FastAPI',
-      tags: ['stack'],
+      content: 'Preferred stack for testnet assets: Next.js plus FastAPI',
+      tags: ['stack', 'testnet'],
       layer: 'lite',
     });
+    const liteAutoEntry = handleGet({ id: lite.id });
+    const serviceAutoEntry = handleGet({ id: service.id });
 
     handleLink({
       from_id: deep.id,
@@ -134,12 +152,22 @@ async function runMemory() {
     });
     const deleted = handleDelete({ id: service.id });
     const deepAfterDelete = handleGet({ id: deep.id });
+    const rawGraphAfterDelete = handleInspect({ view: 'graph' });
 
     return {
       ids: { deep: deep.id, service: service.id, lite: lite.id },
+      autoLinks: {
+        deep: deep.auto_links,
+        service: service.auto_links,
+        lite: lite.auto_links,
+      },
+      serviceAutoEntry,
+      liteAutoEntry,
       memoryAutoCreated: existsSync(path.join(projectDir, '.memory')),
       memoryFiles: listRelative(projectDir, '.memory/memories'),
+      indexFiles: listRelative(projectDir, '.memory/index'),
       embeddingFiles: listRelative(projectDir, '.memory/embeddings'),
+      embeddingFileContents: readFileSync(path.join(projectDir, '.memory', 'embeddings', `${deepEntry.file_name}.embeddings`), 'utf8'),
       liteEntries: handleReadLite(),
       deepEntry,
       serviceEntry,
@@ -151,6 +179,7 @@ async function runMemory() {
       unlinkResult,
       deleted,
       deepAfterDelete,
+      rawGraphAfterDelete,
       graphFilesAfterDelete: listRelative(projectDir, '.memory/graph'),
     };
   });
@@ -193,6 +222,7 @@ async function runGlobal() {
       ids: { deep: globalDeep.id, lite: globalLite.id },
       globalRoot: getGlobalMemoryRoot(),
       globalMemoryFiles: listRelative(getGlobalMemoryRoot(), 'memories'),
+      globalIndexFiles: listRelative(getGlobalMemoryRoot(), 'index'),
       globalEmbeddingFiles: listRelative(getGlobalMemoryRoot(), 'embeddings'),
       projectMemoryExists: initialProjectState.enabled,
       projectMemoryDirCreated: existsSync(path.join(projectDir, '.memory')),
@@ -200,6 +230,64 @@ async function runGlobal() {
       globalReadAll,
       globalSearch,
       globalEntry,
+    };
+  });
+}
+
+async function runUpdateInspect() {
+  const projectDir = createTempProject('pm-update-inspect');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    const primary = await handleWrite({
+      content: 'Original deployment memory that references the staging bucket',
+      tags: ['deploy', 'staging'],
+      summary: 'Original deployment memory',
+    });
+    const related = await handleWrite({
+      content: 'Staging bucket is provisioned by the infrastructure pipeline',
+      tags: ['bucket', 'staging'],
+      summary: 'Staging bucket pipeline',
+    });
+    handleLink({
+      from_id: primary.id,
+      to_id: related.id,
+      relation: 'uses_service',
+      weight: 0.9,
+      reason: 'Deployment memory depends on bucket provisioning',
+    });
+
+    const before = handleGet({ id: primary.id });
+    const relatedBeforeUpdate = handleGet({ id: related.id });
+    const pointerBefore = handleReadLite().find((entry) => entry.ref === primary.id);
+    const update = await handleUpdate({
+      memory_id: primary.id,
+      content: 'Updated deployment memory that references the production bucket',
+      tags: ['deploy', 'production'],
+      summary: 'Updated deployment memory',
+    });
+    const after = handleGet({ id: primary.id });
+    const relatedAfterUpdate = handleGet({ id: related.id });
+    const pointerAfter = handleReadLite().find((entry) => entry.ref === primary.id);
+    const graph = handleInspect({ view: 'graph', memory_id: primary.id });
+    const all = handleInspect({ view: 'all' });
+    const recall = await handleRecall({ memory_id: primary.id, include_sources: true });
+
+    return {
+      ids: { primary: primary.id, related: related.id },
+      before,
+      relatedBeforeUpdate,
+      pointerBefore,
+      update,
+      after,
+      relatedAfterUpdate,
+      pointerAfter,
+      graph,
+      all,
+      recall,
+      memoryFiles: listRelative(projectDir, '.memory/memories'),
+      indexFiles: listRelative(projectDir, '.memory/index'),
+      embeddingFiles: listRelative(projectDir, '.memory/embeddings'),
     };
   });
 }
@@ -250,6 +338,7 @@ async function runLegacyJson() {
     const migratedLiteId = 'pointerr';
     return {
       memoryFiles: listRelative(projectDir, '.memory/memories'),
+      indexFiles: listRelative(projectDir, '.memory/index'),
       embeddingFiles: listRelative(projectDir, '.memory/embeddings'),
       migrated: handleGet({ id: migratedDeepId }),
       migratedPointer: handleGet({ id: migratedLiteId }),
@@ -306,9 +395,6 @@ async function runLegacyDb() {
 
 async function runMcp() {
   const projectDir = createTempProject('pm-mcp');
-  const pluginMcpConfig = JSON.parse(
-    readFileSync(path.resolve('../..', 'plugins/agent-memory/.mcp.json'), 'utf8')
-  );
   const client = new Client({
     name: 'agent-memory-jest-client',
     version: '0.1.0',
@@ -323,6 +409,8 @@ async function runMcp() {
       HOME: process.env.HOME ?? '',
       PROJECT_MEMORY_AGENTS_HOME: process.env.PROJECT_MEMORY_AGENTS_HOME ?? '',
       PROJECT_MEMORY_GLOBAL_ROOT: process.env.PROJECT_MEMORY_GLOBAL_ROOT ?? '',
+      WIOLETT_AUTH_CONFIG_PATH: process.env.WIOLETT_AUTH_CONFIG_PATH ?? '',
+      OPENAI_API_KEY: '',
     },
     stderr: 'pipe',
   });
@@ -349,75 +437,93 @@ async function runMcp() {
   });
   const lite = await client.callTool({ name: 'memory_read_lite', arguments: {} });
   const globalLite = await client.callTool({ name: 'global_memory_read_lite', arguments: {} });
-  const configure = await client.callTool({
-    name: 'agent_memory_configure',
+  const get = await client.callTool({ name: 'memory_get', arguments: { id: JSON.parse(write.content[0].text).id } });
+  const search = await client.callTool({ name: 'memory_search', arguments: { query: 'Smoke test memory' } });
+  const canonicalWrite = await client.callTool({
+    name: 'memory_save',
     arguments: {
-      openai_api_key: 'sk-test-configured',
+      content: 'Canonical smoke memory from MCP launcher',
+      tags: ['smoke', 'canonical'],
+      summary: 'Canonical smoke memory',
     },
   });
+  const query = await client.callTool({
+    name: 'memory_query',
+    arguments: { query: 'Canonical smoke memory', limit: 3 },
+  });
+  const inspect = await client.callTool({ name: 'memory_inspect', arguments: { view: 'all' } });
   await transport.close();
 
   return {
-    pluginMcpConfig,
     toolNames,
-    configPath: getAgentMemoryConfigPath(),
-    storedConfig: readAgentMemoryConfig(),
-    configure,
+    toolSchemas: tools.tools,
     setup,
     write,
+    get,
+    search,
     lite,
     globalWrite,
     globalLite,
+    canonicalWrite,
+    query,
+    inspect,
   };
 }
 
-async function runConfig() {
-  const projectDir = createTempProject('pm-config');
-  return withProject(projectDir, async () => {
-    const previousEnv = process.env.OPENAI_API_KEY;
-    const configPath = getAgentMemoryConfigPath();
-
-    process.env.OPENAI_API_KEY = 'sk-test-env-value';
-    const persisted = persistOpenAIKeyFromEnvironment();
-    resetOpenAIClient();
-    delete process.env.OPENAI_API_KEY;
-    const resolvedAfterEnv = resolveOpenAIApiKey();
-    const storedPath = setStoredOpenAIApiKey('sk-test-manual');
-    resetOpenAIClient();
-    const resolvedAfterManual = resolveOpenAIApiKey();
-    process.env.OPENAI_API_KEY = '${OPENAI_API_KEY}';
-    const placeholderPersisted = persistOpenAIKeyFromEnvironment();
-    resetOpenAIClient();
-    delete process.env.OPENAI_API_KEY;
-    const resolvedAfterPlaceholder = resolveOpenAIApiKey();
-
-    if (previousEnv !== undefined) {
-      process.env.OPENAI_API_KEY = previousEnv;
-    }
-
-    return {
-      configPath,
-      persisted,
-      storedPath,
-      placeholderPersisted,
-      fileContents: JSON.parse(readFileSync(configPath, 'utf8')),
-      resolvedAfterEnv,
-      resolvedAfterManual,
-      resolvedAfterPlaceholder,
-    };
+async function runMcpReadUninitialized() {
+  const projectDir = createTempProject('pm-mcp-read-uninitialized');
+  const globalRoot = path.join(projectDir, 'global-memory');
+  const client = new Client({
+    name: 'agent-memory-jest-client',
+    version: '0.1.0',
   });
+
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [path.resolve('dist/index.js')],
+    cwd: projectDir,
+    env: {
+      PATH: process.env.PATH ?? '',
+      HOME: process.env.HOME ?? '',
+      PROJECT_MEMORY_AGENTS_HOME: process.env.PROJECT_MEMORY_AGENTS_HOME ?? '',
+      PROJECT_MEMORY_GLOBAL_ROOT: globalRoot,
+      WIOLETT_AUTH_CONFIG_PATH: process.env.WIOLETT_AUTH_CONFIG_PATH ?? '',
+      OPENAI_API_KEY: '',
+    },
+    stderr: 'pipe',
+  });
+
+  await client.connect(transport);
+  const lite = await client.callTool({ name: 'memory_read_lite', arguments: {} });
+  const list = await client.callTool({ name: 'memory_list', arguments: {} });
+  const query = await client.callTool({ name: 'memory_query', arguments: { query: 'anything' } });
+  const get = await client.callTool({ name: 'memory_get', arguments: { id: 'missing' } });
+  const inspect = await client.callTool({ name: 'memory_inspect', arguments: { view: 'all' } });
+  await transport.close();
+
+  return {
+    projectMemoryDirCreated: existsSync(path.join(projectDir, '.memory')),
+    globalMemoryDirCreated: existsSync(globalRoot),
+    lite,
+    list,
+    query,
+    get,
+    inspect,
+  };
 }
 
 const mode = process.argv[2];
 
 const runners = {
   setup: runSetup,
+  'setup-local-embeddings': runSetupLocalEmbeddings,
   memory: runMemory,
   global: runGlobal,
-  config: runConfig,
+  'update-inspect': runUpdateInspect,
   'legacy-json': runLegacyJson,
   'legacy-db': runLegacyDb,
   mcp: runMcp,
+  'mcp-read-uninitialized': runMcpReadUninitialized,
 };
 
 assert(mode in runners, `Unknown mode: ${mode}`);

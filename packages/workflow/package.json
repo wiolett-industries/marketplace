@@ -1,0 +1,47 @@
+{
+  "name": "@wiolett/workflow",
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Workflow MCP runtime for custom-agent sync plus filesystem-backed plan, audit, handoff, and UI contract artifacts.",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "workflow": "dist/index.js"
+  },
+  "exports": {
+    "./register": "./dist/register.js",
+    "./sync-agents": "./dist/sync-agents.js",
+    "./tools": "./dist/tools.js"
+  },
+  "files": [
+    "agents/",
+    "dist/",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wiolett-industries/marketplace.git",
+    "directory": "packages/workflow"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/packages/workflow",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "pnpm run clean && tsc -p tsconfig.build.json",
+    "dev": "NODE_NO_WARNINGS=1 tsx src/index.ts",
+    "start": "NODE_NO_WARNINGS=1 node dist/index.js",
+    "prepack": "pnpm run build",
+    "test": "pnpm run build && node --test ./test/*.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
