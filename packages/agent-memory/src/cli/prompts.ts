@@ -5,6 +5,17 @@ const cyan = (text: string): string => `\x1b[36m${text}\x1b[0m`;
 const dim = (text: string): string => `\x1b[2m${text}\x1b[0m`;
 const bold = (text: string): string => `\x1b[1m${text}\x1b[0m`;
 
+export class CliAbortError extends Error {
+  constructor(message = 'Canceled.') {
+    super(message);
+    this.name = 'CliAbortError';
+  }
+}
+
+export function isCliAbortError(error: unknown): boolean {
+  return error instanceof CliAbortError || isReadlineAbortError(error);
+}
+
 export function renderInitHeader(): void {
   process.stdout.write(`${bold('Agent Memory init')}\n`);
   process.stdout.write(`${cyan('┌')} ${bold('Add OpenAI credential')}\n`);
@@ -25,6 +36,9 @@ export async function promptText(message: string, defaultValue?: string): Promis
   try {
     const answer = await rl.question(`${cyan('│')} ${message}${suffix}: `);
     return answer.trim() || defaultValue || '';
+  } catch (error) {
+    if (isReadlineAbortError(error)) throw new CliAbortError();
+    throw error;
   } finally {
     rl.close();
   }
@@ -60,13 +74,13 @@ export async function promptPassword(message: string): Promise<string> {
     };
 
     const redraw = (): void => {
-      output.write(`\r\x1b[2K${prompt}${'■'.repeat(value.length)}`);
+      output.write(`\r\x1b[2K${formatMaskedPasswordLine(prompt, value.length, output.columns)}`);
     };
 
     const onKeypress = (character: string | undefined, key: readline.Key): void => {
       if (key.ctrl && key.name === 'c') {
         cleanup();
-        reject(new Error('Canceled.'));
+        reject(new CliAbortError());
         return;
       }
 
@@ -88,7 +102,27 @@ export async function promptPassword(message: string): Promise<string> {
       }
     };
 
-    output.write(prompt);
+    output.write(formatMaskedPasswordLine(prompt, value.length, output.columns));
     input.on('keypress', onKeypress);
   });
+}
+
+export function formatMaskedPasswordLine(prompt: string, valueLength: number, columns = 80): string {
+  const safeColumns = Number.isFinite(columns) && columns > 0 ? Math.floor(columns) : 80;
+  const available = Math.max(1, safeColumns - stripAnsi(prompt).length - 1);
+  if (valueLength <= available) {
+    return `${prompt}${'■'.repeat(valueLength)}`;
+  }
+  if (available === 1) {
+    return `${prompt}…`;
+  }
+  return `${prompt}${'■'.repeat(available - 1)}…`;
+}
+
+function stripAnsi(value: string): string {
+  return value.replace(/\x1b\[[0-9;]*m/gu, '');
+}
+
+function isReadlineAbortError(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'ABORT_ERR');
 }

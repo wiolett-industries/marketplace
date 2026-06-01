@@ -16,7 +16,7 @@ export class OpenAIEmbeddingsClient implements EmbeddingClient {
     this.apiKey = config?.apiKey;
     this.baseUrl = options.baseUrl ?? config?.baseUrl ?? 'https://api.openai.com/v1';
     this.model = options.embeddingModel ?? config?.embeddingModel ?? 'text-embedding-3-small';
-    this.userAgent = options.userAgent ?? '@wiolett/oai-auth';
+    this.userAgent = options.userAgent ?? '@wiolett/agent-memory';
     this.headers = config?.headers ?? {};
   }
 

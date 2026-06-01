@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 import { runInitCommand } from './cli/init.js';
+import { isCliAbortError } from './cli/prompts.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.2';
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
@@ -50,14 +51,18 @@ async function startMcpServer(): Promise<void> {
 function printHelp(): void {
   console.log([
     'Usage:',
-    '  agent-memory-mcp              Start MCP stdio server',
-    '  agent-memory-mcp init [opts]  Configure OpenAI API key',
+    '  agent-memory              Start MCP stdio server',
+    '  agent-memory init [opts]  Configure OpenAI API key',
     '',
-    'Run agent-memory-mcp init --help for init options.',
+    'Run agent-memory init --help for init options.',
   ].join('\n'));
 }
 
 main().catch((error) => {
+  if (isCliAbortError(error)) {
+    console.error('Canceled.');
+    process.exit(130);
+  }
   console.error('Fatal error in agent-memory:', error);
   process.exit(1);
 });

@@ -1,6 +1,6 @@
 {
   "name": "@wiolett/marketplace",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "type": "module",
   "description": "Codex-first plugin marketplace for Wiolett Industries MCP-backed workflow, memory, and review plugins.",
   "license": "MIT",
@@ -21,10 +21,10 @@
   },
   "scripts": {
     "plugins:install": "pnpm install",
-    "plugin:agent-memory:install": "pnpm install --filter @wiolett/agent-memory-mcp",
-    "build": "pnpm --filter @wiolett/oai-auth build && pnpm --filter @wiolett/agent-memory-mcp build && pnpm --filter @wiolett/workflow build && pnpm --filter @wiolett/merge-request-review build",
-    "test": "pnpm --filter @wiolett/oai-auth test && pnpm --filter @wiolett/agent-memory-mcp test && pnpm --filter @wiolett/workflow test && pnpm --filter @wiolett/merge-request-review test",
-    "typecheck": "pnpm --filter @wiolett/oai-auth typecheck && pnpm --filter @wiolett/agent-memory-mcp typecheck && pnpm --filter @wiolett/workflow typecheck && pnpm --filter @wiolett/merge-request-review typecheck"
+    "plugin:agent-memory:install": "pnpm install --filter @wiolett/agent-memory",
+    "build": "pnpm --filter @wiolett/agent-memory build && pnpm --filter @wiolett/workflow build && pnpm --filter @wiolett/merge-request-review build",
+    "test": "pnpm --filter @wiolett/agent-memory test && pnpm --filter @wiolett/workflow test && pnpm --filter @wiolett/merge-request-review test",
+    "typecheck": "pnpm --filter @wiolett/agent-memory typecheck && pnpm --filter @wiolett/workflow typecheck && pnpm --filter @wiolett/merge-request-review typecheck"
   },
   "keywords": [
     "codex",

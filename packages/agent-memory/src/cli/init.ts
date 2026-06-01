@@ -1,6 +1,6 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { getDefaultWiolettAuthConfigPath, resolveOpenAIProviderConfig } from '@wiolett/oai-auth';
+import { getDefaultWiolettAuthConfigPath, resolveOpenAIProviderConfig } from '../oai-auth/index.js';
 import { promptConfirm, promptPassword, promptText, renderInitFooter, renderInitHeader } from './prompts.js';
 
 const DEFAULT_ENDPOINT = 'https://api.openai.com/v1';
@@ -20,7 +20,7 @@ interface InitCommandOptions {
 }
 
 export async function runInitCommand(argv: string[], options: InitCommandOptions = {}): Promise<void> {
-  const commandName = options.commandName ?? 'agent-memory-mcp init';
+  const commandName = options.commandName ?? 'agent-memory init';
   const args = parseInitArgs(argv, commandName);
   const configPath = getConfigPath();
 

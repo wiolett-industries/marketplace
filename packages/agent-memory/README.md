@@ -123,10 +123,10 @@ codex plugin marketplace add wiolett-industries/marketplace
 
 Then install `agent-memory` from that marketplace in Codex.
 
-Model access is resolved by `@wiolett/oai-auth` using a normal OpenAI-compatible API key. Configure it with:
+Model access uses Agent Memory's built-in OpenAI-compatible auth resolver. Configure it with:
 
 ```bash
-npx -y @wiolett/agent-memory-mcp@latest init
+npx -y @wiolett/agent-memory@latest init
 ```
 
 The init command writes:

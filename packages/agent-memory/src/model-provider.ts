@@ -4,7 +4,7 @@ import {
   type DefaultModelProvider,
   type EmbeddingClient,
   type ModelClient,
-} from '@wiolett/oai-auth';
+} from './oai-auth/index.js';
 
 let providerPromise: Promise<DefaultModelProvider> | null = null;
 

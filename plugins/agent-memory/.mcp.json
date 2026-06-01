@@ -4,9 +4,9 @@
       "command": "npx",
       "args": [
         "-y",
-        "@wiolett/agent-memory-mcp@latest"
+        "@wiolett/agent-memory@latest"
       ],
-      "note": "Agent Memory MCP. Registers persistent global/project memory tools. Configure model access with npx -y @wiolett/agent-memory-mcp@latest init or OPENAI_API_KEY."
+      "note": "Agent Memory MCP. Registers persistent global/project memory tools. Configure model access with npx -y @wiolett/agent-memory@latest init or OPENAI_API_KEY."
     }
   }
 }

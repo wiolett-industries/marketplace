@@ -17,7 +17,7 @@ export class OpenAIResponsesClient implements ModelClient {
     this.apiKey = config?.apiKey;
     this.baseUrl = options.baseUrl ?? config?.baseUrl ?? 'https://api.openai.com/v1';
     this.model = options.model ?? config?.model ?? 'gpt-5-nano';
-    this.userAgent = options.userAgent ?? '@wiolett/oai-auth';
+    this.userAgent = options.userAgent ?? '@wiolett/agent-memory';
     this.headers = config?.headers ?? {};
   }
 

@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from '@jest/globals';
+import { formatMaskedPasswordLine, isCliAbortError } from '../dist/cli/prompts.js';
 
 const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cliPath = path.join(packageDir, 'dist', 'index.js');
@@ -26,7 +27,18 @@ function tempConfigPath() {
   return path.join(mkdtempSync(path.join(tmpdir(), 'agent-memory-init-')), 'auth-config.json');
 }
 
-describe('agent-memory-mcp init', () => {
+describe('agent-memory init', () => {
+  test('caps masked password rendering to one terminal line', () => {
+    const line = formatMaskedPasswordLine('OpenAI API key: ', 200, 40);
+    expect(line.length).toBeLessThanOrEqual(40);
+    expect(line.startsWith('OpenAI API key: ■')).toBe(true);
+    expect(line.endsWith('…')).toBe(true);
+  });
+
+  test('recognizes readline Ctrl-C abort errors', () => {
+    expect(isCliAbortError({ code: 'ABORT_ERR' })).toBe(true);
+  });
+
   test('prints the resolved config path', () => {
     const configPath = tempConfigPath();
     const output = runCli(['init', '--print-path'], { configPath });

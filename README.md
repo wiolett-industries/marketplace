@@ -41,6 +41,14 @@ After the marketplace is registered, install the plugin you want from Codex.
 
 The marketplace itself does not require an OpenAI API key. The `agent-memory` plugin uses `OPENAI_API_KEY` or `~/.agents/.wiolett/auth-config.json` for model-gated writes, embeddings, semantic search, and graph-link review when configured.
 
+After installing `agent-memory`, configure model access once:
+
+```bash
+npx -y @wiolett/agent-memory@latest init
+```
+
+The init command prompts for an OpenAI API key and writes `~/.agents/.wiolett/auth-config.json`.
+
 ## Included Plugins
 
 ### Agent Memory

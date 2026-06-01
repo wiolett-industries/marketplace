@@ -2,14 +2,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import test from 'node:test';
 import {
   createDefaultModelProvider,
   extractResponseOutputText,
   OpenAIEmbeddingsClient,
   OpenAIResponsesClient,
   resolveOpenAIProviderConfig,
-} from '../dist/index.js';
+} from '../dist/oai-auth/index.js';
 
 async function withoutAmbientAuth(fn) {
   const previousOpenAI = process.env.OPENAI_API_KEY;

@@ -9,9 +9,6 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
-    "paths": {
-      "@wiolett/oai-auth": ["../oai-auth/src/index.ts"]
-    },
     "noEmit": true
   },
   "include": [
