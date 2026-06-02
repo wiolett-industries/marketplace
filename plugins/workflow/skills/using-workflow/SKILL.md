@@ -55,6 +55,7 @@ UI flow adds `ui-contract` before planning and during final review. Audit-only f
 - Avoid unrelated refactors and "while here" changes.
 - Do not shrink approved scope, add placeholders, or create unwired artifacts.
 - Do not claim fixed/complete/ready without fresh verification evidence.
+- Before drafting PR/MR title or description, inspect existing project PRs/MRs/templates when available and match local style.
 
 ## User-Testing Loop
 

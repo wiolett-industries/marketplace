@@ -138,3 +138,5 @@ Main thread coordinates agents, normalizes findings, runs verification commands,
 Do not require full build/test/review after every tiny user-testing correction. At finalization, use fresh verification evidence.
 
 When exit threshold is met, report final verdict, review rounds, verification commands/results, accepted `LOW` findings, and plan-run path.
+
+If creating a PR/MR, first inspect recent project PRs/MRs or templates when available, then match their title/description structure and tone.
