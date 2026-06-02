@@ -4,10 +4,6 @@ const fs = require("fs");
 const path = require("path");
 const cp = require("child_process");
 
-const FINAL_WORDS =
-  /\b(done|fixed|complete|completed|implemented|pushed|committed)\b|готово|сделал|починил|исправил|завершил|закоммитил|запушил/i;
-const COMMIT_PUSH_WORDS = /\b(pushed|committed)\b|закоммитил|запушил/i;
-
 function readInput() {
   const raw = fs.readFileSync(0, "utf8").trim();
   return raw ? JSON.parse(raw) : {};
@@ -177,56 +173,6 @@ function validateSubagentStop(input) {
   ok();
 }
 
-function planStateIsFinal(planState) {
-  const value = String(planState?.phase || planState?.status || "").toLowerCase();
-  return ["complete", "completed", "finalized", "closed", "done"].includes(value);
-}
-
-function stagedWorkflowFiles(root) {
-  const staged = execGit(root, ["diff", "--cached", "--name-only"]);
-  return staged
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line === ".workflow" || line.startsWith(".workflow/"));
-}
-
-function stopGate(input) {
-  if (input.stop_hook_active) {
-    ok();
-    return;
-  }
-
-  const message = input.last_assistant_message || "";
-  if (!FINAL_WORDS.test(message)) {
-    ok();
-    return;
-  }
-
-  const root = repoRoot(input.cwd || process.cwd());
-  const stagedWorkflow = stagedWorkflowFiles(root);
-  if (stagedWorkflow.length > 0) {
-    block("`.workflow/` is staged. Unstage unless explicitly versioned.");
-    return;
-  }
-
-  const workflowState = readJson(path.join(root, ".workflow", "state.json"));
-  if (workflowState?.active_plan) {
-    const planState = readJson(path.join(root, ".workflow", workflowState.active_plan, "state.json"));
-    if (!planStateIsFinal(planState)) {
-      block("Active workflow plan is not finalized. Finalize it or report open state.");
-      return;
-    }
-  }
-
-  const dirty = execGit(root, ["status", "--short"]);
-  if (dirty && COMMIT_PUSH_WORDS.test(message)) {
-    block("Commit/push claimed but worktree is dirty. Inspect `git status --short` and correct handoff.");
-    return;
-  }
-
-  ok();
-}
-
 function main() {
   try {
     const input = readInput();
@@ -242,9 +188,6 @@ function main() {
         break;
       case "SubagentStop":
         validateSubagentStop(input);
-        break;
-      case "Stop":
-        stopGate(input);
         break;
       default:
         ok();

@@ -1,6 +1,6 @@
 {
   "name": "workflow",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Modular agentic workflows for Codex: intent gating, context discovery, audits, UI contracts, durable plans, workflow MCP artifacts, subagent execution, and review/fix loops.",
   "author": {
     "name": "Wiolett Industries",

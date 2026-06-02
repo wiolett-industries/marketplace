@@ -1,11 +1,6 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
-const path = require("path");
-const cp = require("child_process");
-
-const MR_COMPLETION_WORDS =
-  /\b(approve|approved|approval|review pass|clean|pass with minors)\b|аппрув|апрув|одобр|чисто|можно approve|можно аппрув/i;
 
 function readInput() {
   const raw = fs.readFileSync(0, "utf8").trim();
@@ -29,22 +24,6 @@ function ok() {
 
 function block(reason) {
   console.log(JSON.stringify({ decision: "block", reason }));
-}
-
-function execGit(cwd, args) {
-  try {
-    return cp.execFileSync("git", args, {
-      cwd,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-  } catch {
-    return "";
-  }
-}
-
-function repoRoot(cwd) {
-  return execGit(cwd, ["rev-parse", "--show-toplevel"]) || cwd;
 }
 
 function hasVerdict(message, values) {
@@ -108,27 +87,6 @@ function validateSubagentStop(input) {
   ok();
 }
 
-function stopGate(input) {
-  if (input.stop_hook_active) {
-    ok();
-    return;
-  }
-
-  const message = input.last_assistant_message || "";
-  if (!MR_COMPLETION_WORDS.test(message)) {
-    ok();
-    return;
-  }
-
-  const root = repoRoot(input.cwd || process.cwd());
-  if (!fs.existsSync(path.join(root, ".workflow", "mr-reviews"))) {
-    ok();
-    return;
-  }
-
-  block("Before MR pass/approval claim, verify discussions, CI/reviewability, and `.workflow/mr-reviews` blockers.");
-}
-
 function main() {
   try {
     const input = readInput();
@@ -138,9 +96,6 @@ function main() {
         break;
       case "SubagentStop":
         validateSubagentStop(input);
-        break;
-      case "Stop":
-        stopGate(input);
         break;
       default:
         ok();

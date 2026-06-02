@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const hookScript = path.join(repoRoot, 'plugins/workflow/hooks/workflow-hook.cjs');
+const hookConfig = path.join(repoRoot, 'plugins/workflow/hooks/hooks.json');
 
 function runHook(input, cwd = repoRoot) {
   const result = spawnSync(process.execPath, [hookScript], {
@@ -62,23 +63,8 @@ test('workflow subagent stop accepts valid implementer output', () => {
   assert.equal(output.continue, true);
 });
 
-test('workflow stop hook only blocks dirty worktree for commit or push claims', () => {
-  const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-hook-'));
-  execFileSync('git', ['init'], { cwd: workspace, stdio: 'ignore' });
-  writeFileSync(path.join(workspace, 'changed.txt'), 'dirty\n', 'utf8');
+test('workflow hook config does not register session end hooks', () => {
+  const config = JSON.parse(readFileSync(hookConfig, 'utf8'));
 
-  const ordinaryDone = runHook({
-    hook_event_name: 'Stop',
-    cwd: workspace,
-    last_assistant_message: 'Готово, изменения внесены.',
-  }, workspace);
-  assert.equal(ordinaryDone.continue, true);
-
-  const commitClaim = runHook({
-    hook_event_name: 'Stop',
-    cwd: workspace,
-    last_assistant_message: 'Committed and pushed.',
-  }, workspace);
-  assert.equal(commitClaim.decision, 'block');
-  assert.match(commitClaim.reason, /commit\/push/i);
+  assert.equal(config.hooks.Stop, undefined);
 });

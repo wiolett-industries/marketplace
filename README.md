@@ -62,7 +62,7 @@ It supports lazy no-op reads for projects without memory, model-gated writes, co
 
 ### Workflow
 
-`workflow` is the consolidated engineering workflow plugin. It includes intent gating, context discovery, frontend UI contracts, durable `.workflow/plans/<date-slug>/` and `.workflow/audits/<date-slug>/` artifacts, stateful execution, worktree-isolated subagent policy, final review/fix loops, Codex hooks for recovery/subagent output/completion guardrails, and a bundled MCP server that syncs workflow custom agents globally at startup and provides deterministic plan/audit artifact tools.
+`workflow` is the consolidated engineering workflow plugin. It includes intent gating, context discovery, frontend UI contracts, durable `.workflow/plans/<date-slug>/` and `.workflow/audits/<date-slug>/` artifacts, stateful execution, worktree-isolated subagent policy, final review/fix loops, Codex hooks for recovery and subagent output, and a bundled MCP server that syncs workflow custom agents globally at startup and provides deterministic plan/audit artifact tools.
 
 ### Merge Request Review
 

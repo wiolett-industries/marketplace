@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -6,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const hookScript = path.join(repoRoot, 'plugins/merge-request-review/hooks/merge-request-review-hook.cjs');
+const hookConfig = path.join(repoRoot, 'plugins/merge-request-review/hooks/hooks.json');
 
 function runHook(input, cwd = repoRoot) {
   const result = spawnSync(process.execPath, [hookScript], {
@@ -57,4 +59,10 @@ test('merge-request-review subagent stop accepts valid primary output', () => {
   });
 
   assert.equal(output.continue, true);
+});
+
+test('merge-request-review hook config does not register session end hooks', () => {
+  const config = JSON.parse(readFileSync(hookConfig, 'utf8'));
+
+  assert.equal(config.hooks.Stop, undefined);
 });
