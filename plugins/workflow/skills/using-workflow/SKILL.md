@@ -5,7 +5,7 @@ description: ALWAYS use at conversation start and after every compaction or cont
 
 # Using Workflow
 
-Use this skill as the workflow router.
+Default router for non-trivial engineering work.
 
 Full flow:
 
@@ -13,196 +13,87 @@ Full flow:
 intent-gate -> context-discovery -> writing-plans -> executing-plans -> finalizing-plan
 ```
 
-For substantial frontend/UI work, add `ui-contract` as a support gate:
+UI flow adds `ui-contract` before planning and during final review. Audit-only flow is `intent-gate -> audit-flow`; review-only flow is `intent-gate -> finalizing-plan`. Partial flows are valid.
 
-```text
-intent-gate -> context-discovery -> ui-contract(define) -> writing-plans -> executing-plans -> ui-contract(review) -> finalizing-plan
-```
+## Start Or Resume
 
-Partial flows are valid:
-
-- `intent-gate -> audit-flow` for standalone audits
-- `intent-gate -> audit-flow -> writing-plans` when audit findings should become an implementation plan
-- `intent-gate -> ui-contract` for standalone frontend contract definition or UI review
-- `intent-gate -> finalizing-plan` for review-only work
-- `intent-gate -> writing-plans` for planning without execution
-- `executing-plans -> finalizing-plan` for an approved existing plan
-- `finalizing-plan` alone when the user asks for final review of current changes
-
-## Session Start
-
-At conversation start, after compaction, or after context uncertainty:
-
-1. Read the user request and current repo state.
-2. If `.workflow/plans/*/state.json` exists and the user is continuing work, restore the active plan from `manifest.json`, `state.json`, and `plan.md`.
+1. Read the request and current repo state.
+2. If `.workflow/` state exists and the user is continuing work, restore from artifacts, not chat:
+   - plans: `manifest.json`, `state.json`, `plan.md`
+   - audits: `manifest.json`, `state.json`, prompts/reviews/sanity/master artifacts
 3. Select the earliest needed module.
-4. Do not skip `Intent Gate` for non-trivial work unless the user explicitly asks for a narrow mechanical operation.
+4. Do not skip `Intent Gate` for non-trivial work unless the request is narrow and mechanical.
 
-## Module Selection
+## Module Router
 
-Use `Intent Gate` when:
+- `Intent Gate`: non-trivial plan/execute/review/debug/refactor/design, hidden intent risk, unclear scope.
+- `Context Discovery`: requirements, product intent, architecture, constraints, or tradeoffs are still open.
+- `Writing Plans`: direction is approved/clear and needs durable execution artifacts.
+- `Audit Flow`: understand project/subsystem/diff/plan health before deciding fixes.
+- `UI Contract`: substantial visible UI needs definition or review.
+- `Executing Plans`: approved `.workflow/plans/<run>/plan.md` should be executed.
+- `Finalizing Plan`: review-only work, completion claims, commits, PRs, handoff, or merge gates.
+- `Workflow MCP`: mechanical `.workflow/` create/update/status/artifact/findings/handoff operations.
 
-- the task is non-trivial
-- the user asks to plan, execute, review, debug, refactor, or design
-- the visible request may hide a different desired outcome
-- scope, risk, or success criteria are not obvious
+## Shared Rules
 
-Use `Context Discovery` when:
-
-- requirements, architecture, product direction, or tradeoffs need clarification
-- the model needs more context before writing a plan
-- the correct solution is not clear from repo inspection
-
-Use `Writing Plans` when:
-
-- the direction is approved or clear enough to encode
-- a multi-step implementation needs a durable artifact
-- execution may span compaction or subagents
-
-Use `Audit Flow` when:
-
-- the user asks to audit, inspect, assess, analyze, or review a project/subsystem without immediately fixing it
-- the goal is to understand project health, architecture, risks, security, quality, or technical debt
-- findings should be gathered before deciding what to plan
-- a large project needs multiple independent read-only review agents
-
-Use `UI Contract` when:
-
-- the task includes substantial frontend or UI work
-- the layout, hierarchy, copy, or interaction direction is not already locked
-- a frontend plan needs visible acceptance criteria
-- implemented UI needs a structured review before completion
-- browser or screenshot verification should be part of the evidence
-
-Use `Executing Plans` when:
-
-- there is an approved `.workflow/plans/<date-slug>/plan.md`
-- the user asks to implement an existing plan
-- work should be broken into tracked tasks or delegated agents
-
-Use `Finalizing Plan` when:
-
-- implementation is complete enough to review
-- the user asks for review-only work
-- subagent changes need a merge gate
-- success claims, commits, PRs, or handoff are next
-
-Use `Workflow MCP` alongside any module that creates, updates, inspects, or resumes `.workflow/` plan/audit artifacts through MCP tools.
-
-## Always-On Rules
-
-- File artifacts are the source of truth, not chat history.
-- Workflow artifacts live under `.workflow/plans/<MM-DD-YY-slug>/`.
-- Audit artifacts live under `.workflow/audits/<MM-DD-YY-slug>/`.
-- UI contract artifacts live inside the relevant plan-run as `ui-contract.md` and `artifacts/ui-review/`.
-- Workflow artifacts are local operational state. When inside a git repo, make sure `.workflow/` is ignored where possible before creating artifacts.
-- Prefer workflow MCP tools for creating, updating, inspecting, and normalizing workflow artifacts when available.
-- Do not rely on RAG for workflow state in this version.
-- For code work, verify the git repository boundary before edits.
-- All non-read-only subagent work must happen in a worktree.
-- The main thread coordinates, performs minimal sanity checks, and delegates detailed review to agents.
+- File artifacts are source of truth; chat history is not.
+- Plans live under `.workflow/plans/<MM-DD-YY-slug>/`; audits under `.workflow/audits/<MM-DD-YY-slug>/`.
+- Keep `.workflow/` ignored in git unless the user explicitly wants artifacts versioned.
+- Prefer workflow MCP tools when available; manual writes must preserve the same layout/state semantics.
+- Verify git boundary before code edits. If not in a repo, `git init` only in a real project root, never in a container folder with multiple projects; switch to the single matching child project or ask when several match.
+- Non-read-only subagent edits must happen in worktrees.
+- Main thread coordinates, does minimal diff sanity, runs verification commands, and delegates detailed review to agents.
 - If a requested model is unavailable, use the nearest available model that is not weaker for the task class.
 
-## Engineering Constraints
+## Engineering Rules
 
-These constraints apply to all workflow coding work:
+- Linter is source of truth. Do not disable, weaken, suppress, or bypass lint/test rules.
+- Treat lint warnings as work.
+- Find relevant lint command/config before planning or coding when one exists.
+- Keep code files focused and below 500 lines; split first if a touched file would reach that limit.
+- Avoid unrelated refactors and "while here" changes.
+- Do not shrink approved scope, add placeholders, or create unwired artifacts.
+- Do not claim fixed/complete/ready without fresh verification evidence.
 
-- Treat the project linter as source of truth when one exists.
-- Do not disable, weaken, remove, suppress, or bypass lint rules to make work pass.
-- Treat lint warnings as real work, not noise.
-- Find the relevant lint command/config before planning or coding when the project has one.
-- Keep code files focused on one responsibility.
-- Do not mix unrelated UI, data access, orchestration, parsing, infrastructure, and business logic in one file.
-- Keep code files below 500 lines.
-- If a change would push a file to or beyond 500 lines, split the touched responsibility first.
-- Do not make unrelated refactors or "while here" improvements.
-- Do not silently shrink approved scope or add fake staging such as placeholders, basic versions, or wire-later behavior.
-- Do not claim work is complete, fixed, passing, reviewed, or ready without fresh verification evidence.
+## User-Testing Loop
 
-## Interactive User-Testing Loop
+When the user is actively testing and sends small fixes:
 
-When the user is actively testing changes and sends small inline fixes, prioritize fast iteration:
+- make the small correction quickly
+- avoid full build/test/review after each tiny change
+- run only cheap targeted checks when relevant
+- run `Finalizing Plan` and fresh verification before handoff, commit, PR, or completion claims
 
-- make the requested small correction
-- avoid running full build, full test suite, or full review loop after every tiny fix
-- run only targeted checks when they are cheap and directly relevant
-- wait for the user's next observation before doing heavy verification
+## Subagents
 
-Before handoff, commit, PR, or completion claims, run `Finalizing Plan` and fresh verification. Mid-loop user testing does not replace final verification.
+Workflow may use subagents automatically only after explicit user authorization for the task/session. Treat authorization as present when the user asks for subagents, agents, delegation, parallel agents, agentic review, automatic workflow agents, or running the workflow with agents.
 
-## Subagent Authorization
-
-Workflow is designed to use subagents automatically, but only after explicit user authorization exists for the current task, plan, or session.
-
-Treat authorization as present when the user explicitly asks for any of:
-
-- subagents
-- agents
-- delegation
-- parallel agents
-- agentic review
-- automatic workflow agents
-- running the workflow with agents
-
-If authorization is not already explicit and the selected workflow path needs subagents, ask once before the first spawn:
+If needed and not yet authorized, ask once:
 
 ```text
 This workflow works best with automatic subagents for intent checks, implementation, and review. Do you authorize me to launch subagents automatically for this task/session according to the workflow rules?
 ```
 
-If the user says yes, continue without asking again for each subagent in that task/session. Record the authorization in the plan `decisions.md` or `state.json` when a plan-run exists.
+Record yes/no in plan `decisions.md` or `state.json` when a plan-run exists. If no, run locally and report unavailable guarantees.
 
-If the user says no, run the same workflow locally where possible and clearly report which review/delegation guarantees are unavailable.
+## Custom Agents
 
-## Workflow Custom Agents
-
-The bundled `@wiolett/workflow` MCP entrypoint is the canonical source for Codex workflow custom-agent definitions.
-
-Codex only loads custom agents after those TOML files are installed into `.codex/agents/` for the current project or `~/.codex/agents/` globally. The workflow MCP entrypoint is expected to sync and validate them at startup.
-
-When a workflow module asks for a named `workflow_*` agent:
+The `@wiolett/workflow` MCP syncs canonical `workflow_*` TOML agents into Codex agent dirs at startup. When a module asks for a named `workflow_*` agent:
 
 1. Use that exact `agent_type`.
-2. Do not substitute generic built-in agents for workflow roles.
-3. If the named agent is unavailable, stop the affected agentic step and report that workflow agent sync/setup is missing or stale.
-4. Record the agent type used in workflow artifacts.
+2. Do not substitute generic agents.
+3. If unavailable, stop the affected agentic step and report stale/missing workflow agent sync.
+4. Record the agent type in workflow artifacts.
 
-The workflow MCP owns installing, validating, and updating these TOML files in the correct Codex agents directory.
+## MCP Short Rule
 
-## Workflow MCP
+Use MCP for deterministic filesystem operations:
 
-Use the `Workflow MCP` support skill for detailed MCP tool contracts, payload rules, active-run behavior, and manual fallback behavior.
+- `workflow_status`
+- `workflow_plan_create`, `workflow_plan_update`, `workflow_plan_artifact_write`
+- `workflow_audit_create`, `workflow_audit_update`, `workflow_audit_artifact_write`
+- `workflow_handoff_write`
+- `workflow_findings_normalize`
 
-Short rule: when available, use the workflow MCP for mechanical artifact operations:
-
-- `workflow_status` before resuming a plan or audit
-- `workflow_plan_create` when opening a new plan-run
-- `workflow_plan_update` when task, phase, chunk, clean-streak, or finding state changes
-- `workflow_plan_artifact_write` for plan-run review/fix/chunk artifacts
-- `workflow_audit_create` when opening a new audit-run
-- `workflow_audit_update` when audit phase, reviewer, sanity, or finding state changes
-- `workflow_audit_artifact_write` for audit prompts, reviews, sanity output, master audit, findings, and planning input
-- `workflow_handoff_write` when one workflow module hands off to another
-- `workflow_findings_normalize` before writing review or audit findings into state files
-
-The MCP does not generate plan/audit content, launch agents, merge worktrees, or run verification.
-
-If MCP tools are unavailable, perform the same filesystem writes manually and preserve the same layout and state semantics.
-
-## Git Boundary Rules
-
-If already inside a git repository, use that repository and inspect `git status --short`.
-
-Before creating `.workflow/` artifacts in a git repository:
-
-- run or reason about `git check-ignore .workflow/`
-- if `.workflow/` is not ignored and `.gitignore` exists or can be created at the repo root, add `.workflow/`
-- do not add `.workflow/` to ignore rules if the user explicitly wants workflow artifacts versioned
-- if ignore setup is not possible, continue but report that `.workflow/` may appear in git status
-
-If not inside a git repository:
-
-- run `git init` only when the current directory has a real top-level project marker such as `package.json`, `pnpm-workspace.yaml`, `pyproject.toml`, `Cargo.toml`, or `go.mod`
-- do not initialize git in a container folder that merely holds multiple project folders
-- if exactly one child project clearly matches the request, switch into it
-- if several child projects could match, ask the user to choose
+MCP does not write the substantive plan/audit/review content, launch agents, merge worktrees, or replace agent judgment.

@@ -1,6 +1,6 @@
 {
   "name": "agent-memory",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "description": "Persistent, searchable Agent Memory with global/project scopes, compiled recall, and automatic graph links.",
   "author": {
     "name": "Wiolett Industries",
@@ -17,6 +17,7 @@
     "persistence"
   ],
   "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Agent Memory",

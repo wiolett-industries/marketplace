@@ -5,251 +5,112 @@ description: Use when an approved or sufficiently clear direction must become a 
 
 # Writing Plans
 
-Write a durable plan-run that another agent can execute without making product or architecture decisions.
+Write a durable plan-run that another agent can execute without product or architecture guesswork. Plans live in `.workflow/`, not chat. Inherit `Using Workflow` shared rules.
 
-Plans are stored in the repository, not in chat.
+Prefer MCP: `workflow_plan_create`, `workflow_plan_update`, `workflow_plan_artifact_write`, `workflow_handoff_write`.
 
-When workflow MCP tools are available, use `workflow_plan_create` to create the plan-run and `workflow_plan_update` / `workflow_plan_artifact_write` for later state and artifact writes. The model still writes the actual plan text; MCP only performs deterministic filesystem operations.
+If planning from audit, use `planning-input.md`, `master-audit.md`, confirmed `findings.json`, and any audit handoff as primary inputs.
 
-Before creating `.workflow/` plan artifacts in a git repository, ensure `.workflow/` is ignored where possible. Prefer adding `.workflow/` to the repository root `.gitignore` when missing, unless the user explicitly wants workflow artifacts versioned.
+## Layout
 
-If `.workflow/audits/<audit-slug>/planning-input.md` exists and the user wants to plan from audit findings, treat it as a primary input alongside `master-audit.md` and confirmed entries from `findings.json`. When an audit handoff exists in `handoffs/*.json` or `state.json.latest_handoff`, use it as the structured source for artifacts, decisions, risks, open questions, and next actions.
-
-## Plan-Run Directory
-
-Create:
+Create `.workflow/plans/MM-DD-YY-slug/` with:
 
 ```text
-.workflow/plans/MM-DD-YY-slug/
-  plan.md
-  manifest.json
-  state.json
-  context.md
-  questions.md
-  decisions.md
-  ui-contract.md
-  artifacts/
-  chunks/
-  handoffs/
+plan.md
+manifest.json
+state.json
+context.md
+questions.md
+decisions.md
+ui-contract.md
+artifacts/
+chunks/
+handoffs/
 ```
 
-Use the current local date. Keep the slug short and stable.
+Use current local date and a short stable slug.
 
-## Required Artifacts
+`manifest.json`: `slug`, `phase`, `complexity`, `plan`, `state`, `created_at`, `updated_at`.
+`state.json`: `phase`, `complexity`, `tasks`, `review_round`, `clean_streak`, `open_findings`, `handoffs`.
+`context.md`: repo facts/constraints. `questions.md`: questions/answers. `decisions.md`: locked decisions/defaults. `plan.md`: executable plan. `ui-contract.md`: required for substantial UI; omit or write "no UI contract applies" otherwise.
 
-`manifest.json` indexes the run:
+## Chunking
 
-```json
-{
-  "slug": "MM-DD-YY-slug",
-  "phase": "planning",
-  "complexity": "simple",
-  "plan": "plan.md",
-  "state": "state.json",
-  "created_at": "ISO-8601",
-  "updated_at": "ISO-8601"
-}
-```
+Chunk when single-pass execution would be unreliable. Required when complexity is `complex`/`very_complex`, tasks > 7, work spans independent subsystems, agents can own disjoint scopes, compaction recovery would be hard, or one `state.json` would become noisy. Optional for `medium`; skip for true `simple`.
 
-`state.json` is machine state:
-
-```json
-{
-  "phase": "planning",
-  "complexity": "simple",
-  "tasks": [],
-  "review_round": 0,
-  "clean_streak": 0,
-  "open_findings": [],
-  "handoffs": []
-}
-```
-
-`context.md` captures repo facts and constraints.
-
-`questions.md` captures asked questions and answers.
-
-`decisions.md` captures locked decisions and defaults.
-
-`plan.md` contains the executable plan.
-
-`ui-contract.md` is required for substantial frontend/UI work. For non-UI plans, either omit it or write a short note that no UI contract applies.
-
-## Chunked Plans
-
-Use chunking when a plan would be too large or coupled for reliable single-pass execution.
-
-Chunking is required when any of these are true:
-
-- complexity is `complex` or `very_complex`
-- the plan has more than 7 substantial tasks
-- the work spans independent subsystems
-- different agents can own independent file/module sets
-- a single plan would be hard to restore after compaction
-- one `state.json` would become too noisy to operate safely
-
-Chunking is optional for `medium` work and should be skipped for genuinely `simple` work.
-
-Use one level only:
+One level only:
 
 ```text
-.workflow/plans/MM-DD-YY-slug/
+.workflow/plans/root/
   plan.md
   manifest.json
   state.json
   context.md
   decisions.md
   artifacts/
-  chunks/
-    MM-DD-YY-slug-chunk-01/
-      plan.md
-      manifest.json
-      state.json
-      context.md
-      questions.md
-      decisions.md
-      ui-contract.md
-      artifacts/
+  chunks/<chunk-slug>/
+    plan.md
+    manifest.json
+    state.json
+    context.md
+    questions.md
+    decisions.md
+    ui-contract.md
+    artifacts/
 ```
 
-Do not create chunks inside chunks.
+Root owns goal, shared decisions, cross-chunk constraints, order/dependencies, integration, finalization. Chunks own bounded scope, allowed files/modules, task state, local verification, local artifacts.
 
-The root plan is the orchestration plan. It owns:
+Root manifest indexes chunks with `id`, `path`, `status`, `depends_on`, `scope`. Chunk manifest includes `type: "chunk"`, `parent`, `chunk_id`.
 
-- overall goal and success criteria
-- shared architecture decisions
-- cross-chunk constraints
-- chunk order and dependencies
-- integration and finalization requirements
+Chunk scopes must be disjoint unless root defines a shared integration point. Cross-chunk scope changes require root `decisions.md` and `state.json` updates.
 
-Each chunk is an executable plan-run. It owns:
+## Plan Contract
 
-- one bounded scope
-- allowed files/modules
-- local task state
-- local verification
-- local artifacts
+The plan must be decision-complete. Include:
 
-Root `manifest.json` should include chunk index data:
-
-```json
-{
-  "type": "root",
-  "chunks": [
-    {
-      "id": "chunk-01",
-      "path": "chunks/MM-DD-YY-slug-chunk-01",
-      "status": "pending",
-      "depends_on": [],
-      "scope": ["path/or/module"]
-    }
-  ]
-}
-```
-
-Chunk `manifest.json` should include parent data:
-
-```json
-{
-  "type": "chunk",
-  "parent": "../../manifest.json",
-  "chunk_id": "chunk-01"
-}
-```
-
-Chunk scopes must be disjoint unless the root plan explicitly defines a shared integration point. Cross-chunk scope changes require updating the root `decisions.md` and `state.json`.
-
-When using MCP, create the root run with `workflow_plan_create`, then write chunk files with `workflow_plan_artifact_write` under `chunks/<chunk-slug>/...` and update the root chunk index through `workflow_plan_update`.
-
-## Plan Requirements
-
-The plan must be decision-complete:
-
-- exact goal and success criteria
-- scope and non-goals
-- audit findings being addressed, if the plan comes from an audit
+- exact goal, success criteria, scope, non-goals
+- audit findings addressed, if any
 - implementation approach
-- task list with clear ownership
-- chunk list and dependency order when chunking is used
-- expected artifacts and file areas
-- subagent delegation guidance
-- verification commands and acceptance checks
-- lint command/config when the project has one
-- UI contract and visible acceptance criteria when frontend/UI is in scope
-- file-boundary risks, including any touched file near 500 lines
-- explicit note when the work is an interactive user-testing loop where heavy mid-work checks should be avoided
+- tasks with ownership/allowed scope
+- chunks and dependencies, when used
+- expected artifacts/files
+- subagent delegation guidance; delegated write tasks require worktrees, review/audit tasks are read-only
+- verification commands/acceptance checks
+- lint command/config when present
+- UI contract/visible criteria when UI is in scope
+- file-boundary risks, especially files near 500 lines
+- interactive user-testing note when heavy mid-work checks should be avoided
 - finalization complexity and review requirements
 
-Do not write:
+Never write `TBD`, `TODO`, `later`, `choose appropriate`, vague placeholders, fake staging, or unwired "basic version" language unless explicitly approved.
 
-- `TBD`
-- `TODO`
-- `later`
-- `choose appropriate`
-- vague placeholders
-- fake staging language unless explicitly approved
-
-## Engineering Constraints
-
-Plans for code changes must preserve:
-
-- existing lint rules and warning standards
-- focused file responsibilities
-- the 500-line code file limit
-- approved scope and non-goals
-- real wiring, not created-but-unused artifacts
-
-If a planned change would violate one of these constraints, the plan must include the split or alternative structure that avoids it.
+Code plans must preserve lint rules, focused responsibilities, the 500-line file limit, approved scope, and real wiring.
 
 ## UI Plans
 
-For substantial frontend/UI work, use `UI Contract` in `define` mode before treating the plan as ready.
+For substantial UI, run `UI Contract` in `define` mode first. Plan must include `ui-contract.md`, UI acceptance criteria, affected surfaces/states, desktop/mobile expectations, loading/error/empty/disabled/hover/focus/success states, browser/screenshot verification expectations, and user-testing loop note when applicable.
 
-The plan-run must include:
-
-- `ui-contract.md` with the buildable UI contract
-- UI acceptance criteria in `plan.md`
-- affected routes, screens, panels, components, and states
-- desktop/mobile expectations
-- required loading, error, empty, disabled, hover/focus, and success states
-- browser/screenshot verification expectations when the app can run locally
-- explicit note when user-led inline testing should avoid heavy mid-work checks
-
-The implementation plan must treat `ui-contract.md` as an acceptance source. Do not allow the execution phase to reinterpret hierarchy, copy, or interaction behavior without updating `decisions.md`.
+Execution must treat `ui-contract.md` as an acceptance source. Any drift requires `decisions.md` update.
 
 ## Complexity
 
-Set complexity from all available context:
-
 - `simple`: narrow, low-risk, small surface
 - `medium`: several files or moderate reasoning
-- `complex`: multiple subsystems, migrations, broad behavior, or substantial coordination
-- `very_complex`: high blast radius, sensitive domains, or many dependent tasks
+- `complex`: multiple subsystems, migrations, broad behavior, coordination
+- `very_complex`: high blast radius, sensitive domains, many dependent tasks
 
-Later modules may raise or lower complexity when they have more evidence. Later decisions have higher weight.
+Later modules may adjust complexity; later decisions have higher weight.
 
-## Plan Review
+## Plan Review And Handoff
 
-After writing the plan, always run agent review when available and subagent authorization is explicit:
+After writing, run agent review when available and subagents are authorized:
 
-- `simple`: one combined `sanity + overall` agent, `workflow_combined_reviewer`
-- `medium`, `complex`, `very_complex`: separate `workflow_plan_sanity_reviewer` and `workflow_plan_overall_reviewer` agents
+- `simple`: `workflow_combined_reviewer`
+- `medium`/`complex`/`very_complex`: `workflow_plan_sanity_reviewer` + `workflow_plan_overall_reviewer`
 
-Review agents are read-only. The parent workflow writes returned findings to `artifacts/plan-review-*.md`.
+Agents are read-only. Parent writes findings to `artifacts/plan-review-*.md`. If a named agent is unavailable, stop. Fix blocking plan findings before readiness.
 
-If a named workflow custom agent is unavailable, stop plan review and report that workflow agent sync/setup is missing.
+If subagents are not authorized, do local self-review and record the gap in `decisions.md`.
 
-Fix blocking plan findings before treating the plan as ready.
-
-If subagent authorization is missing, ask for it before plan review. If the user does not authorize subagents, perform a local plan self-review and record in `decisions.md` that agent review was not authorized.
-
-## Output
-
-At handoff, report:
-
-- plan-run path
-- complexity
-- review result
-- whether it is ready for `Executing Plans`
-
-When workflow MCP tools are available, write the planning-to-execution handoff with `workflow_handoff_write` using `kind: "plan"`, `from_module: "writing-plans"`, and `to_module: "executing-plans"`.
+Handoff report: plan path, complexity, review result, readiness for `Executing Plans`. With MCP, write handoff `kind: "plan"`, `from_module: "writing-plans"`, `to_module: "executing-plans"`.

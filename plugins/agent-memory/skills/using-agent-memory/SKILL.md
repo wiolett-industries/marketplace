@@ -5,109 +5,57 @@ description: ALWAYS use at conversation start, after compaction, and when durabl
 
 # Using Agent Memory
 
-Use this skill at conversation start, after compaction or context reset, and whenever durable user or project knowledge could materially affect the task.
+Use at conversation start, after compaction/context reset, and whenever durable user or project knowledge could matter.
 
-## Core Model
+## Model
 
-Memory has two scopes:
+Scopes:
 
-| Scope | Purpose |
-|-------|---------|
-| `global` | Durable user preferences, cross-project workflow habits, stable model-behavior requirements, reusable personal environment notes |
-| `project` | Durable repo-specific conventions, setup steps, release/deploy workflows, integration gotchas, architectural decisions |
+- `global`: durable user preferences, cross-project workflow habits, stable model-behavior requirements, reusable personal environment notes
+- `project`: durable repo-specific conventions, setup/build/release/deploy workflows, integration gotchas, architecture decisions
 
-Memory has two layers:
+Layers:
 
-| Layer | Purpose |
-|-------|---------|
-| `deep` | Canonical durable memory with full text, embeddings when configured, and graph links |
-| `lite` | Cheap index/pointer layer for quick recall; standalone lite entries can participate in graph links, pointer lite entries cannot |
+- `deep`: canonical durable memories with full text, embeddings when configured, and graph links
+- `lite`: cheap index/pointer layer for recall; standalone lite can link, pointer lite cannot
 
-Prefer canonical tools:
+Canonical tools: `memory_list`, `memory_query`, `memory_recall`, `memory_save`, `memory_update`, `memory_inspect`. Use compatibility aliases only when canonical tools are absent.
 
-- `memory_list`
-- `memory_query`
-- `memory_recall`
-- `memory_save`
-- `memory_update`
-- `memory_inspect`
+## Reads
 
-Use compatibility aliases only when the runtime exposes only aliases.
+At start or after compaction:
 
-## Session Start
+1. `memory_list({ scope: "global", index_only: true })`
+2. `memory_recall` relevant global entries only
+3. after repo boundary is known, `memory_list({ scope: "project", index_only: true })`
+4. use `memory_query({ scope: "project", query: "..." })` for repo conventions/gotchas
 
-At conversation start or after compaction:
+Keep reads focused. Do not dump all memory unless the user asks for maintenance/audit.
 
-1. Read global lite memory with `memory_list({ scope: "global", index_only: true })`.
-2. If a listed memory is relevant, call `memory_recall({ scope: "global", memory_id: "<id>" })`.
-3. For repo work, read project lite memory with `memory_list({ scope: "project", index_only: true })` after the repo boundary is known.
-4. If the task depends on prior repo conventions or gotchas, use `memory_query({ scope: "project", query: "..." })`.
+## Writes
 
-Keep reads focused. Do not dump all memory unless the user asks for maintenance or audit.
+Save to `global` only for durable cross-project facts: communication preferences, stable coding/tool preferences, reusable workflows, model-behavior requirements. Never put project-specific facts in global memory.
 
-## What Goes To Global Memory
+Save to `project` only for durable repo-specific facts: setup/test/build/release/deploy/rollback workflows, non-obvious conventions, architecture decisions, integration gotchas, persistent environment constraints.
 
-Save to `global` only when the fact is durable across projects:
+Never save raw secrets, API keys, tokens, passwords, private webhook URLs, temporary summaries, speculative plans, obvious code facts, implementation chatter, one-off TODOs, local edits, or session progress. For secret-related workflows, save only redacted location/process.
 
-- user communication and collaboration preferences
-- stable cross-project coding preferences
-- recurring tool preferences
-- durable model-behavior requirements
-- reusable personal workflows
+Use `memory_save` for new durable facts. Use `memory_update` when an existing canonical memory is outdated; IDs and graph links are preserved. Automatic graph links are suggested for graph-capable saves/updates; manual `memory_link` remains useful for important relations.
 
-Do not write project-specific facts to global memory.
+Do not bypass the memory gate; the tool surface intentionally has no bypass parameter.
 
-## What Goes To Project Memory
+## Query, Recall, Inspect
 
-Save to `project` when the knowledge is durable and repo-specific:
-
-- setup, bootstrap, test, build, release, deploy, or rollback workflow
-- project conventions that are not obvious from code
-- non-obvious architecture decisions
-- integration gotchas
-- environment constraints that affect future work
-
-Do not save ordinary local edits, temporary debug notes, obvious code facts, one-off TODOs, or session progress.
-
-## What Not To Save
-
-Never save:
-
-- raw secrets, API keys, tokens, passwords, private webhook URLs, or credentials
-- temporary conversation summaries
-- speculative plans
-- obvious facts visible directly in code
-- implementation chatter such as "changed file X"
-- project-specific facts in global memory
-
-If a secret-related workflow matters, save only the redacted location or process, not the secret value.
-
-## Save And Update
-
-Use `memory_save` for new durable facts.
-
-Use `memory_update` when an existing canonical memory is outdated. Updates preserve memory IDs and graph links.
-
-The MCP automatically suggests graph links for saved or updated graph-capable memories. Manual `memory_link` edges are still useful for important relations and are not overwritten by automatic links.
-
-For global writes, be especially strict: save only stable cross-project facts that will almost certainly help future sessions.
-
-Do not bypass the memory gate. The MCP tool surface intentionally does not expose a bypass parameter.
-
-## Query And Recall
-
-Use `memory_query` when asking "what do we know about this?" and the model needs a compiled answer from search results.
-
-Use `memory_recall` when you already have a specific memory ID and need its compiled context plus valuable relations.
-
-Use `memory_inspect` only for raw maintenance/debugging views.
+- `memory_query`: compiled answer from search results
+- `memory_recall`: compiled context for a known memory ID plus valuable relations
+- `memory_inspect`: raw maintenance/debug only
 
 ## Compaction Recovery
 
-After compaction, recover durable behavior from memory and active workflow artifacts:
+Recover durable behavior from memory and active workflow artifacts:
 
 - global preferences from global memory
 - repo-specific workflow from project memory
-- plan/audit execution state from `.workflow/` artifacts when the workflow plugin is also installed
+- plan/audit state from `.workflow/` when Workflow is installed
 
-Do not reconstruct state from chat history when filesystem artifacts or memory are available.
+Do not reconstruct state from chat when filesystem artifacts or memory are available.

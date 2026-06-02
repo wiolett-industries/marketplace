@@ -5,43 +5,21 @@ description: Use when creating, updating, inspecting, or resuming workflow plan/
 
 # Workflow MCP
 
-Use the workflow MCP for deterministic filesystem operations around `.workflow/` runs.
+Use MCP for deterministic `.workflow/` filesystem operations. MCP does not generate substantive plan/audit/review text, launch agents, merge worktrees, or replace judgment. If tools are unavailable, write the same layout/state manually.
 
-The MCP is not a planner, auditor, reviewer, or agent launcher. The model writes the actual plan text, audit text, prompts, findings, and decisions. MCP tools only create directories, write files, update state, normalize findings, and report status.
+Before creating artifacts in a git repo, ensure `.workflow/` is ignored unless explicitly versioned.
 
-If MCP tools are unavailable, perform the same filesystem operations manually and preserve the same layout and state semantics.
+## Startup
 
-Before creating workflow artifacts in a git repository, ensure `.workflow/` is ignored where possible. Prefer adding `.workflow/` to the repository root `.gitignore` when it is missing. Skip this only when the user explicitly wants workflow artifacts versioned.
-
-## Startup Behavior
-
-The `@wiolett/workflow` MCP entrypoint syncs canonical `workflow_*` custom-agent TOML definitions into `~/.codex/agents/` at server startup.
-
-It also creates best-effort compatibility links or managed copies under `~/.agents/agents/`.
-
-Agent sync is automatic. Do not look for or call a model-visible sync tool.
+`@wiolett/workflow` syncs canonical `workflow_*` agents into `~/.codex/agents/` at MCP startup and creates best-effort `~/.agents/agents/` compatibility links/copies. Sync is automatic; there is no model-visible sync tool.
 
 ## Workspace Root
 
-All tools accept optional `workspace_root`.
-
-Default behavior:
-
-1. Resolve from `workspace_root` when provided, otherwise process cwd.
-2. If a `.git` directory exists upward, use that git root.
-3. Otherwise use the resolved cwd.
-
-Use `workspace_root` explicitly when the active task is inside a child project or when the current process cwd may be a parent workspace.
+All tools accept optional `workspace_root`. Default: explicit `workspace_root`, else process cwd, then nearest git root if present. Pass `workspace_root` when the task is in a child project or cwd may be a parent workspace.
 
 ## Active Runs
 
-The root workflow state lives at:
-
-```text
-.workflow/state.json
-```
-
-It contains:
+Root state:
 
 ```json
 {
@@ -51,17 +29,11 @@ It contains:
 }
 ```
 
-`workflow_plan_create` sets `active_plan`.
-
-`workflow_audit_create` sets `active_audit`.
-
-When update/write tools omit `plan_run` or `audit_run`, they operate on the matching active run.
-
-Use `workflow_status` before resuming after compaction, context loss, or uncertainty.
+`workflow_plan_create` sets `active_plan`; `workflow_audit_create` sets `active_audit`. Omitted `plan_run`/`audit_run` means active run. Use `workflow_status` after compaction or uncertainty.
 
 ## Plan Tools
 
-Use `workflow_plan_create` to create:
+`workflow_plan_create` creates:
 
 ```text
 .workflow/plans/MM-DD-YY-slug/
@@ -76,52 +48,16 @@ Use `workflow_plan_create` to create:
   handoffs/
 ```
 
-Before calling `workflow_plan_create`, ensure `.workflow/` is ignored where possible when the workspace is a git repo.
+Required: `title`, `complexity: simple | medium | complex | very_complex`.
+Optional: `slug`, `workspace_root`, `plan_markdown`, `context_markdown`, `questions_markdown`, `decisions_markdown`, `tasks`, `chunks`.
 
-Required inputs:
+`workflow_plan_update` operations: `set_phase`, `set_complexity`, `set_review_round`, `set_clean_streak`, `set_open_findings`, `upsert_task`, `complete_task`, `upsert_chunk`, `merge`.
 
-- `title`
-- `complexity`: `simple | medium | complex | very_complex`
-
-Optional inputs:
-
-- `slug`
-- `workspace_root`
-- `plan_markdown`
-- `context_markdown`
-- `questions_markdown`
-- `decisions_markdown`
-- `tasks`
-- `chunks`
-
-Use `workflow_plan_update` for state operations:
-
-- `set_phase`
-- `set_complexity`
-- `set_review_round`
-- `set_clean_streak`
-- `set_open_findings`
-- `upsert_task`
-- `complete_task`
-- `upsert_chunk`
-- `merge`
-
-Use `workflow_plan_artifact_write` only for:
-
-- `plan.md`
-- `context.md`
-- `questions.md`
-- `decisions.md`
-- `ui-contract.md`
-- `manifest.json`
-- `state.json`
-- `artifacts/**`
-- `chunks/**`
-- `handoffs/**`
+`workflow_plan_artifact_write` allowed paths: `plan.md`, `context.md`, `questions.md`, `decisions.md`, `ui-contract.md`, `manifest.json`, `state.json`, `artifacts/**`, `chunks/**`, `handoffs/**`.
 
 ## Audit Tools
 
-Use `workflow_audit_create` to create:
+`workflow_audit_create` creates:
 
 ```text
 .workflow/audits/MM-DD-YY-slug/
@@ -138,141 +74,28 @@ Use `workflow_audit_create` to create:
   handoffs/
 ```
 
-Before calling `workflow_audit_create`, ensure `.workflow/` is ignored where possible when the workspace is a git repo.
+Required: `title`, `depth: simple | standard | deep | exhaustive`, `target: project | subsystem | diff | plan`.
+Optional: `slug`, `workspace_root`, `audit_markdown`, `scope_markdown`, `planning_input_markdown`, `findings`.
 
-Required inputs:
+`workflow_audit_update` operations: `set_phase`, `set_depth`, `set_open_findings`, `upsert_reviewer`, `upsert_sanity_check`, `merge`.
 
-- `title`
-- `depth`: `simple | standard | deep | exhaustive`
-- `target`: `project | subsystem | diff | plan`
+`workflow_audit_artifact_write` allowed paths: `audit.md`, `scope.md`, `master-audit.md`, `findings.json`, `planning-input.md`, `manifest.json`, `state.json`, `prompts/**`, `reviews/**`, `sanity/**`, `handoffs/**`.
 
-Optional inputs:
+## Handoff
 
-- `slug`
-- `workspace_root`
-- `audit_markdown`
-- `scope_markdown`
-- `planning_input_markdown`
-- `findings`
+`workflow_handoff_write` writes `handoffs/<id>.json` and `handoffs/<id>.md`, then updates `state.handoffs` and `state.latest_handoff`.
 
-Use `workflow_audit_update` for state operations:
+Required: `kind: plan | audit`, `from_module`, `to_module`, `summary`.
+Optional: `run`, `id`, `status: ready | partial | blocked | complete`, `artifacts`, `decisions`, `open_questions`, `risks`, `next_actions`, `payload`.
 
-- `set_phase`
-- `set_depth`
-- `set_open_findings`
-- `upsert_reviewer`
-- `upsert_sanity_check`
-- `merge`
+Do not invent a separate markdown handoff when this tool is available.
 
-Use `workflow_audit_artifact_write` only for:
+## Findings And Writes
 
-- `audit.md`
-- `scope.md`
-- `master-audit.md`
-- `findings.json`
-- `planning-input.md`
-- `manifest.json`
-- `state.json`
-- `prompts/**`
-- `reviews/**`
-- `sanity/**`
-- `handoffs/**`
+Use `workflow_findings_normalize` before writing review/audit findings into state or `findings.json`. Severities: `BLOCKING`, `HIGH`, `MEDIUM`, `LOW`, `INFO`.
 
-## Handoff Tool
+Artifact write tools require exactly one payload: `content` or `json`. Never pass both or neither. Absolute/path-escape paths are rejected; still keep paths simple and run-relative. Prefer `json` for structured data.
 
-Use `workflow_handoff_write` when one workflow module hands off to another.
+`state.json` is operational truth. `manifest.json` is discovery index. MCP syncs plan `phase`/`complexity` and audit `phase`/`depth`/`target` from state; manual edits must keep them aligned.
 
-It writes structured handoff files under:
-
-```text
-handoffs/<id>.json
-handoffs/<id>.md
-```
-
-It also updates `state.json`:
-
-- `handoffs`
-- `latest_handoff`
-
-Required inputs:
-
-- `kind`: `plan | audit`
-- `from_module`
-- `to_module`
-- `summary`
-
-Optional inputs:
-
-- `run`
-- `id`
-- `status`: `ready | partial | blocked | complete`
-- `artifacts`
-- `decisions`
-- `open_questions`
-- `risks`
-- `next_actions`
-- `payload`
-
-Do not invent a separate markdown handoff convention when this tool is available.
-
-## Findings
-
-Use `workflow_findings_normalize` before writing review or audit findings into state files or `findings.json`.
-
-Normalized findings are severity sorted and use these severities:
-
-- `BLOCKING`
-- `HIGH`
-- `MEDIUM`
-- `LOW`
-- `INFO`
-
-## Artifact Writes
-
-Artifact write tools require exactly one of:
-
-- `content`
-- `json`
-
-Never call an artifact write tool without payload. Never pass both payload forms.
-
-Path escape and absolute paths are rejected. Still keep paths simple and relative to the run directory.
-
-Prefer writing structured JSON artifacts through `json` so formatting is stable.
-
-## Manifest And State
-
-`state.json` is the operational source of truth.
-
-`manifest.json` is the index for quick resume and discovery.
-
-The MCP keeps indexed manifest fields synchronized from state for:
-
-- plan `phase`
-- plan `complexity`
-- audit `phase`
-- audit `depth`
-- audit `target`
-
-When manually editing files without MCP, keep these fields synchronized yourself.
-
-## Tool Choice
-
-Use MCP tools for:
-
-- opening a new plan or audit run
-- resuming active run status
-- state transitions
-- task/chunk/reviewer/sanity tracking
-- structured module handoffs
-- findings normalization
-- review/fix/audit artifact writes
-
-Do not use MCP tools for:
-
-- deciding scope
-- generating plans
-- evaluating findings
-- launching subagents
-- merging worktrees
-- running verification commands
+Use MCP for creating/status/updating runs, writing artifacts, normalizing findings, and structured handoffs. Do not use it for plan content generation, audit judgment, review judgment, subagent launch, worktree merges, git operations, or verification commands.

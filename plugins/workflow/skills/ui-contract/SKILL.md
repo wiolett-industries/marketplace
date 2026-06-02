@@ -5,61 +5,37 @@ description: Use for substantial frontend or UI work to define a buildable UI co
 
 # UI Contract
 
-Use this workflow support skill whenever frontend or UI quality materially affects success.
+Workflow support skill for substantial visible UI work. It plugs into `Context Discovery`, `Writing Plans`, `Executing Plans`, and `Finalizing Plan`; it is not a standalone workflow.
 
-This is not a standalone workflow. It plugs into:
+Use for new screens/routes/panels/flows/games/dashboards/tools, meaningful layout/hierarchy/interaction changes, product polish, visible state changes, or structured UI review. Skip tiny copy/style fixes and invisible frontend plumbing.
 
-- `Context Discovery` when the UI direction is unclear
-- `Writing Plans` when a UI change needs a durable implementation contract
-- `Executing Plans` when implementation must preserve the approved UI contract
-- `Finalizing Plan` when the delivered UI must be reviewed before completion
+## Define Mode
 
-## When To Use
-
-Use for substantial UI work, including:
-
-- new screens, panels, routes, flows, games, dashboards, or tools
-- meaningful layout, hierarchy, or interaction changes
-- visual polish where product feel matters
-- frontend changes that may affect loading, error, empty, disabled, hover, focus, or responsive states
-- implemented UI that needs structured review before handoff
-
-Skip for tiny copy edits, one-line style fixes, or purely internal frontend plumbing that cannot affect visible behavior.
-
-## Modes
-
-### `define`
-
-Use before implementation when the UI direction is not already locked.
-
-Create or update:
+Use before implementation when UI direction is not locked. Create/update:
 
 ```text
 .workflow/plans/<run>/ui-contract.md
 ```
 
-The contract must be practical enough to build from. Include:
+Contract must be buildable. Include:
 
 - objective and user job
-- surface scope: routes, screens, panels, components, and states in play
-- primary hierarchy: what should be noticed first, second, and last
-- main action and secondary actions
-- density, spacing, typography, and responsive expectations
+- surfaces: routes, screens, panels, components, states
+- primary hierarchy and main/secondary actions
+- density, spacing, typography, responsive expectations
 - copy tone and labels that must not drift
-- color, emphasis, icon, and affordance rules
-- loading, error, empty, disabled, partial-data, hover, focus, and success states
-- desktop and mobile expectations
+- color, emphasis, icon, affordance rules
+- loading/error/empty/disabled/partial/hover/focus/success states
+- desktop/mobile expectations
 - accessibility and text-overflow constraints
-- explicit non-goals and out-of-scope surfaces
-- acceptance criteria for review
+- non-goals/out-of-scope
+- review acceptance criteria
 
-Avoid brand manifestos and vague taste words. Prefer implementation-facing constraints.
+Avoid brand manifestos and vague taste words.
 
-### `review`
+## Review Mode
 
-Use after implementation and before final completion.
-
-Write review artifacts under:
+Use after implementation and before completion. Write:
 
 ```text
 .workflow/plans/<run>/artifacts/ui-review/
@@ -69,67 +45,22 @@ Write review artifacts under:
   findings.md
 ```
 
-Review against `ui-contract.md` when it exists. If no contract exists, review against strong frontend fundamentals and record that the contract was missing.
+Review against `ui-contract.md`; if missing, review against strong frontend fundamentals and record the missing contract.
 
-Return one verdict:
+Verdict: `UI_PASS` or `UI_REVISE`.
+Finding severities: `Important`, `Minor`, `Polish`.
+Each finding: what is off, why it matters, what should change.
 
-- `UI_PASS`
-- `UI_REVISE`
+## Visual Verification
 
-Group findings by:
+When locally runnable, inspect in browser before signoff. Check desktop/mobile, overflow/clipping/wrapping/button labels, loading/error/empty/disabled/hover/focus/success states, layout stability, overlap/occlusion, primary content framing, and asset rendering.
 
-- `Important`
-- `Minor`
-- `Polish`
-
-Each finding must say:
-
-- what is off
-- why it matters
-- what should change
-
-## Browser And Visual Verification
-
-When the app can reasonably run locally, review visible UI in a browser before signoff.
-
-Check:
-
-- desktop and mobile viewport behavior
-- text overflow, clipping, wrapping, and button label fit
-- loading, error, empty, disabled, hover/focus, and success states where reachable
-- layout stability during state changes
-- overlapping or occluding UI
-- whether the primary content is visible and framed correctly
-- whether visual assets render as intended
-
-Capture evidence in `artifacts/ui-review/browser-check.md` and reference screenshots or notes in `artifacts/ui-review/screenshots.md`.
-
-If browser verification is not possible, record the blocker and review static code/state coverage instead.
+Record evidence in `browser-check.md` and screenshots/notes in `screenshots.md`. If browser verification is blocked, record why and review static code/state coverage.
 
 ## Integration Rules
 
-For `Writing Plans`:
+- Writing: substantial UI plans need `ui-contract.md` and must list it as an acceptance source. Root contract owns global visual rules; chunks may add local UI notes.
+- Executing: re-read `ui-contract.md`; do not reinterpret hierarchy/copy/interaction without `decisions.md` update. Keep active user-testing fixes fast.
+- Finalizing: if UI changed, run review mode before completion. For `medium`+ UI work, use a specialized UI review agent when authorized/available. UI review complements typecheck/tests/build; it does not replace them.
 
-- UI plans must include `ui-contract.md` for substantial visible work.
-- The plan must list `ui-contract.md` as an acceptance source.
-- If UI work is chunked, the root contract owns global visual rules and each chunk may add local UI notes in the chunk context.
-
-For `Executing Plans`:
-
-- Re-read `ui-contract.md` before editing UI.
-- Do not reinterpret hierarchy, copy, or interaction rules without updating `decisions.md`.
-- Keep small user-testing fixes fast; do not run full build/review after every inline visual tweak while the user is actively testing.
-
-For `Finalizing Plan`:
-
-- If UI changed, run this skill in `review` mode before declaring completion.
-- For `medium` or larger UI work, use a specialized UI review agent when workflow subagents are authorized and available.
-- UI review does not replace typecheck, tests, or build; it catches product and visual failures those checks cannot see.
-
-## Hard Rules
-
-- Do not start substantial undecided UI work without a contract.
-- Do not call substantial UI work done without a structured UI review.
-- Do not bury UI acceptance criteria only in chat.
-- Do not let screenshots or browser checks replace code verification.
-- Do not let code verification replace visual review when the user-facing surface matters.
+Hard rules: do not start substantial undecided UI work without a contract, do not call substantial UI work done without structured UI review, do not leave acceptance criteria only in chat, and do not let screenshots replace code verification or code verification replace visual review.
