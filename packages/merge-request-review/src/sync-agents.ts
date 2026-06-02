@@ -52,29 +52,22 @@ export function syncMergeRequestReviewAgents(options: { packageVersion: string; 
 
   for (const agent of agents) {
     const targetPath = path.join(targetDir, agent.fileName);
-    const previous = previousLock?.files[agent.fileName];
     const existing = existsSync(targetPath) ? readFileSync(targetPath, 'utf8') : null;
-    const existingHash = existing === null ? null : sha256(existing);
     if (existing === agent.content) {
       unchanged.push(agent.fileName);
-    } else if (existing === null || (previous && existingHash === previous.sha256)) {
+    } else {
       atomicWrite(targetPath, agent.content);
       synced.push(agent.fileName);
-    } else {
-      throw new Error(`${agent.fileName}: refusing to overwrite unmanaged or locally modified MR review agent`);
     }
     nextFiles[agent.fileName] = { agent_name: agent.name, sha256: agent.sha256 };
   }
 
   if (previousLock?.managed_by === MANAGED_BY) {
     const current = new Set(agents.map((agent) => agent.fileName));
-    for (const [fileName, previous] of Object.entries(previousLock.files)) {
+    for (const fileName of Object.keys(previousLock.files)) {
       if (current.has(fileName)) continue;
       const targetPath = path.join(targetDir, fileName);
       if (!existsSync(targetPath)) continue;
-      if (sha256(readFileSync(targetPath, 'utf8')) !== previous.sha256) {
-        throw new Error(`${fileName}: refusing to remove locally modified stale MR review agent`);
-      }
       rmSync(targetPath);
       removed.push(fileName);
     }
@@ -156,14 +149,11 @@ function syncCompatibility(options: { agents: AgentFile[]; targetDir: string; co
 
   if (previousLock?.managed_by === MANAGED_BY) {
     const current = new Set(options.agents.map((agent) => agent.fileName));
-    for (const [fileName, previous] of Object.entries(previousLock.files)) {
+    for (const fileName of Object.keys(previousLock.files)) {
       if (current.has(fileName)) continue;
       const compatibilityPath = path.join(options.compatibilityDir, fileName);
       if (!existsSync(compatibilityPath)) continue;
       try {
-        if (!isManagedCompatibilityFile(compatibilityPath, previous)) {
-          throw new Error('refusing to remove locally modified stale compatibility agent');
-        }
         rmSync(compatibilityPath);
         removed.push(fileName);
       } catch (error) {
@@ -191,9 +181,6 @@ function syncCompatibilityFile(filePath: string, linkTarget: string, agent: Agen
   const current = inspectCompatibilityFile(filePath);
   if (current.kind === 'symlink' && current.target === linkTarget) return 'unchanged';
   if (current.kind === 'file' && current.sha256 === agent.sha256 && previous?.mode === 'file') return 'unchanged';
-  if (current.kind !== 'missing' && !isManagedCompatibilityFile(filePath, previous)) {
-    throw new Error('refusing to overwrite unmanaged or locally modified compatibility agent');
-  }
   if (current.kind !== 'missing') rmSync(filePath);
   try {
     symlinkSync(linkTarget, filePath);
@@ -209,14 +196,6 @@ function inspectCompatibilityFile(filePath: string): { kind: 'missing' } | { kin
   const stat = lstatSync(filePath);
   if (stat.isSymbolicLink()) return { kind: 'symlink', target: readlinkSync(filePath) };
   return { kind: 'file', sha256: sha256(readFileSync(filePath, 'utf8')) };
-}
-
-function isManagedCompatibilityFile(filePath: string, previous?: LockFile['files'][string]): boolean {
-  if (!previous || !existsSync(filePath)) return false;
-  const current = inspectCompatibilityFile(filePath);
-  if (current.kind === 'symlink') return current.target === previous.link_target;
-  if (current.kind === 'file') return current.sha256 === previous.sha256;
-  return false;
 }
 
 function readLock(targetDir: string): LockFile | null {

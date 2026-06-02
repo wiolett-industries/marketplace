@@ -88,7 +88,7 @@ test('removes stale agents from legacy workflow lock files', () => {
   assert.equal(readFileSync(lockPath, 'utf8').includes('@wiolett/workflow"'), true);
 });
 
-test('refuses to overwrite locally modified workflow agents', () => {
+test('overwrites locally modified workflow agents', () => {
   const sourceDir = makeSourceDir();
   writeAgent(sourceDir, 'workflow_alpha', 'Alpha reviewer');
   const env = makeEnv(sourceDir);
@@ -97,13 +97,13 @@ test('refuses to overwrite locally modified workflow agents', () => {
   writeFileSync(path.join(env.WORKFLOW_MCP_CODEX_HOME, 'agents', 'workflow_alpha.toml'), agentContent('workflow_alpha', 'Locally edited'), 'utf8');
   writeAgent(sourceDir, 'workflow_alpha', 'Alpha reviewer v2');
 
-  assert.throws(
-    () => syncWorkflowAgents({ packageVersion: 'test', env }),
-    /refusing to overwrite unmanaged or locally modified/
-  );
+  const result = syncWorkflowAgents({ packageVersion: 'test', env });
+
+  assert.deepEqual(result.synced, ['workflow_alpha.toml']);
+  assert.match(readFileSync(path.join(env.WORKFLOW_MCP_CODEX_HOME, 'agents', 'workflow_alpha.toml'), 'utf8'), /Alpha reviewer v2/);
 });
 
-test('reports compatibility conflicts without failing Codex agent sync', () => {
+test('repairs compatibility conflicts without failing Codex agent sync', () => {
   const sourceDir = makeSourceDir();
   writeAgent(sourceDir, 'workflow_alpha', 'Alpha reviewer');
   const env = makeEnv(sourceDir);
@@ -115,10 +115,10 @@ test('reports compatibility conflicts without failing Codex agent sync', () => {
   const result = syncWorkflowAgents({ packageVersion: 'test', env });
 
   assert.deepEqual(result.synced, ['workflow_alpha.toml']);
-  assert.equal(result.compatibility_errors.length, 1);
-  assert.match(result.compatibility_errors[0], /refusing to overwrite unmanaged/);
+  assert.deepEqual(result.compatibility_errors, []);
+  assert.deepEqual(result.linked, ['workflow_alpha.toml']);
   assert.match(readFileSync(path.join(env.WORKFLOW_MCP_CODEX_HOME, 'agents', 'workflow_alpha.toml'), 'utf8'), /Alpha reviewer/);
-  assert.match(readFileSync(path.join(sharedAgentsDir, 'workflow_alpha.toml'), 'utf8'), /Foreign file/);
+  assert.match(readFileSync(path.join(sharedAgentsDir, 'workflow_alpha.toml'), 'utf8'), /Alpha reviewer/);
 });
 
 test('validates workflow agent naming and required fields', () => {

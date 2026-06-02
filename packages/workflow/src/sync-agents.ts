@@ -62,17 +62,13 @@ export function syncWorkflowAgents(options: SyncWorkflowAgentsOptions): SyncWork
 
   for (const agent of sourceAgents) {
     const targetPath = path.join(targetDir, agent.fileName);
-    const previous = previousLock?.files[agent.fileName];
     const existing = existsSync(targetPath) ? readFileSync(targetPath, 'utf8') : null;
-    const existingHash = existing === null ? null : sha256(existing);
 
     if (existing === agent.content) {
       unchanged.push(agent.fileName);
-    } else if (existing === null || (previous && existingHash === previous.sha256)) {
+    } else {
       atomicWrite(targetPath, agent.content);
       synced.push(agent.fileName);
-    } else {
-      throw new Error(`${agent.fileName}: refusing to overwrite unmanaged or locally modified Codex agent`);
     }
 
     nextFiles[agent.fileName] = {
@@ -83,17 +79,13 @@ export function syncWorkflowAgents(options: SyncWorkflowAgentsOptions): SyncWork
 
   if (previousLock && LEGACY_MANAGERS.has(previousLock.managed_by)) {
     const currentNames = new Set(sourceAgents.map((agent) => agent.fileName));
-    for (const [fileName, previous] of Object.entries(previousLock.files)) {
+    for (const fileName of Object.keys(previousLock.files)) {
       if (currentNames.has(fileName)) {
         continue;
       }
       const targetPath = path.join(targetDir, fileName);
       if (!existsSync(targetPath)) {
         continue;
-      }
-      const existing = readFileSync(targetPath, 'utf8');
-      if (sha256(existing) !== previous.sha256) {
-        throw new Error(`${fileName}: refusing to remove locally modified stale workflow agent`);
       }
       rmSync(targetPath);
       removed.push(fileName);
@@ -199,7 +191,7 @@ function syncCompatibilityAgents(options: SyncCompatibilityAgentsOptions): SyncC
 
   if (previousLock && LEGACY_MANAGERS.has(previousLock.managed_by)) {
     const currentNames = new Set(options.sourceAgents.map((agent) => agent.fileName));
-    for (const [fileName, previous] of Object.entries(previousLock.files)) {
+    for (const fileName of Object.keys(previousLock.files)) {
       if (currentNames.has(fileName)) {
         continue;
       }
@@ -208,9 +200,6 @@ function syncCompatibilityAgents(options: SyncCompatibilityAgentsOptions): SyncC
         continue;
       }
       try {
-        if (!isManagedCompatibilityFile(compatibilityPath, previous)) {
-          throw new Error('refusing to remove locally modified stale compatibility agent');
-        }
         rmSync(compatibilityPath);
         removed.push(fileName);
       } catch (error) {
@@ -256,10 +245,6 @@ function syncCompatibilityFile(options: {
     return 'unchanged';
   }
 
-  if (current.kind !== 'missing' && !isManagedCompatibilityFile(options.compatibilityPath, options.previous)) {
-    throw new Error('refusing to overwrite unmanaged or locally modified compatibility agent');
-  }
-
   if (current.kind !== 'missing') {
     rmSync(options.compatibilityPath);
   }
@@ -292,20 +277,6 @@ function inspectCompatibilityFile(filePath: string):
     kind: 'file',
     sha256: sha256(readFileSync(filePath, 'utf8')),
   };
-}
-
-function isManagedCompatibilityFile(filePath: string, previous?: WorkflowAgentLockFile['files'][string]): boolean {
-  if (!previous || !existsSync(filePath)) {
-    return false;
-  }
-  const current = inspectCompatibilityFile(filePath);
-  if (current.kind === 'symlink') {
-    return current.target === previous.link_target;
-  }
-  if (current.kind === 'file') {
-    return current.sha256 === previous.sha256;
-  }
-  return false;
 }
 
 function readSourceAgents(sourceDir: string): WorkflowAgentDefinition[] {
