@@ -47,7 +47,8 @@ export async function evaluateMemoryWrite(args: {
   const prompt = [
     'You are a strict memory write gate for an MCP memory server.',
     'Return JSON only.',
-    'Reject secrets, credentials, raw tokens, ephemeral task chatter, and model self-notes.',
+    'Reject secrets, credentials, raw tokens, raw transcripts, ephemeral task chatter, and model self-notes.',
+    'Allow distilled durable lessons from completed work, including root causes, fix patterns, verification sequences, workflow gotchas, and stable preferences.',
     'Global memory must only contain durable cross-project user preferences, stable workflows, or durable user-level facts.',
     'Project memory may contain durable repository facts, workflows, setup steps, decisions, and operational gotchas.',
     'If useful but poorly worded, choose rewrite and provide normalized_content.',

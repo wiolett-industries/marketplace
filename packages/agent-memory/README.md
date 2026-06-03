@@ -7,7 +7,7 @@ Persistent memory for Codex with separate global and project scopes.
 - user preferences and long-lived behavior rules
 - cross-project coding patterns
 - repository-specific workflows and conventions
-- deployment notes, credentials, setup steps, and operational gotchas
+- deployment notes, redacted credential locations/processes, setup steps, and operational gotchas
 
 This package backs the standalone Agent Memory plugin.
 
@@ -45,7 +45,7 @@ Project memory is for repository-specific knowledge:
 - deployment and release workflows
 - project conventions
 - undocumented dependencies
-- credentials and environment-specific instructions
+- redacted credential locations/processes and environment-specific instructions
 
 Project memory auto-initializes on write/mutation use in a repository. Read tools do not create `.memory/` when project memory is absent; they return empty results instead.
 

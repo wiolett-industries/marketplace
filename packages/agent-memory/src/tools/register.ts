@@ -72,7 +72,7 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_save',
     {
       title: 'Save Memory',
-      description: 'Save durable project or global knowledge after sanity review.',
+      description: 'Save durable project or global knowledge after sanity review, especially reusable preferences, workflows, gotchas, root causes, fix patterns, and verification sequences.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         content: z.string().min(1),

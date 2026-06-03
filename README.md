@@ -58,11 +58,11 @@ The init command prompts for an OpenAI API key and writes `~/.agents/.wiolett/au
 - global memory for preferences, model behavior, and cross-project patterns
 - project memory for repo-specific workflows, conventions, redacted integration processes, and operational knowledge
 
-It supports lazy no-op reads for projects without memory, model-gated writes, compiled recall/query answers, automatic graph links between graph-capable memories, and hooks that remind Codex to recover memory context after session start or compaction.
+It supports lazy no-op reads for projects without memory, model-gated writes, compiled recall/query answers, automatic graph links between graph-capable memories, and startup hooks that remind Codex to recover memory context.
 
 ### Workflow
 
-`workflow` is the consolidated engineering workflow plugin. It includes intent gating, context discovery, frontend UI contracts, durable `.workflow/plans/<date-slug>/` and `.workflow/audits/<date-slug>/` artifacts, stateful execution, worktree-isolated subagent policy, final review/fix loops, Codex hooks for recovery and subagent output, and a bundled MCP server that syncs workflow custom agents globally at startup and provides deterministic plan/audit artifact tools.
+`workflow` is the consolidated engineering workflow plugin. It includes intent gating, context discovery, frontend UI contracts, durable `.workflow/plans/<date-slug>/` and `.workflow/audits/<date-slug>/` artifacts, stateful execution, worktree-isolated subagent policy, final review/fix loops, Codex startup/subagent hooks, and a bundled MCP server that syncs workflow custom agents globally at startup and provides deterministic plan/audit artifact tools.
 
 ### Merge Request Review
 

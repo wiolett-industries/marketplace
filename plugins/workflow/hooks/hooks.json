@@ -2,7 +2,7 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|resume|clear|compact",
+        "matcher": "startup|resume|clear",
         "hooks": [
           {
             "type": "command",
@@ -21,7 +21,7 @@
             "type": "command",
             "command": "node \"$PLUGIN_ROOT/hooks/workflow-hook.cjs\"",
             "timeout": 10,
-            "statusMessage": "Restoring workflow context"
+            "statusMessage": "Completing workflow compact hook"
           }
         ]
       }

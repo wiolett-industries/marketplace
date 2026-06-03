@@ -32,13 +32,28 @@ At start or after compaction:
 
 Keep reads focused. Do not dump all memory unless the user asks for maintenance/audit.
 
+## Write Triggers
+
+Memory writes are expected for durable lessons, not only when the user explicitly asks.
+
+Before the final response for non-trivial work, make one memory decision:
+
+- save or update a durable fact if the work revealed a reusable preference, workflow, setup command, verification sequence, environment blocker, integration gotcha, root cause, fix pattern, or architecture decision
+- skip silently when the result is only local progress, obvious code, or a one-off edit with no future reuse
+
+Save to `global` when the user corrects stable behavior, says "always/never/remember/запомни", or establishes a cross-project workflow or communication preference.
+
+Save to `project` when repo work reveals non-obvious setup/test/build/release commands, persistent environment constraints, recurring failure modes, integration contracts, accepted review/release patterns, or completed root-cause/fix/verification lessons likely to matter later in the same repo.
+
 ## Writes
 
 Save to `global` only for durable cross-project facts: communication preferences, stable coding/tool preferences, reusable workflows, model-behavior requirements. Never put project-specific facts in global memory.
 
 Save to `project` only for durable repo-specific facts: setup/test/build/release/deploy/rollback workflows, non-obvious conventions, architecture decisions, integration gotchas, persistent environment constraints.
 
-Never save raw secrets, API keys, tokens, passwords, private webhook URLs, temporary summaries, speculative plans, obvious code facts, implementation chatter, one-off TODOs, local edits, or session progress. For secret-related workflows, save only redacted location/process.
+Never save raw secrets, API keys, tokens, passwords, private webhook URLs, raw session summaries, speculative plans, obvious code facts, implementation chatter, one-off TODOs, local edits, or transient progress. For secret-related workflows, save only redacted location/process.
+
+Do not confuse raw session recap with durable memory: save the distilled reusable lesson, root cause, decision, or workflow; leave transcript/progress detail in chat or workflow artifacts.
 
 Use `memory_save` for new durable facts. Use `memory_update` when an existing canonical memory is outdated; IDs and graph links are preserved. Automatic graph links are suggested for graph-capable saves/updates; manual `memory_link` remains useful for important relations.
 

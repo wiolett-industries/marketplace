@@ -68,3 +68,17 @@ test('workflow hook config does not register session end hooks', () => {
 
   assert.equal(config.hooks.Stop, undefined);
 });
+
+test('workflow hook config does not match compact source as SessionStart', () => {
+  const config = JSON.parse(readFileSync(hookConfig, 'utf8'));
+
+  assert.equal(config.hooks.SessionStart[0].matcher, 'startup|resume|clear');
+});
+
+test('workflow post-compact hook returns common output fields only', () => {
+  const output = runHook({ hook_event_name: 'PostCompact', cwd: repoRoot });
+
+  assert.equal(output.continue, true);
+  assert.equal(output.systemMessage, undefined);
+  assert.equal(output.hookSpecificOutput, undefined);
+});

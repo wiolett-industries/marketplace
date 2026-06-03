@@ -64,15 +64,12 @@ function main() {
       "Agent Memory: read `using-agent-memory` before memory tools.",
       authSummary(),
       projectMemorySummary(root),
-      "Never save secrets, session summaries, obvious code, temp work, or project facts to global.",
+      "Finalizing durable work: save/update reusable preferences, repo gotchas, root-cause fixes, and recurring workflows.",
+      "Never save secrets, raw session summaries, obvious code, temp work, or project facts to global.",
     ];
 
     if (input.hook_event_name === "PostCompact") {
-      writeContext("PostCompact", [
-        commonLines[0],
-        "PostCompact: global lite -> relevant recall; project after repo; recover `.workflow`; not chat.",
-        ...commonLines.slice(1),
-      ]);
+      ok();
       return;
     }
 

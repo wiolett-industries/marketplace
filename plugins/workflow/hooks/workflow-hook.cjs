@@ -87,15 +87,8 @@ function sessionContext(input) {
   writeContext(input.hook_event_name || "SessionStart", lines);
 }
 
-function postCompactContext(input) {
-  const root = repoRoot(input.cwd || process.cwd());
-  const lines = [
-    "PostCompact workflow: read `using-workflow`; restore from artifacts + git, not chat.",
-    ...activeWorkflowSummary(root),
-    "Plans: read manifest/state/plan/context/decisions/questions/relevant artifacts.",
-    "Audits: read scope/state/prompts/reviews/sanity/master artifacts.",
-  ];
-  writeContext("PostCompact", lines);
+function postCompactContext() {
+  ok();
 }
 
 function subagentStart(input) {

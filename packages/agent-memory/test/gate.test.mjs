@@ -54,6 +54,8 @@ describe('memory write gate', () => {
         suggested_tags: ['workflow'],
       }));
       expect(requestBody.model).toBe('gpt-5-nano');
+      expect(requestBody.instructions).toContain('Allow distilled durable lessons from completed work');
+      expect(requestBody.instructions).toContain('raw transcripts');
       expect(requestBody.text.format.schema.required).toEqual([
         'decision',
         'reason',
