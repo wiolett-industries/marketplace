@@ -7,7 +7,7 @@ description: Use to run filesystem-backed project, subsystem, diff, or plan audi
 
 Read-only workflow for understanding quality, risk, architecture, security, maintainability, or readiness before planning fixes. It produces findings and planning input; it does not edit code.
 
-Inherit `Using Workflow` shared rules. Use workflow MCP when available:
+Inherit `Using Workflow` shared rules. Use workflow MCP when available; manual audit state/artifact writes are fallback only:
 
 - create/update: `workflow_audit_create`, `workflow_audit_update`
 - artifacts: `workflow_audit_artifact_write`

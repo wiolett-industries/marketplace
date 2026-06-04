@@ -7,7 +7,7 @@ description: Use when an approved or sufficiently clear direction must become a 
 
 Write a durable plan-run that another agent can execute without product or architecture guesswork. Plans live in `.workflow/`, not chat. Inherit `Using Workflow` shared rules.
 
-Prefer MCP: `workflow_plan_create`, `workflow_plan_update`, `workflow_plan_artifact_write`, `workflow_handoff_write`.
+Use MCP when available: `workflow_plan_create`, `workflow_plan_update`, `workflow_plan_artifact_write`, `workflow_handoff_write`. Manual `.workflow/` writes are fallback only.
 
 If planning from audit, use `planning-input.md`, `master-audit.md`, confirmed `findings.json`, and any audit handoff as primary inputs.
 

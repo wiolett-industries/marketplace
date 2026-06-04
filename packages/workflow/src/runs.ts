@@ -3,6 +3,7 @@ import path from 'node:path';
 import { normalizeFindings } from './findings.js';
 import { resolveSafeRelative, writeJsonFile } from './fs-utils.js';
 import { makeSlug } from './naming.js';
+import { applyOperation, asArray, type RunOperation, upsertById } from './run-operations.js';
 import { readRootState, relativeToWorkspace, updateRootState } from './workflow-state.js';
 import { listRunDirs, resolveWorkspaceRoot, workflowRoot } from './workspace.js';
 
@@ -58,11 +59,6 @@ export interface HandoffWriteInput {
   risks?: string[];
   next_actions?: string[];
   payload?: unknown;
-}
-
-export interface RunOperation {
-  type: string;
-  [key: string]: unknown;
 }
 
 export function createPlanRun(input: CreatePlanInput): Record<string, unknown> {
@@ -284,37 +280,6 @@ function writeRunArtifact(kind: 'plans' | 'audits', input: ArtifactWriteInput, e
   };
 }
 
-function applyOperation(state: Record<string, unknown>, operation: RunOperation): Record<string, unknown> {
-  switch (operation.type) {
-    case 'set_phase':
-      return { ...state, phase: stringField(operation, 'phase') };
-    case 'set_complexity':
-      return { ...state, complexity: stringField(operation, 'complexity') };
-    case 'set_depth':
-      return { ...state, depth: stringField(operation, 'depth') };
-    case 'set_review_round':
-      return { ...state, review_round: numberField(operation, 'review_round') };
-    case 'set_clean_streak':
-      return { ...state, clean_streak: numberField(operation, 'clean_streak') };
-    case 'set_open_findings':
-      return { ...state, open_findings: normalizeFindings(operation.findings).findings };
-    case 'upsert_task':
-      return { ...state, tasks: upsertById(asArray(state.tasks), recordField(operation, 'task')) };
-    case 'complete_task':
-      return { ...state, tasks: completeById(asArray(state.tasks), stringField(operation, 'task_id')) };
-    case 'upsert_chunk':
-      return { ...state, chunks: upsertById(asArray(state.chunks), recordField(operation, 'chunk')) };
-    case 'upsert_reviewer':
-      return { ...state, reviewers: upsertById(asArray(state.reviewers), recordField(operation, 'reviewer')) };
-    case 'upsert_sanity_check':
-      return { ...state, sanity_checks: upsertById(asArray(state.sanity_checks), recordField(operation, 'sanity_check')) };
-    case 'merge':
-      return { ...state, ...recordField(operation, 'patch') };
-    default:
-      throw new Error(`Unsupported workflow operation: ${operation.type}`);
-  }
-}
-
 function resolveRunDir(workspaceRoot: string, kind: 'plans' | 'audits', run?: string): string {
   const root = workflowRoot(workspaceRoot);
   const state = readRootState(workspaceRoot);
@@ -481,52 +446,6 @@ function normalizeHandoffId(value: string): string {
     throw new Error('handoff id must contain at least one alphanumeric character');
   }
   return normalized.slice(0, 96);
-}
-
-function upsertById(items: unknown[], item: Record<string, unknown>): unknown[] {
-  const id = String(item.id || '').trim();
-  if (!id) {
-    throw new Error('upsert item requires id');
-  }
-  const index = items.findIndex((entry) => isRecord(entry) && entry.id === id);
-  if (index === -1) {
-    return [...items, item];
-  }
-  const next = [...items];
-  next[index] = { ...(isRecord(next[index]) ? next[index] : {}), ...item };
-  return next;
-}
-
-function completeById(items: unknown[], id: string): unknown[] {
-  return items.map((entry) => isRecord(entry) && entry.id === id ? { ...entry, status: 'completed' } : entry);
-}
-
-function asArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
-}
-
-function recordField(value: Record<string, unknown>, key: string): Record<string, unknown> {
-  const field = value[key];
-  if (!isRecord(field)) {
-    throw new Error(`${key} must be an object`);
-  }
-  return field;
-}
-
-function stringField(value: Record<string, unknown>, key: string): string {
-  const field = value[key];
-  if (typeof field !== 'string' || !field.trim()) {
-    throw new Error(`${key} must be a non-empty string`);
-  }
-  return field;
-}
-
-function numberField(value: Record<string, unknown>, key: string): number {
-  const field = value[key];
-  if (typeof field !== 'number' || !Number.isFinite(field)) {
-    throw new Error(`${key} must be a finite number`);
-  }
-  return field;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

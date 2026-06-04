@@ -1,6 +1,12 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from '@jest/globals';
 import { evaluateMemoryWrite } from '../dist/gate/write-gate.js';
 import { resetModelProvider } from '../dist/model-provider.js';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const memorySkill = path.join(repoRoot, 'plugins/agent-memory/skills/using-agent-memory/SKILL.md');
 
 async function withMockedProvider(fn) {
   const previousFetch = globalThis.fetch;
@@ -23,6 +29,15 @@ async function withMockedProvider(fn) {
 }
 
 describe('memory write gate', () => {
+  test('memory skill contains positive write triggers', () => {
+    const skill = readFileSync(memorySkill, 'utf8');
+
+    expect(skill).toMatch(/Memory writes are expected for durable lessons/);
+    expect(skill).toMatch(/Before the final response for non-trivial work/);
+    expect(skill).toMatch(/root cause, fix pattern, or architecture decision/);
+    expect(skill).toMatch(/raw session recap/);
+  });
+
   test('uses strict structured output schema that is accepted by OpenAI-compatible providers', async () => {
     await withMockedProvider(async () => {
       let requestBody;

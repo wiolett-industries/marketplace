@@ -14,6 +14,11 @@ import {
 
 const workspaceRoot = z.string().min(1).optional();
 const operation = z.object({ type: z.string().min(1) }).catchall(z.unknown());
+const stateOperationHint = [
+  'Supported operations include set_phase, set_open_findings, upsert_task, complete_task, upsert_chunk,',
+  'upsert_reviewer, upsert_sanity_check, and merge, depending on plan or audit state.',
+  'Unsupported operation errors include the nearest supported operation; correct the payload and retry the MCP call.',
+].join(' ');
 
 function asTextResult(payload: unknown) {
   return {
@@ -64,7 +69,7 @@ export function registerWorkflowTools(server: McpServer): void {
     'workflow_plan_update',
     {
       title: 'Update Workflow Plan',
-      description: 'Apply structured state operations to the active or named workflow plan run.',
+      description: `Apply structured state operations to the active or named workflow plan run. ${stateOperationHint}`,
       inputSchema: {
         workspace_root: workspaceRoot,
         plan_run: z.string().min(1).optional(),
@@ -114,7 +119,7 @@ export function registerWorkflowTools(server: McpServer): void {
     'workflow_audit_update',
     {
       title: 'Update Workflow Audit',
-      description: 'Apply structured state operations to the active or named workflow audit run.',
+      description: `Apply structured state operations to the active or named workflow audit run. ${stateOperationHint}`,
       inputSchema: {
         workspace_root: workspaceRoot,
         audit_run: z.string().min(1).optional(),

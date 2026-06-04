@@ -18,11 +18,12 @@ UI flow adds `ui-contract` before planning and during final review. Audit-only f
 ## Start Or Resume
 
 1. Read the request and current repo state.
-2. If `.workflow/` state exists and the user is continuing work, restore from artifacts, not chat:
+2. For any non-trivial plan/execute/review/debug/refactor/design request, run `Intent Gate` first. Skip only when the request is obviously mechanical, single-step, and low-risk.
+3. If `.workflow/` state exists, call `workflow_status` when available, then restore from artifacts, not chat:
    - plans: `manifest.json`, `state.json`, `plan.md`
    - audits: `manifest.json`, `state.json`, prompts/reviews/sanity/master artifacts
-3. Select the earliest needed module.
-4. Do not skip `Intent Gate` for non-trivial work unless the request is narrow and mechanical.
+4. Select the earliest needed module and say which module is active.
+5. Use Workflow MCP tools for workflow state/artifact operations whenever available. Manual `.workflow/` writes are fallback only when MCP tools are unavailable.
 
 ## Module Router
 
@@ -33,14 +34,14 @@ UI flow adds `ui-contract` before planning and during final review. Audit-only f
 - `UI Contract`: substantial visible UI needs definition or review.
 - `Executing Plans`: approved `.workflow/plans/<run>/plan.md` should be executed.
 - `Finalizing Plan`: review-only work, completion claims, commits, PRs, handoff, or merge gates.
-- `Workflow MCP`: mechanical `.workflow/` create/update/status/artifact/findings/handoff operations.
+- `Workflow MCP`: required path for mechanical `.workflow/` create/update/status/artifact/findings/handoff operations when tools are available.
 
 ## Shared Rules
 
 - File artifacts are source of truth; chat history is not.
 - Plans live under `.workflow/plans/<MM-DD-YY-slug>/`; audits under `.workflow/audits/<MM-DD-YY-slug>/`.
 - Keep `.workflow/` ignored in git unless the user explicitly wants artifacts versioned.
-- Prefer workflow MCP tools when available; manual writes must preserve the same layout/state semantics.
+- Use workflow MCP tools when available for `.workflow/` status, create, update, artifact, findings, and handoff operations. Manual writes must be explicitly treated as fallback and must preserve the same layout/state semantics.
 - Verify git boundary before code edits. If not in a repo, `git init` only in a real project root, never in a container folder with multiple projects; switch to the single matching child project or ask when several match.
 - Non-read-only subagent edits must happen in worktrees.
 - Main thread coordinates, does minimal diff sanity, runs verification commands, and delegates detailed review to agents.
@@ -89,12 +90,16 @@ The `@wiolett/workflow` MCP syncs canonical `workflow_*` TOML agents into Codex 
 
 ## MCP Short Rule
 
-Use MCP for deterministic filesystem operations:
+Use MCP for deterministic filesystem operations whenever the tools are available:
 
 - `workflow_status`
 - `workflow_plan_create`, `workflow_plan_update`, `workflow_plan_artifact_write`
 - `workflow_audit_create`, `workflow_audit_update`, `workflow_audit_artifact_write`
 - `workflow_handoff_write`
 - `workflow_findings_normalize`
+
+Do not hand-write `.workflow/` state, manifests, findings, or handoffs when the matching MCP tool is available.
+
+If an MCP call fails because the operation name, schema, or payload shape is wrong, fix the call from the error text and retry it. Unsupported operation errors include a nearest supported operation; use it instead of abandoning Workflow MCP or switching to manual `.workflow/` writes.
 
 MCP does not write the substantive plan/audit/review content, launch agents, merge worktrees, or replace agent judgment.

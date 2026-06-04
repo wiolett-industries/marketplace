@@ -6,9 +6,9 @@ This repository provides a Codex marketplace source, exposed through [`.agents/p
 
 The marketplace currently ships:
 
-- [`agent-memory`](./plugins/agent-memory) — persistent scoped memory for Codex with compiled recall, automatic graph links, and recovery hooks
-- [`workflow`](./plugins/workflow) — modular agentic workflow framework for intent, planning, execution, review/fix loops, and workflow hooks
-- [`merge-request-review`](./plugins/merge-request-review) — discussion-aware GitLab merge request review with strict gates, approval discipline, and reviewer hooks
+- [`agent-memory`](./plugins/agent-memory) — persistent scoped memory for Codex with compiled recall and automatic graph links
+- [`workflow`](./plugins/workflow) — modular agentic workflow framework for intent, planning, execution, review/fix loops, and consolidated hooks
+- [`merge-request-review`](./plugins/merge-request-review) — discussion-aware GitLab merge request review with strict gates and approval discipline
 
 ## Install In Codex
 
@@ -58,15 +58,15 @@ The init command prompts for an OpenAI API key and writes `~/.agents/.wiolett/au
 - global memory for preferences, model behavior, and cross-project patterns
 - project memory for repo-specific workflows, conventions, redacted integration processes, and operational knowledge
 
-It supports lazy no-op reads for projects without memory, model-gated writes, compiled recall/query answers, automatic graph links between graph-capable memories, and startup hooks that remind Codex to recover memory context.
+It supports lazy no-op reads for projects without memory, model-gated writes, compiled recall/query answers, and automatic graph links between graph-capable memories. When `workflow` is also installed, the consolidated workflow hook adds Agent Memory startup reminders.
 
 ### Workflow
 
-`workflow` is the consolidated engineering workflow plugin. It includes intent gating, context discovery, frontend UI contracts, durable `.workflow/plans/<date-slug>/` and `.workflow/audits/<date-slug>/` artifacts, stateful execution, worktree-isolated subagent policy, final review/fix loops, Codex startup/subagent hooks, and a bundled MCP server that syncs workflow custom agents globally at startup and provides deterministic plan/audit artifact tools.
+`workflow` is the consolidated engineering workflow plugin. It includes intent gating, context discovery, frontend UI contracts, durable `.workflow/plans/<date-slug>/` and `.workflow/audits/<date-slug>/` artifacts, stateful execution, worktree-isolated subagent policy, final review/fix loops, consolidated Codex startup/subagent hooks, and a bundled MCP server that syncs workflow custom agents globally at startup and provides deterministic plan/audit artifact tools.
 
 ### Merge Request Review
 
-`merge-request-review` gives Codex a careful GitLab merge request review workflow with discussion intake, strict findings, re-review loops, fixed note formats, reviewer output hooks, and approval only after blocker threads are resolved.
+`merge-request-review` gives Codex a careful GitLab merge request review workflow with discussion intake, strict findings, re-review loops, fixed note formats, and approval only after blocker threads are resolved. When `workflow` is also installed, the consolidated workflow hook applies merge-request reviewer prompts and output checks.
 
 ## Repository Layout
 

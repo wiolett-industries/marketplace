@@ -8,9 +8,13 @@ It also creates best-effort compatibility links in `~/.agents/agents/` that poin
 
 Agent sync is a startup invariant, not a model-visible action, so the server does not expose sync tools.
 
+The Workflow plugin is also the consolidated hook owner for Wiolett plugins. Its hook can detect sibling `agent-memory` and `merge-request-review` plugin installs and add the relevant startup context or merge_request_* reviewer validation without those plugins registering separate hooks.
+
 ## Tools
 
-The MCP tools are deterministic filesystem helpers for `.workflow/` artifacts. They do not generate plans, run agents, or make architecture decisions.
+The MCP tools are deterministic filesystem helpers for `.workflow/` artifacts. Use them whenever available for workflow status, run creation, state updates, artifact writes, findings normalization, and structured handoffs; manual `.workflow/` writes are fallback only. They do not generate plans, run agents, or make architecture decisions.
+
+State update tools reject unknown operations with a nearest supported operation and a payload hint. Agents should correct the operation shape and retry the MCP call instead of falling back to manual `.workflow/` writes.
 
 - `workflow_status`: read active plan/audit state and latest workflow runs.
 - `workflow_plan_create`: create `.workflow/plans/<slug>/` with `plan.md`, `manifest.json`, `state.json`, context/questions/decisions files, `artifacts/`, and `chunks/`.

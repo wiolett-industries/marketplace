@@ -5,7 +5,7 @@ description: Use when creating, updating, inspecting, or resuming workflow plan/
 
 # Workflow MCP
 
-Use MCP for deterministic `.workflow/` filesystem operations. MCP does not generate substantive plan/audit/review text, launch agents, merge worktrees, or replace judgment. If tools are unavailable, write the same layout/state manually.
+Use MCP for deterministic `.workflow/` filesystem operations whenever tools are available. This is the normal path, not a preference. MCP does not generate substantive plan/audit/review text, launch agents, merge worktrees, or replace judgment. If tools are unavailable, write the same layout/state manually and state that MCP fallback was used.
 
 Before creating artifacts in a git repo, ensure `.workflow/` is ignored unless explicitly versioned.
 
@@ -29,7 +29,7 @@ Root state:
 }
 ```
 
-`workflow_plan_create` sets `active_plan`; `workflow_audit_create` sets `active_audit`. Omitted `plan_run`/`audit_run` means active run. Use `workflow_status` after compaction or uncertainty.
+`workflow_plan_create` sets `active_plan`; `workflow_audit_create` sets `active_audit`. Omitted `plan_run`/`audit_run` means active run. Use `workflow_status` at workflow start/resume, after compaction, before finalization, and whenever active run state is uncertain.
 
 ## Plan Tools
 
@@ -52,6 +52,8 @@ Required: `title`, `complexity: simple | medium | complex | very_complex`.
 Optional: `slug`, `workspace_root`, `plan_markdown`, `context_markdown`, `questions_markdown`, `decisions_markdown`, `tasks`, `chunks`.
 
 `workflow_plan_update` operations: `set_phase`, `set_complexity`, `set_review_round`, `set_clean_streak`, `set_open_findings`, `upsert_task`, `complete_task`, `upsert_chunk`, `merge`.
+
+Task status changes use `upsert_task` with a full task object containing `id` and `status`. Task completion can use `complete_task` with `task_id`. Do not invent short operations such as `set_task_status`.
 
 `workflow_plan_artifact_write` allowed paths: `plan.md`, `context.md`, `questions.md`, `decisions.md`, `ui-contract.md`, `manifest.json`, `state.json`, `artifacts/**`, `chunks/**`, `handoffs/**`.
 
@@ -98,4 +100,12 @@ Artifact write tools require exactly one payload: `content` or `json`. Never pas
 
 `state.json` is operational truth. `manifest.json` is discovery index. MCP syncs plan `phase`/`complexity` and audit `phase`/`depth`/`target` from state; manual edits must keep them aligned.
 
-Use MCP for creating/status/updating runs, writing artifacts, normalizing findings, and structured handoffs. Do not use it for plan content generation, audit judgment, review judgment, subagent launch, worktree merges, git operations, or verification commands.
+## Operation Error Recovery
+
+If a Workflow MCP call fails with an unsupported operation, schema, payload, or validation error, treat that as a tool-call formatting bug, not as a reason to abandon Workflow MCP.
+
+Read the error text, use the nearest supported operation or hint it provides, and immediately retry the same MCP tool with the corrected payload. Example: replace `set_task_status` with `upsert_task` and pass `{"task":{"id":"T1","status":"in_progress"}}`, or use `complete_task` with `task_id` when marking completion.
+
+Do not switch to manual `.workflow/` edits while the matching MCP tool is available.
+
+Use MCP for creating/status/updating runs, writing artifacts, normalizing findings, and structured handoffs. Do not bypass it with manual `.workflow/` writes when the matching MCP tool is available. Do not use it for plan content generation, audit judgment, review judgment, subagent launch, worktree merges, git operations, or verification commands.

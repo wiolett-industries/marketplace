@@ -28,7 +28,7 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "^workflow_",
+        "matcher": "^(workflow_|merge_request_)",
         "hooks": [
           {
             "type": "command",
@@ -41,7 +41,7 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "^workflow_",
+        "matcher": "^(workflow_|merge_request_)",
         "hooks": [
           {
             "type": "command",

@@ -28,9 +28,19 @@ This plugin ships:
 - `Executing Plans` to execute plan tasks with state recovery and worktree-isolated subagents
 - `Finalizing Plan` to run complexity-based review/fix loops
 - `Workflow MCP` to describe bundled MCP tool contracts for plan/audit artifact state
+- consolidated Codex hooks for workflow startup/subagent contracts plus installed companion plugin hints/checks
 - a bundled workflow MCP server that syncs `workflow_*` custom agents globally at startup and exposes deterministic `.workflow/` plan/audit artifact tools
 
-Workflow artifacts are filesystem-first. The workflow MCP may be used to create, update, inspect, and normalize plan/audit artifacts, but this version does not use a workflow RAG layer.
+Workflow artifacts are filesystem-first. Use workflow MCP to create, update, inspect, and normalize plan/audit artifacts whenever tools are available; manual `.workflow/` writes are fallback only. This version does not use a workflow RAG layer.
+
+## Hook Consolidation
+
+Workflow is the only Wiolett plugin that registers Codex hooks. Its hook detects installed sibling plugins and adapts context:
+
+- with `agent-memory`, SessionStart includes memory setup/read/write reminders
+- with `merge-request-review`, merge_request_* subagents get MR review prompts and output validation
+
+Companion plugins keep their skills and MCP servers, but they do not register separate hooks.
 
 Subagents are automatic only after the user explicitly authorizes agent/delegation use for the current task, plan, or session. If authorization is absent, the workflow asks once before the first subagent launch and records the decision in plan artifacts when available.
 
@@ -47,6 +57,8 @@ The sync target is global only: `~/.codex/agents/`. Project-scoped `.codex/agent
 ## MCP Tools
 
 The MCP tools are state helpers only. They do not generate plan text, audit text, or launch subagents.
+
+Unknown state update operations return a nearest supported operation and payload hint; agents should use that hint to retry the MCP call.
 
 - `workflow_status`
 - `workflow_plan_create`

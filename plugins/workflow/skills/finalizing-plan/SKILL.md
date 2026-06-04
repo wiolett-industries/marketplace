@@ -7,7 +7,7 @@ description: Use to complete a plan or review current changes through an agentic
 
 Use before declaring complete, committing, opening a PR, merging subagent worktrees, or handing off. This is a review/fix loop, not a one-time check. Inherit `Using Workflow` shared rules.
 
-Prefer MCP: `workflow_status`, `workflow_findings_normalize`, `workflow_plan_update`, `workflow_plan_artifact_write`.
+Use MCP when available: `workflow_status`, `workflow_findings_normalize`, `workflow_plan_update`, `workflow_plan_artifact_write`. Manual findings/state/artifact writes are fallback only.
 
 ## Inputs
 

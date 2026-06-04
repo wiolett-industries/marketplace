@@ -5,7 +5,7 @@ description: Use to execute a durable .workflow plan with todo tracking, compact
 
 # Executing Plans
 
-Execute an approved `.workflow/plans/<run>/plan.md`. Artifacts are authoritative; chat is not. Inherit `Using Workflow` shared rules. Prefer `workflow_status`, `workflow_plan_update`, and `workflow_plan_artifact_write` when available.
+Execute an approved `.workflow/plans/<run>/plan.md`. Artifacts are authoritative; chat is not. Inherit `Using Workflow` shared rules. Use `workflow_status`, `workflow_plan_update`, and `workflow_plan_artifact_write` when available; manual state/artifact writes are fallback only.
 
 ## Start Or Resume
 
@@ -45,6 +45,8 @@ Represent every task in `state.json`:
 ```
 
 For chunks, root state also tracks `chunks[]` with `id`, `path`, `status`, `depends_on`, and `scope`.
+
+Use `workflow_plan_update` for state changes. Task status changes use `upsert_task` with `task.id` and `task.status`; task completion uses `complete_task` with `task_id`. If a state update call fails because the operation is unsupported or the payload shape is wrong, read the nearest suggestion in the error, correct the payload, and retry the MCP call.
 
 ## Delegation
 

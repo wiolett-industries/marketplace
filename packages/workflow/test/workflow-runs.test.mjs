@@ -66,6 +66,28 @@ test('updates plan state with structured operations', () => {
   assert.equal(result.state.open_findings[0].severity, 'LOW');
 });
 
+test('suggests nearest supported workflow operation on update errors', () => {
+  const workspace = makeWorkspace();
+  createPlanRun({
+    workspace_root: workspace,
+    title: 'Plan operation error',
+    slug: '01-01-26-plan-operation-error',
+    complexity: 'simple',
+    tasks: [{ id: 'T1', title: 'Patch files', status: 'pending' }],
+  });
+
+  assert.throws(
+    () => updatePlanRun(workspace, undefined, [{ type: 'set_task_status', task_id: 'T1', status: 'in_progress' }]),
+    (error) => {
+      assert.match(error.message, /Unsupported workflow operation: set_task_status\./);
+      assert.match(error.message, /Nearest supported operation: upsert_task\./);
+      assert.match(error.message, /\{"type":"upsert_task","task":\{"id":"T1","status":"in_progress"\}\}/);
+      assert.match(error.message, /Supported operations:/);
+      return true;
+    }
+  );
+});
+
 test('writes only allowed plan artifact paths', () => {
   const workspace = makeWorkspace();
   createPlanRun({

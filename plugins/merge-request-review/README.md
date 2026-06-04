@@ -11,6 +11,8 @@ This plugin ships:
 - `merge_request_verification_reviewer` for CI/local verification quality and reviewability
 - a bundled MCP server that syncs `merge_request_*` custom agents globally and stores `.workflow/mr-reviews/` state and artifacts
 
+This plugin does not register Codex hooks directly. When the `workflow` plugin is installed, its consolidated hook detects `merge-request-review` and applies merge_request_* reviewer prompts and output validation.
+
 The workflow is intentionally strict:
 
 - existing MR discussions are always read before code review starts
