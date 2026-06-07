@@ -5,7 +5,7 @@ description: Use to execute a durable .workflow plan with todo tracking, compact
 
 # Executing Plans
 
-Execute an approved `.workflow/plans/<run>/plan.md`. Artifacts are authoritative; chat is not. Inherit `Using Workflow` shared rules. Use `workflow_status`, `workflow_plan_update`, and `workflow_plan_artifact_write` when available; manual state/artifact writes are fallback only.
+Execute an approved `.workflow/plans/<run>/plan.md`. Artifacts are authoritative; chat is not. Inherit `Using Workflow` shared rules. Use `workflow_status`, `workflow_plan_update`, `workflow_plan_complete`, and `workflow_plan_artifact_write` when available; manual state/artifact writes are fallback only.
 
 ## Start Or Resume
 
@@ -24,7 +24,7 @@ Rebuild todo from `state.json` and `plan.md`; continue from `state.phase` and th
 
 If root plan has chunks, root orchestrates and chunks execute.
 
-For each chunk: read chunk manifest/state/plan/context/decisions, verify dependencies in root state, execute like a normal plan-run, keep artifacts inside the chunk, update chunk and root state, finalize chunk before marking it complete.
+For each chunk: read chunk manifest/state/plan/context/decisions, verify dependencies in root state, mark it active in root plan state, execute like a normal plan-run, keep artifacts inside the chunk, update chunk and root state, finalize chunk before marking it complete.
 
 Do not create nested chunks. Do not edit outside chunk scope unless root `decisions.md` and `state.json` are updated. After all chunks complete, run root integration and `Finalizing Plan`.
 
@@ -46,9 +46,9 @@ Represent every task in `state.json`:
 }
 ```
 
-For chunks, root state also tracks `chunks[]` with `id`, `path`, `status`, `depends_on`, and `scope`.
+For chunks, root state also tracks `active_chunk: string | null` and `chunks[]` with `id`, `path`, `status`, `depends_on`, and `scope`.
 
-Use `workflow_plan_update` for state changes. Task status changes use `upsert_task` with `task.id` and `task.status`; task completion uses `complete_task` with `task_id`. If a state update call fails because the operation is unsupported or the payload shape is wrong, read the nearest suggestion in the error, correct the payload, and retry the MCP call.
+Use `workflow_plan_update` for state changes. Task status changes use `upsert_task` with `task.id` and `task.status`; task completion uses `complete_task` with `task_id`. Chunk lifecycle uses `set_active_chunk`, `clear_active_chunk`, `complete_chunk`, `cancel_chunk`, and `wait_chunk`; use `upsert_chunk` only for metadata. If a state update call fails because the operation is unsupported or the payload shape is wrong, read the nearest suggestion in the error, correct the payload, and retry the MCP call.
 
 ## Delegation
 
@@ -113,3 +113,5 @@ For UI work, treat `ui-contract.md` as acceptance source. Update `decisions.md` 
 ## Completion
 
 When tasks are complete, set `state.phase` to `finalizing` and invoke `Finalizing Plan`.
+
+After final verification/review passes, the plan must be closed with `workflow_plan_complete`. Do not leave implemented work as an active plan, and do not rely on `set_phase: complete` alone because that does not clear root active status.

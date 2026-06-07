@@ -5,6 +5,8 @@ import path from 'node:path';
 import test from 'node:test';
 import { normalizeFindings } from '../dist/findings.js';
 import {
+  completeAuditRun,
+  completePlanRun,
   createAuditRun,
   createPlanRun,
   getWorkflowStatus,
@@ -36,6 +38,7 @@ test('creates a plan run and marks it active', () => {
   assert.equal(manifest.kind, 'plan');
   assert.equal(manifest.paths.ui_contract, 'plans/01-01-26-workflow-tools/ui-contract.md');
   assert.equal(state.tasks[0].id, 'T1');
+  assert.equal(state.active_chunk, null);
   assert.equal(readFileSync(path.join(workspace, '.workflow', 'plans', '01-01-26-workflow-tools', 'plan.md'), 'utf8'), '# Plan\n');
   assert.match(readFileSync(path.join(workspace, '.workflow', 'plans', '01-01-26-workflow-tools', 'ui-contract.md'), 'utf8'), /No UI contract applies/);
 });
@@ -66,6 +69,35 @@ test('updates plan state with structured operations', () => {
   assert.equal(result.state.open_findings[0].severity, 'LOW');
 });
 
+test('updates active plan chunk lifecycle with structured operations', () => {
+  const workspace = makeWorkspace();
+  createPlanRun({
+    workspace_root: workspace,
+    title: 'Chunk lifecycle',
+    slug: '01-01-26-chunk-lifecycle',
+    complexity: 'complex',
+    chunks: [{ id: 'C1', title: 'First chunk', status: 'pending' }],
+  });
+
+  const active = updatePlanRun(workspace, undefined, [
+    { type: 'set_active_chunk', chunk_id: 'C1' },
+  ]);
+  const waiting = updatePlanRun(workspace, undefined, [
+    { type: 'wait_chunk', chunk_id: 'C1' },
+    { type: 'set_active_chunk', chunk_id: 'C2' },
+    { type: 'complete_chunk', chunk_id: 'C2' },
+    { type: 'cancel_chunk', chunk_id: 'C3' },
+  ]);
+
+  assert.equal(active.state.active_chunk, 'C1');
+  assert.equal(active.state.chunks.find((chunk) => chunk.id === 'C1').title, 'First chunk');
+  assert.equal(active.state.chunks.find((chunk) => chunk.id === 'C1').status, 'active');
+  assert.equal(waiting.state.active_chunk, null);
+  assert.equal(waiting.state.chunks.find((chunk) => chunk.id === 'C1').status, 'waiting');
+  assert.equal(waiting.state.chunks.find((chunk) => chunk.id === 'C2').status, 'complete');
+  assert.equal(waiting.state.chunks.find((chunk) => chunk.id === 'C3').status, 'cancelled');
+});
+
 test('suggests nearest supported workflow operation on update errors', () => {
   const workspace = makeWorkspace();
   createPlanRun({
@@ -86,6 +118,52 @@ test('suggests nearest supported workflow operation on update errors', () => {
       return true;
     }
   );
+});
+
+test('completes active plan run and clears active plan pointer', () => {
+  const workspace = makeWorkspace();
+  createPlanRun({
+    workspace_root: workspace,
+    title: 'Plan completion',
+    slug: '01-01-26-plan-completion',
+    complexity: 'simple',
+  });
+
+  const result = completePlanRun(workspace);
+  const rootState = readJson(path.join(workspace, '.workflow', 'state.json'));
+  const state = readJson(path.join(workspace, '.workflow', 'plans', '01-01-26-plan-completion', 'state.json'));
+  const manifest = readJson(path.join(workspace, '.workflow', 'plans', '01-01-26-plan-completion', 'manifest.json'));
+
+  assert.equal(result.run, 'plans/01-01-26-plan-completion');
+  assert.equal(result.state.phase, 'complete');
+  assert.equal(state.phase, 'complete');
+  assert.equal(manifest.phase, 'complete');
+  assert.equal(rootState.active_plan, null);
+});
+
+test('completing a named inactive plan preserves the active plan pointer', () => {
+  const workspace = makeWorkspace();
+  createPlanRun({
+    workspace_root: workspace,
+    title: 'Old plan',
+    slug: '01-01-26-old-plan',
+    complexity: 'simple',
+  });
+  createPlanRun({
+    workspace_root: workspace,
+    title: 'Current plan',
+    slug: '01-01-26-current-plan',
+    complexity: 'medium',
+  });
+
+  const result = completePlanRun(workspace, 'plans/01-01-26-old-plan');
+  const rootState = readJson(path.join(workspace, '.workflow', 'state.json'));
+  const oldManifest = readJson(path.join(workspace, '.workflow', 'plans', '01-01-26-old-plan', 'manifest.json'));
+
+  assert.equal(result.run, 'plans/01-01-26-old-plan');
+  assert.equal(result.state.phase, 'complete');
+  assert.equal(oldManifest.phase, 'complete');
+  assert.equal(rootState.active_plan, 'plans/01-01-26-current-plan');
 });
 
 test('writes only allowed plan artifact paths', () => {
@@ -217,6 +295,28 @@ test('syncs manifest indexes when state artifacts are written directly', () => {
   assert.equal(manifest.phase, 'master_audit');
   assert.equal(manifest.depth, 'deep');
   assert.equal(manifest.target, 'plan');
+});
+
+test('completes active audit run and clears active audit pointer', () => {
+  const workspace = makeWorkspace();
+  createAuditRun({
+    workspace_root: workspace,
+    title: 'Audit completion',
+    slug: '01-01-26-audit-completion',
+    depth: 'standard',
+    target: 'project',
+  });
+
+  const result = completeAuditRun(workspace);
+  const rootState = readJson(path.join(workspace, '.workflow', 'state.json'));
+  const state = readJson(path.join(workspace, '.workflow', 'audits', '01-01-26-audit-completion', 'state.json'));
+  const manifest = readJson(path.join(workspace, '.workflow', 'audits', '01-01-26-audit-completion', 'manifest.json'));
+
+  assert.equal(result.run, 'audits/01-01-26-audit-completion');
+  assert.equal(result.state.phase, 'complete');
+  assert.equal(state.phase, 'complete');
+  assert.equal(manifest.phase, 'complete');
+  assert.equal(rootState.active_audit, null);
 });
 
 test('reports status and normalizes findings deterministically', () => {

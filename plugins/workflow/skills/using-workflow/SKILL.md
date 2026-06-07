@@ -34,14 +34,14 @@ UI flow adds `ui-contract` before planning and during final review. Audit-only f
 - `UI Contract`: substantial visible UI needs definition or review.
 - `Executing Plans`: approved `.workflow/plans/<run>/plan.md` should be executed.
 - `Finalizing Plan`: review-only work, completion claims, commits, PRs, handoff, or merge gates.
-- `Workflow MCP`: required path for mechanical `.workflow/` create/update/status/artifact/findings/handoff operations when tools are available.
+- `Workflow MCP`: required path for mechanical `.workflow/` create/update/complete/status/artifact/findings/handoff operations when tools are available.
 
 ## Shared Rules
 
 - File artifacts are source of truth; chat history is not.
 - Plans live under `.workflow/plans/<MM-DD-YY-slug>/`; audits under `.workflow/audits/<MM-DD-YY-slug>/`.
 - Keep `.workflow/` ignored in git unless the user explicitly wants artifacts versioned.
-- Use workflow MCP tools when available for `.workflow/` status, create, update, artifact, findings, and handoff operations. Manual writes must be explicitly treated as fallback and must preserve the same layout/state semantics.
+- Use workflow MCP tools when available for `.workflow/` status, create, update, complete, artifact, findings, and handoff operations. Manual writes must be explicitly treated as fallback and must preserve the same layout/state semantics.
 - Verify git boundary before code edits. If not in a repo, `git init` only in a real project root, never in a container folder with multiple projects; switch to the single matching child project or ask when several match.
 - Non-read-only subagent edits must happen in worktrees.
 - Main thread coordinates, does minimal diff sanity, runs verification commands, and delegates detailed review to agents.
@@ -94,12 +94,14 @@ The `@wiolett/workflow` MCP syncs canonical `workflow_*` TOML agents into Codex 
 Use MCP for deterministic filesystem operations whenever the tools are available:
 
 - `workflow_status`
-- `workflow_plan_create`, `workflow_plan_update`, `workflow_plan_artifact_write`
-- `workflow_audit_create`, `workflow_audit_update`, `workflow_audit_artifact_write`
+- `workflow_plan_create`, `workflow_plan_update`, `workflow_plan_complete`, `workflow_plan_artifact_write`
+- `workflow_audit_create`, `workflow_audit_update`, `workflow_audit_complete`, `workflow_audit_artifact_write`
 - `workflow_handoff_write`
 - `workflow_findings_normalize`
 
-Do not hand-write `.workflow/` state, manifests, findings, or handoffs when the matching MCP tool is available.
+Do not hand-write `.workflow/` state, manifests, findings, completion state, or handoffs when the matching MCP tool is available.
+
+When a plan is implemented and final verification/review is done, always finish the workflow run with `workflow_plan_complete`. Do not leave completed plans active with only `state.phase = complete`, because active root state controls resume/status context. For completed audits, use `workflow_audit_complete`.
 
 If an MCP call fails because the operation name, schema, or payload shape is wrong, fix the call from the error text and retry it. Unsupported operation errors include a nearest supported operation; use it instead of abandoning Workflow MCP or switching to manual `.workflow/` writes.
 

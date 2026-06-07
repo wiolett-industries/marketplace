@@ -7,7 +7,7 @@ description: Use to complete a plan or review current changes through an agentic
 
 Use before declaring complete, committing, opening a PR, merging subagent worktrees, or handing off. This is a review/fix loop, not a one-time check. Inherit `Using Workflow` shared rules.
 
-Use MCP when available: `workflow_status`, `workflow_findings_normalize`, `workflow_plan_update`, `workflow_plan_artifact_write`. Manual findings/state/artifact writes are fallback only.
+Use MCP when available: `workflow_status`, `workflow_findings_normalize`, `workflow_plan_update`, `workflow_plan_complete`, `workflow_plan_artifact_write`. Manual findings/state/artifact writes are fallback only.
 
 ## Inputs
 
@@ -143,6 +143,8 @@ Do not require full build/test/review after every tiny user-testing correction. 
 
 When Agent Memory is available, make the memory decision before final output: save/update durable repo workflow, verification sequence, root cause, user preference, or recurring gotcha; skip raw progress, obvious code facts, and one-off edits.
 
-When exit threshold is met, report final verdict, review rounds, verification commands/results, accepted `LOW` findings, and plan-run path.
+When exit threshold is met and the plan implementation is complete, call `workflow_plan_complete` before final output, handoff, commit, PR, or approval. This is mandatory: a realized plan must not remain active in workflow status. Do not substitute `workflow_plan_update` with `set_phase: complete` unless `workflow_plan_complete` is unavailable; if forced into fallback, also clear root `active_plan` only when it points to the completed run and state that fallback was used.
+
+After completing the run, report final verdict, review rounds, verification commands/results, accepted `LOW` findings, and plan-run path.
 
 If creating a PR/MR, first inspect recent project PRs/MRs or templates when available, then match their title/description structure and tone.

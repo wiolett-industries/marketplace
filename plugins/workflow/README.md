@@ -31,7 +31,7 @@ This plugin ships:
 - consolidated Codex hooks for workflow startup/subagent contracts plus installed companion plugin hints/checks
 - a bundled workflow MCP server that syncs `workflow_*` custom agents globally at startup and exposes deterministic `.workflow/` plan/audit artifact tools
 
-Workflow artifacts are filesystem-first. Use workflow MCP to create, update, inspect, and normalize plan/audit artifacts whenever tools are available; manual `.workflow/` writes are fallback only. This version does not use a workflow RAG layer.
+Workflow artifacts are filesystem-first. Use workflow MCP to create, update, complete, inspect, and normalize plan/audit artifacts whenever tools are available; manual `.workflow/` writes are fallback only. This version does not use a workflow RAG layer.
 
 ## Hook Consolidation
 
@@ -60,12 +60,16 @@ The MCP tools are state helpers only. They do not generate plan text, audit text
 
 Unknown state update operations return a nearest supported operation and payload hint; agents should use that hint to retry the MCP call.
 
+Plan state tracks `active_chunk` and `chunks[]`. Use chunk lifecycle operations for active/waiting/complete/cancelled state and `upsert_chunk` for metadata.
+
 - `workflow_status`
 - `workflow_plan_create`
 - `workflow_plan_update`
+- `workflow_plan_complete`
 - `workflow_plan_artifact_write`
 - `workflow_audit_create`
 - `workflow_audit_update`
+- `workflow_audit_complete`
 - `workflow_audit_artifact_write`
 - `workflow_handoff_write`
 - `workflow_findings_normalize`

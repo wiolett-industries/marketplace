@@ -90,6 +90,7 @@ export function createPlanRun(input: CreatePlanInput): Record<string, unknown> {
     complexity: input.complexity,
     tasks: input.tasks || [],
     chunks: input.chunks || [],
+    active_chunk: null,
     review_round: 0,
     clean_streak: 0,
     open_findings: [],
@@ -167,6 +168,14 @@ export function updatePlanRun(workspaceRootInput: string | undefined, run: strin
 
 export function updateAuditRun(workspaceRootInput: string | undefined, run: string | undefined, operations: RunOperation[]): Record<string, unknown> {
   return updateRunState(workspaceRootInput, 'audits', run, operations);
+}
+
+export function completePlanRun(workspaceRootInput?: string, run?: string): Record<string, unknown> {
+  return completeRun(workspaceRootInput, 'plans', run);
+}
+
+export function completeAuditRun(workspaceRootInput?: string, run?: string): Record<string, unknown> {
+  return completeRun(workspaceRootInput, 'audits', run);
 }
 
 export function writePlanArtifact(input: ArtifactWriteInput): Record<string, unknown> {
@@ -254,6 +263,31 @@ function updateRunState(workspaceRootInput: string | undefined, kind: 'plans' | 
     run: relativeToWorkflow(workspaceRoot, runDir),
     state: next,
   };
+}
+
+function completeRun(workspaceRootInput: string | undefined, kind: 'plans' | 'audits', run: string | undefined): Record<string, unknown> {
+  const workspaceRoot = resolveWorkspaceRoot(workspaceRootInput);
+  const runDir = resolveRunDir(workspaceRoot, kind, run);
+  const statePath = path.join(runDir, 'state.json');
+  const current = readRunJson(statePath);
+  const now = new Date().toISOString();
+  const nextState = {
+    ...current,
+    phase: 'complete',
+    updated_at: now,
+  };
+
+  writeJsonFile(statePath, nextState);
+  syncManifestFromState(runDir, kind, nextState);
+
+  const runId = relativeToWorkflow(workspaceRoot, runDir);
+  const rootState = readRootState(workspaceRoot);
+  const activeKey = kind === 'plans' ? 'active_plan' : 'active_audit';
+  const rootPatch = kind === 'plans' ? { active_plan: null } : { active_audit: null };
+  const nextRootState = rootState[activeKey] === runId ? updateRootState(workspaceRoot, rootPatch) : rootState;
+  const manifest = readRunJson(path.join(runDir, 'manifest.json'));
+
+  return runResult(workspaceRoot, runDir, manifest, nextState, nextRootState);
 }
 
 function writeRunArtifact(kind: 'plans' | 'audits', input: ArtifactWriteInput, exact: string[], prefixes: string[]): Record<string, unknown> {

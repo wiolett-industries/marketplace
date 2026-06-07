@@ -4,7 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { formatWorkflowAgentSyncResult, registerWorkflowTools, syncWorkflowAgents } from './register.js';
 
-const VERSION = '0.2.2';
+const VERSION = '0.2.3';
 
 async function main(): Promise<void> {
   const [command] = process.argv.slice(2);
@@ -28,7 +28,7 @@ async function main(): Promise<void> {
     },
     {
       instructions:
-        'Workflow MCP syncs workflow_* custom agents at startup, then exposes deterministic filesystem tools for workflow plan and audit runs under .workflow/. Use these tools whenever available for workflow status, run creation, state updates, artifact writes, findings normalization, and structured handoffs; manual .workflow writes are fallback only. It does not generate plans, run subagents, or replace agent judgment; tools only create, update, normalize, and inspect durable workflow artifacts.',
+        'Workflow MCP syncs workflow_* custom agents at startup, then exposes deterministic filesystem tools for workflow plan and audit runs under .workflow/. Use these tools whenever available for workflow status, run creation, state updates, run completion, artifact writes, findings normalization, and structured handoffs; manual .workflow writes are fallback only. It does not generate plans, run subagents, or replace agent judgment; tools only create, update, complete, normalize, and inspect durable workflow artifacts.',
     }
   );
   registerWorkflowTools(server);

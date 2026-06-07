@@ -186,7 +186,9 @@ test('workflow skills make intent gate and MCP usage mandatory by default', () =
   assert.match(workflowMcp, /normal path, not a preference/);
   assert.match(writingPlans, /Manual `\.workflow\/` writes are fallback only/);
   assert.match(executingPlans, /manual state\/artifact writes are fallback only/);
+  assert.match(executingPlans, /workflow_plan_complete/);
   assert.match(finalizingPlan, /Manual findings\/state\/artifact writes are fallback only/);
+  assert.match(finalizingPlan, /workflow_plan_complete/);
 });
 
 test('workflow prompts route subagents by task shape and cap review loops', () => {
@@ -226,4 +228,8 @@ test('workflow skills preserve memory, audit, and MCP guardrails', () => {
   assert.match(auditFlow, /3-6 reviewers is the normal range/);
   assert.match(workflowMcp, /Create vs update guard/);
   assert.match(workflowMcp, /Do not reopen or update an old completed run/);
+  assert.match(workflowMcp, /workflow_plan_complete/);
+  assert.match(workflowMcp, /active_chunk/);
+  assert.match(workflowMcp, /complete_chunk/);
+  assert.match(usingWorkflow, /workflow_plan_complete/);
 });

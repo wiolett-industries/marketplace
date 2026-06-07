@@ -31,6 +31,8 @@ Root state:
 
 `workflow_plan_create` sets `active_plan`; `workflow_audit_create` sets `active_audit`. Omitted `plan_run`/`audit_run` means active run. Use `workflow_status` at workflow start/resume, after compaction, before finalization, and whenever active run state is uncertain.
 
+`workflow_plan_complete` marks a plan run complete and clears `active_plan` only when the active pointer references that run. `workflow_audit_complete` does the same for audits and `active_audit`. When implementation and final verification/review are done, always use the complete tool; do not leave a completed run active by only writing `state.phase = complete`.
+
 Create vs update guard: new workflow work gets `workflow_plan_create` or `workflow_audit_create`. Existing unfinished work gets `workflow_plan_update` or `workflow_audit_update`. Do not reopen or update an old completed run unless the user explicitly asks to continue that exact run.
 
 ## Plan Tools
@@ -53,9 +55,23 @@ Create vs update guard: new workflow work gets `workflow_plan_create` or `workfl
 Required: `title`, `complexity: simple | medium | complex | very_complex`.
 Optional: `slug`, `workspace_root`, `plan_markdown`, `context_markdown`, `questions_markdown`, `decisions_markdown`, `tasks`, `chunks`.
 
-`workflow_plan_update` operations: `set_phase`, `set_complexity`, `set_review_round`, `set_clean_streak`, `set_open_findings`, `upsert_task`, `complete_task`, `upsert_chunk`, `merge`.
+Plan state includes `active_chunk: string | null`. Keep it inside the plan run, not root workflow state, because chunk activity belongs to one plan.
+
+`workflow_plan_update` operations: `set_phase`, `set_complexity`, `set_review_round`, `set_clean_streak`, `set_open_findings`, `upsert_task`, `complete_task`, `set_active_chunk`, `clear_active_chunk`, `upsert_chunk`, `set_chunk_status`, `complete_chunk`, `cancel_chunk`, `wait_chunk`, `merge`.
 
 Task status changes use `upsert_task` with a full task object containing `id` and `status`. Task completion can use `complete_task` with `task_id`. Do not invent short operations such as `set_task_status`.
+
+Chunk status changes use the chunk lifecycle operations:
+
+- active: `{"type":"set_active_chunk","chunk_id":"C1"}`
+- waiting: `{"type":"wait_chunk","chunk_id":"C1"}`
+- complete: `{"type":"complete_chunk","chunk_id":"C1"}`
+- cancelled: `{"type":"cancel_chunk","chunk_id":"C1"}`
+- arbitrary status: `{"type":"set_chunk_status","chunk_id":"C1","status":"blocked"}`
+
+Use `upsert_chunk` only for chunk metadata such as title, path, scope, dependencies, owner, model class, or verification. `complete_chunk`, `cancel_chunk`, and `wait_chunk` clear `active_chunk` when they act on the active chunk.
+
+`workflow_plan_complete` required input: none when completing the active plan; optional `workspace_root`, `plan_run` for an explicit run. Use this after finalization passes. It updates `state.json`, syncs `manifest.json`, and clears root `active_plan` if it points to that run.
 
 `workflow_plan_artifact_write` allowed paths: `plan.md`, `context.md`, `questions.md`, `decisions.md`, `ui-contract.md`, `manifest.json`, `state.json`, `artifacts/**`, `chunks/**`, `handoffs/**`.
 
@@ -82,6 +98,8 @@ Required: `title`, `depth: simple | standard | deep | exhaustive`, `target: proj
 Optional: `slug`, `workspace_root`, `audit_markdown`, `scope_markdown`, `planning_input_markdown`, `findings`.
 
 `workflow_audit_update` operations: `set_phase`, `set_depth`, `set_open_findings`, `upsert_reviewer`, `upsert_sanity_check`, `merge`.
+
+`workflow_audit_complete` required input: none when completing the active audit; optional `workspace_root`, `audit_run` for an explicit run. Use this after the master audit/review output is accepted. It updates `state.json`, syncs `manifest.json`, and clears root `active_audit` if it points to that run.
 
 `workflow_audit_artifact_write` allowed paths: `audit.md`, `scope.md`, `master-audit.md`, `findings.json`, `planning-input.md`, `manifest.json`, `state.json`, `prompts/**`, `reviews/**`, `sanity/**`, `handoffs/**`.
 
@@ -110,4 +128,4 @@ Read the error text, use the nearest supported operation or hint it provides, an
 
 Do not switch to manual `.workflow/` edits while the matching MCP tool is available.
 
-Use MCP for creating/status/updating runs, writing artifacts, normalizing findings, and structured handoffs. Do not bypass it with manual `.workflow/` writes when the matching MCP tool is available. Do not use it for plan content generation, audit judgment, review judgment, subagent launch, worktree merges, git operations, or verification commands.
+Use MCP for creating/status/updating/completing runs, writing artifacts, normalizing findings, and structured handoffs. Do not bypass it with manual `.workflow/` writes when the matching MCP tool is available. Do not use it for plan content generation, audit judgment, review judgment, subagent launch, worktree merges, git operations, or verification commands.

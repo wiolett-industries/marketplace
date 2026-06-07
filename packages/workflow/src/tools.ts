@@ -2,6 +2,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { normalizeFindings } from './findings.js';
 import {
+  completeAuditRun,
+  completePlanRun,
   createAuditRun,
   createPlanRun,
   getWorkflowStatus,
@@ -15,7 +17,8 @@ import {
 const workspaceRoot = z.string().min(1).optional();
 const operation = z.object({ type: z.string().min(1) }).catchall(z.unknown());
 const stateOperationHint = [
-  'Supported operations include set_phase, set_open_findings, upsert_task, complete_task, upsert_chunk,',
+  'Supported operations include set_phase, set_open_findings, upsert_task, complete_task, set_active_chunk,',
+  'clear_active_chunk, upsert_chunk, set_chunk_status, complete_chunk, cancel_chunk, wait_chunk,',
   'upsert_reviewer, upsert_sanity_check, and merge, depending on plan or audit state.',
   'Unsupported operation errors include the nearest supported operation; correct the payload and retry the MCP call.',
 ].join(' ');
@@ -80,6 +83,19 @@ export function registerWorkflowTools(server: McpServer): void {
   );
 
   server.registerTool(
+    'workflow_plan_complete',
+    {
+      title: 'Complete Workflow Plan',
+      description: 'Mark the active or named workflow plan run complete and clear active_plan when it points to that run.',
+      inputSchema: {
+        workspace_root: workspaceRoot,
+        plan_run: z.string().min(1).optional(),
+      },
+    },
+    async ({ workspace_root, plan_run }) => asTextResult(completePlanRun(workspace_root, plan_run))
+  );
+
+  server.registerTool(
     'workflow_plan_artifact_write',
     {
       title: 'Write Plan Artifact',
@@ -127,6 +143,19 @@ export function registerWorkflowTools(server: McpServer): void {
       },
     },
     async ({ workspace_root, audit_run, operations }) => asTextResult(updateAuditRun(workspace_root, audit_run, operations))
+  );
+
+  server.registerTool(
+    'workflow_audit_complete',
+    {
+      title: 'Complete Workflow Audit',
+      description: 'Mark the active or named workflow audit run complete and clear active_audit when it points to that run.',
+      inputSchema: {
+        workspace_root: workspaceRoot,
+        audit_run: z.string().min(1).optional(),
+      },
+    },
+    async ({ workspace_root, audit_run }) => asTextResult(completeAuditRun(workspace_root, audit_run))
   );
 
   server.registerTool(
