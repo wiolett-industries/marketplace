@@ -36,6 +36,7 @@ Every pass ends in one state: `blocked`, `findings`, or `clean`.
     - no unresolved plugin-created blockers, pending draft notes, or unposted blocker notes
     - MR CI succeeds, or a user-approved exception is recorded
     - final clean note and approval happen together
+    - before final chat handoff or approval, make an Agent Memory decision when Agent Memory is available; save only durable review/release workflow lessons, repo gotchas, verification sequences, or accepted review patterns
 
 ## MCP Artifacts
 
@@ -69,6 +70,16 @@ Tools:
 - `Important`: must fix in current loop; task or acceptance-criteria undershoot defaults here
 - `Minor`: real non-blocking issue
 - `Notes`: useful observation, no action required
+
+## Review Loop Discipline
+
+Keep the GitLab review developer-facing. Do not expose internal triage labels in comments; public notes use only `Critical`, `Important`, `Minor`, or `Notes`.
+
+Approval is blocked by `Critical` and `Important`. `Minor` does not block unless it materially affects acceptance, safety, or reviewability. `Notes` never block approval.
+
+Do not open new threads for cosmetic, speculative, or out-of-scope polish unless it affects acceptance or hides a real risk. Prefer mentioning non-blocking context in the final clean note only when useful.
+
+For `normal` mode, one focused re-review after author fixes is usually enough unless `Critical`/`Important` remains or new risky code appears. For `high-risk`, keep the required clean rounds, but after two failed fix/re-review cycles escalate remaining tradeoffs in chat instead of expanding the review indefinitely. Never approve over unresolved `Critical`/`Important` findings.
 
 ## Required Gates
 
@@ -164,3 +175,4 @@ Approved.
 - tiny diff is not low risk when it changes branching, caches, invalidation, or contracts
 - unrelated warnings in passing checks are context, not blockers
 - final pass must re-read current discussions, CI, SHA, and diff
+- no internal triage labels in GitLab comments

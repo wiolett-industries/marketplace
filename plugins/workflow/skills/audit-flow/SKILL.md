@@ -64,6 +64,8 @@ Defaults:
 - `standard`: 2-4 scoped `workflow_audit_reviewer`, `gpt-5.5 xhigh`
 - `deep`/`exhaustive`: domain prompt per `workflow_audit_reviewer`, `gpt-5.5 xhigh`
 
+Reviewer budget: use one reviewer per independent risk domain, not per file or folder. For `deep`/`exhaustive`, 3-6 reviewers is the normal range; exceed that only when domains are truly independent and the added review changes planning decisions. Group adjacent domains when overlap would create duplicate findings.
+
 Audit agents are read-only. Parent writes outputs to `reviews/`. If `workflow_audit_reviewer` is unavailable, stop.
 
 ## Sanity And Master Audit

@@ -38,6 +38,8 @@ Represent every task in `state.json`:
   "title": "Short title",
   "status": "pending | in_progress | blocked | review | complete",
   "owner": "main | agent:<id>",
+  "model_class": "spark_tiny | spark_mechanical | gpt54_implementation | gpt55_analysis",
+  "delegation_reason": "Why this model class is safe",
   "worktree": null,
   "allowed_scope": ["paths or modules"],
   "verification": []
@@ -52,15 +54,40 @@ Use `workflow_plan_update` for state changes. Task status changes use `upsert_ta
 
 Use subagents aggressively only when work is independent and authorization is explicit.
 
+## Model Routing
+
+For `complex`/`very_complex` work, start with read-only analysis by `gpt-5.5 high` or `gpt-5.5 xhigh` when scope, architecture, risk, or decomposition is not already clear. Then split the work into the smallest safe implementation chunks.
+
+For `medium` work, still try to split independent code changes into bounded chunks when that reduces wall-clock time and does not create integration risk.
+
 Model defaults:
 
-- mechanical implementation: `gpt-5.3-codex-spark medium`
-- moderate reasoning: `gpt-5.5 medium`
-- heavy reasoning/architecture/review: `gpt-5.5 high` or `gpt-5.5 xhigh`
+- tiny mechanical implementation: `gpt-5.3-codex-spark low`
+- small/medium mechanical implementation: `gpt-5.3-codex-spark medium`
+- broad implementation, larger code generation, or code that still needs local reasoning: `gpt-5.4 low | medium | high` by complexity
+- additional analysis, architecture, decomposition, or risk review: `gpt-5.5 high` or `gpt-5.5 xhigh`
 
-Delegate independent implementation slices, mechanical edits with clear ownership, parallel verification, and focused investigations.
+Spark has a smaller context budget. Treat it as a patch worker, not an analyst: give it a detailed prompt, exact files/modules, the chosen approach, expected edits, non-goals, and verification commands. Do not give Spark open-ended discovery, architecture, cross-repo analysis, broad refactors, or large code-generation tasks. If a task needs analysis before coding, run a `gpt-5.5 high/xhigh` analysis agent first or keep the task local; if it needs both analysis and substantial coding, consider `gpt-5.4`.
+
+Spark prompt template:
+
+```text
+Goal:
+Allowed files/modules:
+Chosen approach:
+Exact edits:
+Non-goals:
+Context budget: use only the supplied context plus assigned files; do not analyze the wider project.
+Stop if unclear: report NEEDS_CONTEXT instead of guessing.
+Verification:
+Report format:
+```
+
+Delegate independent implementation slices, mechanical edits with clear ownership, parallel verification, and focused investigations. Keep analysis and coding separate unless using a model appropriate for both.
 
 Keep local: critical-path blockers, tightly coupled integration decisions, final coordination, and merge decisions.
+
+Parallelism cap: normally run at most 2 write agents at once for `medium`, 3 for `complex`, and 4 for `very_complex`. Lower the cap when tasks touch adjacent files, share integration points, or review/merge overhead would exceed the speedup. Read-only analysis/review agents can be wider when independent.
 
 Preferred write agent: `workflow_implementer`. If unavailable, stop delegated implementation. If authorization is missing, ask once; if denied, execute locally and record that delegation was unavailable.
 

@@ -96,13 +96,17 @@ When findings remain:
 1. Run `workflow_fix_triage`, `gpt-5.5 medium`.
 2. Remove duplicates/false positives.
 3. Produce 1-4 scoped fix tasks.
-4. Assign mechanical fixes to `gpt-5.3-codex-spark medium`; reasoning fixes to `gpt-5.5 medium`.
+4. Assign tiny mechanical fixes to `gpt-5.3-codex-spark low`, small/medium mechanical fixes to `gpt-5.3-codex-spark medium`, analysis-heavy fixes to `gpt-5.5 high/xhigh`, and broad implementation fixes to `gpt-5.4` at the needed effort.
 5. Fix agents use worktrees.
 6. Merge only after review gate.
 7. Reset clean streak when code changes.
 8. Start next review round.
 
 If fix agents are not authorized, fix in main thread and rerun strongest local verification before review. If `workflow_fix_triage` or `workflow_implementer` is unavailable, stop.
+
+Do not chase perfection indefinitely. Use review/fix loops to remove blockers, regressions, scope drift, broken verification, and material quality issues. Time-box additional rounds once the remaining findings are `LOW`, cosmetic, speculative, or outside the requested scope. For `simple`/`medium`, normally stop after one clean or low-only round unless a concrete blocker remains. For `complex`/`very_complex`, run the required validation, but after two unsuccessful fix-review cycles escalate to the parent/user with remaining tradeoffs instead of burning more tokens on marginal polish.
+
+Review budget: `simple` and `medium` normally get at most 1 fix-review round unless `BLOCKING`/`HIGH` remains; `complex` gets at most 2; `very_complex` gets 2 and only rarely 3 when there is a concrete blocker and a narrow fix path. When the budget is exhausted, report accepted lows and unresolved tradeoffs instead of starting another broad round.
 
 Fix artifacts:
 
@@ -136,6 +140,8 @@ UI verdicts: `UI_PASS` or `UI_REVISE`. UI findings feed the normal fix loop and 
 Main thread coordinates agents, normalizes findings, runs verification commands, updates state, and performs minimal diff sanity. It does not replace detailed review agents with large in-context review.
 
 Do not require full build/test/review after every tiny user-testing correction. At finalization, use fresh verification evidence.
+
+When Agent Memory is available, make the memory decision before final output: save/update durable repo workflow, verification sequence, root cause, user preference, or recurring gotcha; skip raw progress, obvious code facts, and one-off edits.
 
 When exit threshold is met, report final verdict, review rounds, verification commands/results, accepted `LOW` findings, and plan-run path.
 

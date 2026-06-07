@@ -192,6 +192,7 @@ function subagentStart(input) {
   ];
 
   if (agentType === "workflow_implementer") {
+    lines.push("Spark implementer is for bounded code patches only: no open-ended analysis, architecture discovery, or broad refactors.");
     lines.push("Output: `Status: DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT`, `Changed files:`, `Verification:`, `Concerns:`.");
   } else if (agentType === "workflow_fix_triage") {
     lines.push("Output starts with `Verdict: FIX_TASKS | NO_ACTION`.");

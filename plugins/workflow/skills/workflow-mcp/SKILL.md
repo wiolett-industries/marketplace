@@ -31,6 +31,8 @@ Root state:
 
 `workflow_plan_create` sets `active_plan`; `workflow_audit_create` sets `active_audit`. Omitted `plan_run`/`audit_run` means active run. Use `workflow_status` at workflow start/resume, after compaction, before finalization, and whenever active run state is uncertain.
 
+Create vs update guard: new workflow work gets `workflow_plan_create` or `workflow_audit_create`. Existing unfinished work gets `workflow_plan_update` or `workflow_audit_update`. Do not reopen or update an old completed run unless the user explicitly asks to continue that exact run.
+
 ## Plan Tools
 
 `workflow_plan_create` creates:

@@ -7,6 +7,9 @@ import test from 'node:test';
 import { createReviewRun, draftReviewNote, getReviewStatus, updateReviewRun, writeReviewArtifact } from '../dist/runs.js';
 import { normalizeFindings } from '../dist/findings.js';
 
+const repoRoot = path.resolve(import.meta.dirname, '../../..');
+const reviewSkill = path.join(repoRoot, 'plugins/merge-request-review/skills/review-merge-request/SKILL.md');
+
 test('creates and updates a merge request review run', () => {
   const workspace = mkdtempSync(path.join(os.tmpdir(), 'mr-review-workspace-'));
   const create = createReviewRun({
@@ -58,6 +61,18 @@ test('normalizes findings and drafts fixed-format notes', () => {
   assert.deepEqual(normalized.findings.map((finding) => finding.severity), ['Important', 'Minor']);
   assert.match(note.markdown, /Severity: Important/);
   assert.match(note.markdown, /Expected fix:/);
+});
+
+test('review skill keeps public severity format and caps low-value loops', () => {
+  const skill = readFileSync(reviewSkill, 'utf8');
+
+  assert.match(skill, /Do not expose internal triage labels/);
+  assert.match(skill, /Critical.*Important.*Minor.*Notes/s);
+  assert.match(skill, /Minor` does not block unless it materially affects acceptance/);
+  assert.match(skill, /Notes` never block approval/);
+  assert.match(skill, /after two failed fix\/re-review cycles escalate/);
+  assert.match(skill, /make an Agent Memory decision/);
+  assert.match(skill, /no internal triage labels in GitLab comments/);
 });
 
 test('prints help', () => {

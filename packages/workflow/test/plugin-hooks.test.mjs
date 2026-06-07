@@ -95,6 +95,17 @@ test('workflow subagent stop accepts valid implementer output', () => {
   assert.equal(output.continue, true);
 });
 
+test('workflow subagent start reminds implementers to stay bounded', () => {
+  const output = runHook({
+    hook_event_name: 'SubagentStart',
+    agent_type: 'workflow_implementer',
+  });
+
+  assert.equal(output.hookSpecificOutput.hookEventName, 'SubagentStart');
+  assert.match(output.hookSpecificOutput.additionalContext, /bounded code patches only/);
+  assert.match(output.hookSpecificOutput.additionalContext, /no open-ended analysis/);
+});
+
 test('workflow hook config does not register session end hooks', () => {
   const config = JSON.parse(readFileSync(hookConfig, 'utf8'));
 
@@ -176,4 +187,43 @@ test('workflow skills make intent gate and MCP usage mandatory by default', () =
   assert.match(writingPlans, /Manual `\.workflow\/` writes are fallback only/);
   assert.match(executingPlans, /manual state\/artifact writes are fallback only/);
   assert.match(finalizingPlan, /Manual findings\/state\/artifact writes are fallback only/);
+});
+
+test('workflow prompts route subagents by task shape and cap review loops', () => {
+  const writingPlans = readFileSync(path.join(skillDir, 'writing-plans/SKILL.md'), 'utf8');
+  const executingPlans = readFileSync(path.join(skillDir, 'executing-plans/SKILL.md'), 'utf8');
+  const finalizingPlan = readFileSync(path.join(skillDir, 'finalizing-plan/SKILL.md'), 'utf8');
+  const implementer = readFileSync(path.join(repoRoot, 'packages/workflow/agents/workflow_implementer.toml'), 'utf8');
+  const fixTriage = readFileSync(path.join(repoRoot, 'packages/workflow/agents/workflow_fix_triage.toml'), 'utf8');
+
+  assert.match(writingPlans, /separate analysis\/decision tasks from small implementation tasks/);
+  assert.match(writingPlans, /model_class.*delegation_reason/s);
+  assert.match(executingPlans, /gpt-5\.5 high.*gpt-5\.5 xhigh/);
+  assert.match(executingPlans, /gpt-5\.3-codex-spark low/);
+  assert.match(executingPlans, /Spark has a smaller context budget/);
+  assert.match(executingPlans, /Spark prompt template/);
+  assert.match(executingPlans, /Parallelism cap/);
+  assert.match(executingPlans, /Do not give Spark open-ended discovery/);
+  assert.match(finalizingPlan, /Do not chase perfection indefinitely/);
+  assert.match(finalizingPlan, /Review budget/);
+  assert.match(finalizingPlan, /after two unsuccessful fix-review cycles escalate/);
+  assert.match(implementer, /bounded patch worker, not an architecture analyst/);
+  assert.match(implementer, /report `NEEDS_CONTEXT`/);
+  assert.match(fixTriage, /Stop low-value loops/);
+  assert.match(fixTriage, /must_fix.*should_fix.*accept_low.*out_of_scope/s);
+  assert.match(fixTriage, /spark_tiny \| spark_mechanical \| gpt54_implementation \| gpt55_analysis/);
+});
+
+test('workflow skills preserve memory, audit, and MCP guardrails', () => {
+  const usingWorkflow = readFileSync(path.join(skillDir, 'using-workflow/SKILL.md'), 'utf8');
+  const finalizingPlan = readFileSync(path.join(skillDir, 'finalizing-plan/SKILL.md'), 'utf8');
+  const auditFlow = readFileSync(path.join(skillDir, 'audit-flow/SKILL.md'), 'utf8');
+  const workflowMcp = readFileSync(path.join(skillDir, 'workflow-mcp/SKILL.md'), 'utf8');
+
+  assert.match(usingWorkflow, /make an Agent Memory decision/);
+  assert.match(finalizingPlan, /When Agent Memory is available/);
+  assert.match(auditFlow, /Reviewer budget/);
+  assert.match(auditFlow, /3-6 reviewers is the normal range/);
+  assert.match(workflowMcp, /Create vs update guard/);
+  assert.match(workflowMcp, /Do not reopen or update an old completed run/);
 });

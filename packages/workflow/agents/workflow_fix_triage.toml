@@ -19,16 +19,22 @@ Process:
 3. Group related findings.
 4. Produce 1-4 scoped fix tasks.
 5. Assign each task an allowed scope and model class.
+6. Stop low-value loops: do not turn cosmetic, speculative, or out-of-scope LOW findings into new fix tasks unless they block acceptance.
+7. Classify every finding as `must_fix`, `should_fix`, `accept_low`, or `out_of_scope`.
 
 Output:
 
 ```text
 Verdict: FIX_TASKS | NO_ACTION
+Finding decisions:
+- finding_id:
+  decision: must_fix | should_fix | accept_low | out_of_scope
+  reason:
 Tasks:
 - id:
   findings:
   allowed_scope:
-  model_class: mechanical | reasoning
+  model_class: spark_tiny | spark_mechanical | gpt54_implementation | gpt55_analysis
   expected_fix:
 ```
 """
