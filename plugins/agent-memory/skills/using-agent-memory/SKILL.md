@@ -45,6 +45,8 @@ Save to `global` when the user corrects stable behavior, says "always/never/reme
 
 Save to `project` when repo work reveals non-obvious setup/test/build/release commands, persistent environment constraints, recurring failure modes, integration contracts, accepted review/release patterns, or completed root-cause/fix/verification lessons likely to matter later in the same repo.
 
+Planning-stage product decisions are usually workflow context, not memory. Do not create a new memory for every new product choice, brainstormed direction, or speculative planning decision. Save product decisions only when they are stable, accepted, likely to be reused across future sessions, and not already captured in an existing memory or workflow artifact.
+
 ## Writes
 
 Save to `global` only for durable cross-project facts: communication preferences, stable coding/tool preferences, reusable workflows, model-behavior requirements. Never put project-specific facts in global memory.
@@ -55,7 +57,11 @@ Never save raw secrets, API keys, tokens, passwords, private webhook URLs, raw s
 
 Do not confuse raw session recap with durable memory: save the distilled reusable lesson, root cause, decision, or workflow; leave transcript/progress detail in chat or workflow artifacts.
 
-Use `memory_save` for new durable facts. Use `memory_update` when an existing canonical memory is outdated; IDs and graph links are preserved. Automatic graph links are suggested for graph-capable saves/updates; manual `memory_link` remains useful for important relations.
+Prefer `memory_update` over `memory_save` when a lesson refines the same product direction, repo workflow, user preference, or architectural decision. Before saving a new product or workflow memory, check whether an existing canonical memory should be updated instead; avoid memory fragmentation.
+
+Use `memory_save` for genuinely new durable facts. Use `memory_update` when an existing canonical memory is outdated or incomplete; IDs and graph links are preserved. Automatic graph links are suggested for graph-capable saves/updates; manual `memory_link` remains useful for important relations.
+
+When updating or rewriting memory, preserve semantics exactly. Pay special attention to negation and ownership: `must not own`, `should not`, `never`, `cannot`, and similar constraints must not become positive ownership or permission. If exact preservation is uncertain, keep the original wording or skip the write.
 
 Do not bypass the memory gate; the tool surface intentionally has no bypass parameter.
 

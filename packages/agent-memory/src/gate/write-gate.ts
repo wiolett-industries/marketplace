@@ -49,9 +49,13 @@ export async function evaluateMemoryWrite(args: {
     'Return JSON only.',
     'Reject secrets, credentials, raw tokens, raw transcripts, ephemeral task chatter, and model self-notes.',
     'Allow distilled durable lessons from completed work, including root causes, fix patterns, verification sequences, workflow gotchas, and stable preferences.',
+    'Reject planning-stage product decisions, speculative product ideas, and one-off product choices unless the user explicitly asked to remember them or they are stable accepted decisions likely to be reused.',
+    'Prefer updating an existing memory over creating a new memory when the content refines the same product direction, workflow, preference, or repo convention.',
     'Global memory must only contain durable cross-project user preferences, stable workflows, or durable user-level facts.',
     'Project memory may contain durable repository facts, workflows, setup steps, decisions, and operational gotchas.',
     'If useful but poorly worded, choose rewrite and provide normalized_content.',
+    'When rewriting, preserve meaning exactly, especially negation, modality, ownership, constraints, and who must or must not do something.',
+    'If preserving meaning is uncertain, choose allow with the original content instead of rewrite.',
   ].join(' ');
 
   const input = JSON.stringify({
@@ -101,7 +105,7 @@ export async function evaluateMemoryWrite(args: {
         },
       },
     });
-    return normalizeGateResult(rawGateSchema.parse(JSON.parse(response.outputText)));
+    return normalizeGateResult(rawGateSchema.parse(JSON.parse(response.outputText)), args.content);
   } catch {
     return args.scope === 'global'
       ? { decision: 'reject', reason: 'Global memory gate failed to produce valid review JSON.', confidence: 0, importance: 0 }
@@ -109,7 +113,18 @@ export async function evaluateMemoryWrite(args: {
   }
 }
 
-function normalizeGateResult(raw: z.infer<typeof rawGateSchema>): MemoryGateResult {
+function normalizeGateResult(raw: z.infer<typeof rawGateSchema>, originalContent: string): MemoryGateResult {
+  if (raw.decision === 'rewrite' && raw.normalized_content && losesNegation(originalContent, raw.normalized_content)) {
+    return gateSchema.parse({
+      decision: 'allow',
+      reason: `${raw.reason} Rewrite discarded because it may invert or drop negation from the original memory.`,
+      suggested_scope: raw.suggested_scope ?? undefined,
+      suggested_tags: raw.suggested_tags ?? undefined,
+      confidence: Math.min(raw.confidence, 0.55),
+      importance: raw.importance,
+    });
+  }
+
   return gateSchema.parse({
     decision: raw.decision,
     reason: raw.reason,
@@ -119,6 +134,14 @@ function normalizeGateResult(raw: z.infer<typeof rawGateSchema>): MemoryGateResu
     confidence: raw.confidence,
     importance: raw.importance,
   });
+}
+
+function losesNegation(originalContent: string, normalizedContent: string): boolean {
+  return containsNegation(originalContent) && !containsNegation(normalizedContent);
+}
+
+function containsNegation(value: string): boolean {
+  return /\b(must not|should not|shall not|do not|does not|did not|cannot|can't|can not|never|without|no longer|not own|mustn't|shouldn't)\b/i.test(value);
 }
 
 function allow(reason: string, content: string, tags: string[], confidence: number, importance: number): MemoryGateResult {

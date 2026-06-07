@@ -36,6 +36,9 @@ describe('memory write gate', () => {
     expect(skill).toMatch(/Before the final response for non-trivial work/);
     expect(skill).toMatch(/root cause, fix pattern, or architecture decision/);
     expect(skill).toMatch(/raw session recap/);
+    expect(skill).toMatch(/Planning-stage product decisions are usually workflow context/);
+    expect(skill).toMatch(/Prefer `memory_update` over `memory_save`/);
+    expect(skill).toMatch(/must not own/);
   });
 
   test('uses strict structured output schema that is accepted by OpenAI-compatible providers', async () => {
@@ -70,6 +73,9 @@ describe('memory write gate', () => {
       }));
       expect(requestBody.model).toBe('gpt-5-nano');
       expect(requestBody.instructions).toContain('Allow distilled durable lessons from completed work');
+      expect(requestBody.instructions).toContain('Reject planning-stage product decisions');
+      expect(requestBody.instructions).toContain('Prefer updating an existing memory');
+      expect(requestBody.instructions).toContain('preserve meaning exactly, especially negation');
       expect(requestBody.instructions).toContain('raw transcripts');
       expect(requestBody.text.format.schema.required).toEqual([
         'decision',
@@ -80,6 +86,34 @@ describe('memory write gate', () => {
         'confidence',
         'importance',
       ]);
+    });
+  });
+
+  test('does not apply rewrites that drop negation', async () => {
+    await withMockedProvider(async () => {
+      globalThis.fetch = async () => new Response(JSON.stringify({
+        output_text: JSON.stringify({
+          decision: 'rewrite',
+          reason: 'Useful model behavior preference.',
+          normalized_content: 'The planning agent owned product decisions during planning.',
+          suggested_scope: null,
+          suggested_tags: ['workflow'],
+          confidence: 0.9,
+          importance: 0.8,
+        }),
+      }), { status: 200 });
+
+      const result = await evaluateMemoryWrite({
+        content: 'The planning agent must not own product decisions during planning.',
+        tags: ['workflow'],
+        scope: 'global',
+        operation: 'update',
+      });
+
+      expect(result.decision).toBe('allow');
+      expect(result.normalized_content).toBeUndefined();
+      expect(result.reason).toMatch(/Rewrite discarded/);
+      expect(result.confidence).toBeLessThanOrEqual(0.55);
     });
   });
 });
