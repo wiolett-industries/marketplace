@@ -61,6 +61,6 @@ Record evidence in `browser-check.md` and screenshots/notes in `screenshots.md`.
 
 - Writing: substantial UI plans need `ui-contract.md` and must list it as an acceptance source. Root contract owns global visual rules; chunks may add local UI notes.
 - Executing: re-read `ui-contract.md`; do not reinterpret hierarchy/copy/interaction without `decisions.md` update. Keep active user-testing fixes fast.
-- Finalizing: if UI changed, run review mode before completion. For `medium`+ UI work, use a specialized UI review agent when authorized/available. UI review complements typecheck/tests/build; it does not replace them.
+- Finalizing: if UI changed, run review mode before completion. For `medium`+ UI work, use a specialized UI review agent when available. UI review complements typecheck/tests/build; it does not replace them.
 
 Hard rules: do not start substantial undecided UI work without a contract, do not call substantial UI work done without structured UI review, do not leave acceptance criteria only in chat, and do not let screenshots replace code verification or code verification replace visual review.

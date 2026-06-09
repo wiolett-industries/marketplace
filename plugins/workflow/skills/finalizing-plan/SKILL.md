@@ -33,7 +33,7 @@ Treat as at least `HIGH`:
 
 ## Review Matrix
 
-Run review agents only with explicit subagent authorization. Review agents are read-only; any change they recommend becomes a scoped fix task. If authorization is denied, do local verification and state unavailable guarantees.
+Dispatch review agents at your discretion. Review agents are read-only; any change they recommend becomes a scoped fix task. If they are unavailable, do local verification and state unavailable guarantees.
 
 `simple`:
 
@@ -102,7 +102,7 @@ When findings remain:
 7. Reset clean streak when code changes.
 8. Start next review round.
 
-If fix agents are not authorized, fix in main thread and rerun strongest local verification before review. If `workflow_fix_triage` or `workflow_implementer` is unavailable, stop.
+If `workflow_fix_triage` or `workflow_implementer` is unavailable, fix in main thread and rerun strongest local verification before review.
 
 Do not chase perfection indefinitely. Use review/fix loops to remove blockers, regressions, scope drift, broken verification, and material quality issues. Time-box additional rounds once the remaining findings are `LOW`, cosmetic, speculative, or outside the requested scope. For `simple`/`medium`, normally stop after one clean or low-only round unless a concrete blocker remains. For `complex`/`very_complex`, run the required validation, but after two unsuccessful fix-review cycles escalate to the parent/user with remaining tradeoffs instead of burning more tokens on marginal polish.
 

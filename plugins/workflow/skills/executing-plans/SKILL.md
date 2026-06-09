@@ -51,7 +51,7 @@ Use `workflow_plan_update` for state changes. Task status changes use `upsert_ta
 
 ## Delegation
 
-Use subagents aggressively only when work is independent and authorization is explicit.
+Use subagents aggressively when work is independent.
 
 ## Decomposition And Routing
 
@@ -87,7 +87,7 @@ Keep local: critical-path blockers, tightly coupled integration decisions, final
 
 Parallelism cap: normally run at most 2 write agents at once for `medium`, 3 for `complex`, and 4 for `very_complex`. Lower the cap when tasks touch adjacent files, share integration points, or review/merge overhead would exceed the speedup. Read-only analysis/review agents can be wider when independent.
 
-Preferred write agent: `workflow_implementer`. If unavailable, stop delegated implementation. If authorization is missing, ask once; if denied, execute locally and record that delegation was unavailable.
+Preferred write agent: `workflow_implementer`. If it is unavailable, execute locally and record that delegation was unavailable.
 
 ## Worktrees And Merge Gate
 

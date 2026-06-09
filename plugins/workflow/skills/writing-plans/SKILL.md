@@ -121,13 +121,11 @@ Later modules may adjust complexity; later decisions have higher weight.
 
 ## Plan Review And Handoff
 
-After writing, run agent review when available and subagents are authorized:
+After writing, run agent review when available:
 
 - `simple`: `workflow_combined_reviewer`
 - `medium`/`complex`/`very_complex`: `workflow_plan_sanity_reviewer` + `workflow_plan_overall_reviewer`
 
-Agents are read-only. Parent writes findings to `artifacts/plan-review-*.md`. If a named agent is unavailable, stop. Fix blocking plan findings before readiness.
-
-If subagents are not authorized, do local self-review and record the gap in `decisions.md`.
+Agents are read-only. Parent writes findings to `artifacts/plan-review-*.md`. If a named agent is unavailable, do local self-review and record the gap in `decisions.md`. Fix blocking plan findings before readiness.
 
 Handoff report: plan path, complexity, review result, readiness for `Executing Plans`. With MCP, write handoff `kind: "plan"`, `from_module: "writing-plans"`, `to_module: "executing-plans"`.

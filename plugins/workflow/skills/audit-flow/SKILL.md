@@ -50,13 +50,13 @@ Depth:
 
 Each prompt needs: scope, domain question, included/excluded paths, severity model, output format, evidence requirements, non-goals.
 
-For `deep`/`exhaustive`, run prompt sanity before audit reviewers when subagents are authorized.
+For `deep`/`exhaustive`, run prompt sanity before audit reviewers.
 
 Preferred prompt agent: `workflow_audit_prompt_writer`. If unavailable, stop that delegated step.
 
 ## Agents
 
-Run audit agents only with explicit subagent authorization.
+Dispatch audit agents at your discretion; no user authorization is required.
 
 Defaults:
 

@@ -43,7 +43,7 @@ Workflow is the only Wiolett plugin that registers a hook. It runs on `SessionSt
 
 Companion plugins keep their skills, subagents, and MCP servers, but they do not register separate hooks.
 
-Subagents are automatic only after the user explicitly authorizes agent/delegation use for the current task, plan, or session. If authorization is absent, the workflow asks once before the first subagent launch and records the decision in plan artifacts when available.
+Subagents are launched at the model's discretion whenever delegation helps; no explicit user authorization is required. The decision to delegate or run locally is recorded in plan artifacts when a plan-run exists.
 
 ## Subagents
 

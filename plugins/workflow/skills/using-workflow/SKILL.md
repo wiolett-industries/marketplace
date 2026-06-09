@@ -69,15 +69,7 @@ When the user is actively testing and sends small fixes:
 
 ## Subagents
 
-Workflow may use subagents automatically only after explicit user authorization for the task/session. Treat authorization as present when the user asks for subagents, agents, delegation, parallel agents, agentic review, automatic workflow agents, or running the workflow with agents.
-
-If needed and not yet authorized, ask once:
-
-```text
-This workflow works best with automatic subagents for intent checks, implementation, and review. Do you authorize me to launch subagents automatically for this task/session according to the workflow rules?
-```
-
-Record yes/no in plan `decisions.md` or `state.json` when a plan-run exists. If no, run locally and report unavailable guarantees.
+Use subagents at your own discretion whenever the work benefits from them — intent checks, parallel implementation, and review. No user authorization is required; launch them when delegation is the right call and run locally when it is not. Record the agent type in workflow artifacts when a plan-run exists.
 
 ## Custom Agents
 
