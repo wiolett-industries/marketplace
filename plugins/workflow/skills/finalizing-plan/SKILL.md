@@ -96,13 +96,13 @@ When findings remain:
 1. Dispatch the `workflow_fix_triage` subagent.
 2. Remove duplicates/false positives.
 3. Produce 1-4 scoped fix tasks.
-4. Assign mechanical fixes to the `workflow_implementer` subagent; for analysis-heavy or broad fixes, run a read-only analysis agent first or keep the work local, then hand the implementer a bounded, decided fix task.
+4. Assign each fix to the implementer tier that matches its complexity: `workflow_implementer` (haiku) for mechanical fixes, `workflow_implementer_standard` (sonnet) or `workflow_implementer_complex` (opus) for fixes needing reasoning. For analysis-heavy or broad fixes, run a read-only analysis agent first or keep the work local, then hand the right tier a bounded, decided fix task.
 5. Fix agents use worktrees.
 6. Merge only after review gate.
 7. Reset clean streak when code changes.
 8. Start next review round.
 
-If `workflow_fix_triage` or `workflow_implementer` is unavailable, fix in main thread and rerun strongest local verification before review.
+If `workflow_fix_triage` or the implementer subagents are unavailable, fix in main thread and rerun strongest local verification before review.
 
 Do not chase perfection indefinitely. Use review/fix loops to remove blockers, regressions, scope drift, broken verification, and material quality issues. Time-box additional rounds once the remaining findings are `LOW`, cosmetic, speculative, or outside the requested scope. For `simple`/`medium`, normally stop after one clean or low-only round unless a concrete blocker remains. For `complex`/`very_complex`, run the required validation, but after two unsuccessful fix-review cycles escalate to the parent/user with remaining tradeoffs instead of burning more tokens on marginal polish.
 

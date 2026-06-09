@@ -47,7 +47,7 @@ Subagents are launched at the model's discretion whenever delegation helps; no e
 
 ## Subagents
 
-The `workflow_*` subagents are native Claude Code subagents defined as Markdown files under `agents/`. Claude Code loads them automatically when the plugin is installed; there is no separate sync step. Each subagent pins its own model tier (`haiku` for the bounded implementer, `sonnet`/`opus` for reviewers) and tool access in its frontmatter.
+The `workflow_*` subagents are native Claude Code subagents defined as Markdown files under `agents/`. Claude Code loads them automatically when the plugin is installed; there is no separate sync step. Each subagent pins its own model tier and tool access in its frontmatter. The implementer ships in three complexity tiers so the orchestrator can match model to task: `workflow_implementer` (haiku, fully-specified mechanical edits), `workflow_implementer_standard` (sonnet, scoped work needing some local reasoning), and `workflow_implementer_complex` (opus, complex or design-bearing work within a bounded scope). Reviewers use `sonnet`/`opus`.
 
 Each reviewer/implementer self-enforces its output contract: its prompt requires it to end every reply with the exact `Status:` / `Verdict:` block its caller expects. Workflow skills dispatch these subagents by name through the Task tool. Missing workflow subagents are a setup problem, not a reason to silently fall back to a generic agent.
 

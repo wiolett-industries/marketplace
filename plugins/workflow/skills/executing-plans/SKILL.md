@@ -59,13 +59,16 @@ For `complex`/`very_complex` work, start with a read-only analysis agent when sc
 
 For `medium` work, still try to split independent code changes into bounded chunks when that reduces wall-clock time and does not create integration risk.
 
-Routing defaults:
+Routing defaults — pick the implementer tier by task complexity:
 
-- mechanical implementation, bounded edits: dispatch the `workflow_implementer` subagent
-- broad implementation or code that still needs local reasoning: keep it local or split it into bounded implementer tasks once the approach is decided
-- additional analysis, architecture, decomposition, or risk review: dispatch a read-only review agent
+- trivial/mechanical, fully-specified bounded edits: `workflow_implementer` (haiku, lightweight)
+- moderately complex scoped work that needs some local reasoning: `workflow_implementer_standard` (sonnet)
+- complex, tightly-coupled, or design-bearing work within a bounded scope: `workflow_implementer_complex` (opus)
+- additional analysis, architecture, decomposition, or risk review (read-only): dispatch a review agent
 
-Treat the implementer as a patch worker, not an analyst: give it a detailed prompt, exact files/modules, the chosen approach, expected edits, non-goals, and verification commands. Do not give it open-ended discovery, architecture, cross-repo analysis, broad refactors, or large code-generation tasks. If a task needs analysis before coding, run a read-only analysis agent first or keep the task local; if it needs both analysis and substantial coding, do the analysis first and only then hand a bounded, decided task to the implementer.
+Match the tier to the task: the lighter the tier, the more fully decided the approach must already be. Reserve `workflow_implementer_complex` for work that genuinely needs reasoning; do not default everything to it.
+
+Always give the chosen implementer a detailed prompt: exact files/modules, the chosen approach (or its boundary), expected edits, non-goals, and verification commands. The lightweight `workflow_implementer` must receive a fully decided approach and must not get open-ended discovery, architecture, cross-repo analysis, or broad code-generation. The standard and complex tiers may reason within the assigned boundary, but none of them may expand scope, investigate cross-repo, or redefine the task. If a task needs broad analysis first, run a read-only analysis agent or keep that part local, then hand a bounded task to the right tier.
 
 Implementer prompt template:
 
@@ -81,13 +84,13 @@ Verification:
 Report format:
 ```
 
-Delegate independent implementation slices, mechanical edits with clear ownership, parallel verification, and focused investigations. Keep analysis and coding separate unless using a model appropriate for both.
+Delegate independent implementation slices, mechanical edits with clear ownership, parallel verification, and focused investigations. Keep analysis and coding separate for the lightweight tier; `workflow_implementer_complex` may combine them within its task boundary.
 
 Keep local: critical-path blockers, tightly coupled integration decisions, final coordination, and merge decisions.
 
 Parallelism cap: normally run at most 2 write agents at once for `medium`, 3 for `complex`, and 4 for `very_complex`. Lower the cap when tasks touch adjacent files, share integration points, or review/merge overhead would exceed the speedup. Read-only analysis/review agents can be wider when independent.
 
-Preferred write agent: `workflow_implementer`. If it is unavailable, execute locally and record that delegation was unavailable.
+Pick the implementer tier by task complexity (see routing). If the chosen tier is unavailable, fall back to a higher tier or execute locally and record that delegation was limited.
 
 ## Worktrees And Merge Gate
 
