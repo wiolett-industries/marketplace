@@ -38,7 +38,7 @@ Use current local date and a short stable slug.
 
 Chunk when single-pass execution would be unreliable. Required when complexity is `complex`/`very_complex`, tasks > 7, work spans independent subsystems, agents can own disjoint scopes, compaction recovery would be hard, or one `state.json` would become noisy. Optional for `medium`; skip for true `simple`.
 
-For `medium` and larger work, prefer chunks that separate analysis/decision tasks from small implementation tasks. A chunk or task intended for `gpt-5.3-codex-spark` must already contain the relevant analysis, exact allowed scope, expected edits, non-goals, and verification commands; do not make Spark infer architecture or discover broad context.
+For `medium` and larger work, prefer chunks that separate analysis/decision tasks from small implementation tasks. A chunk or task intended for the implementer must already contain the relevant analysis, exact allowed scope, expected edits, non-goals, and verification commands; do not make the implementer infer architecture or discover broad context.
 
 One level only:
 
@@ -78,7 +78,7 @@ The plan must be decision-complete. Include:
 - chunks and dependencies, when used
 - expected artifacts/files
 - subagent delegation guidance; delegated write tasks require worktrees, review/audit tasks are read-only
-- model routing guidance: each delegated task/chunk includes `model_class` and `delegation_reason`; analysis tasks go to strong reasoning agents; small bounded code tasks may go to Spark; broad implementation or analysis-heavy code tasks use `gpt-5.4`
+- delegation guidance: each delegated task/chunk records why delegation is safe; analysis-heavy tasks go to reasoning-focused review agents, while small bounded code tasks go to the implementer
 - verification commands/acceptance checks
 - lint command/config when present
 - UI contract/visible criteria when UI is in scope
@@ -98,8 +98,7 @@ Delegated task objects should include:
   "title": "Short title",
   "status": "pending",
   "owner": "agent:workflow_implementer",
-  "model_class": "spark_tiny | spark_mechanical | gpt54_implementation | gpt55_analysis",
-  "delegation_reason": "Why this model class is safe for this task",
+  "delegation_reason": "Why delegating this task is safe",
   "allowed_scope": ["path/or/module"],
   "verification": ["command"]
 }

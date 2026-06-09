@@ -1,6 +1,6 @@
 # Merge Request Review
 
-Generic GitLab merge request review workflow for Codex.
+Generic GitLab merge request review workflow for Claude Code.
 
 This plugin ships:
 
@@ -9,9 +9,9 @@ This plugin ships:
 - `merge_request_risk_reviewer` for high-risk merge requests with meaningful blast radius
 - `merge_request_discussion_auditor` for existing discussion intake and unresolved blocker state
 - `merge_request_verification_reviewer` for CI/local verification quality and reviewability
-- a bundled MCP server that syncs `merge_request_*` custom agents globally and stores `.workflow/mr-reviews/` state and artifacts
+- a bundled MCP server that stores `.workflow/mr-reviews/` state and artifacts
 
-This plugin does not register Codex hooks directly. When the `workflow` plugin is installed, its consolidated hook detects `merge-request-review` and applies merge_request_* reviewer prompts and output validation.
+The `merge_request_*` reviewers are native Claude Code subagents under `agents/`, loaded automatically when the plugin is installed and dispatched by name through the Task tool. Each reviewer self-enforces its output contract (`Scope Check:` / `Verdict:` / `Reviewability:`) in its own prompt. This plugin registers no hooks; when the `workflow` plugin is installed, its `SessionStart` hook surfaces merge request review hints.
 
 The workflow is intentionally strict:
 
@@ -25,7 +25,7 @@ The workflow is intentionally strict:
 
 High-risk mode is used for merge requests that touch sensitive categories such as auth, payments, migrations, infra, public/shared APIs, security-sensitive code, or any change with broad or uncertain blast radius.
 
-This plugin does not bundle its own GitLab integration. It depends on an external GitLab MCP being available in the Codex session.
+This plugin does not bundle its own GitLab integration. It depends on an external GitLab MCP being available in the Claude Code session.
 
 ## MCP Tools
 

@@ -37,22 +37,22 @@ Run review agents only with explicit subagent authorization. Review agents are r
 
 `simple`:
 
-- `workflow_combined_reviewer`, `gpt-5.4-mini medium`
+- `workflow_combined_reviewer`
 - scope: overall + sanity + code quality
 - exit: one `CLEAN` or `LOW_ONLY`
 
 `medium`/`complex`:
 
-- `workflow_sanity_reviewer`, `gpt-5.4 high`
-- `workflow_overall_reviewer`, `gpt-5.4 medium`
-- add `workflow_scope_compliance_reviewer`, `gpt-5.4 medium`, when requirements/contract/acceptance criteria are specific
+- `workflow_sanity_reviewer`
+- `workflow_overall_reviewer`
+- add `workflow_scope_compliance_reviewer` when requirements/contract/acceptance criteria are specific
 - exit: one `CLEAN`
 
 `very_complex`:
 
-- `workflow_scope_compliance_reviewer`, `gpt-5.5 xhigh`
-- `workflow_sanity_reviewer`, `gpt-5.5 xhigh`
-- `workflow_overall_reviewer`, `gpt-5.5 medium`
+- `workflow_scope_compliance_reviewer`
+- `workflow_sanity_reviewer`
+- `workflow_overall_reviewer`
 - exit: two acceptable rounds; acceptable is `CLEAN`, or `LOW_ONLY` only immediately after `CLEAN`; `FINDINGS`/`BLOCKED` reset streak
 
 If a named review agent is unavailable, stop the affected step.
@@ -93,10 +93,10 @@ artifacts/review-round-N/
 
 When findings remain:
 
-1. Run `workflow_fix_triage`, `gpt-5.5 medium`.
+1. Dispatch the `workflow_fix_triage` subagent.
 2. Remove duplicates/false positives.
 3. Produce 1-4 scoped fix tasks.
-4. Assign tiny mechanical fixes to `gpt-5.3-codex-spark low`, small/medium mechanical fixes to `gpt-5.3-codex-spark medium`, analysis-heavy fixes to `gpt-5.5 high/xhigh`, and broad implementation fixes to `gpt-5.4` at the needed effort.
+4. Assign mechanical fixes to the `workflow_implementer` subagent; for analysis-heavy or broad fixes, run a read-only analysis agent first or keep the work local, then hand the implementer a bounded, decided fix task.
 5. Fix agents use worktrees.
 6. Merge only after review gate.
 7. Reset clean streak when code changes.

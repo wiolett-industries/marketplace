@@ -1,6 +1,6 @@
 # Workflow
 
-Modular Codex workflow framework for intent checks, context discovery, audits, frontend UI contracts, durable plans, subagent execution, and review/fix finalization.
+Modular workflow framework for Claude Code: intent checks, context discovery, audits, frontend UI contracts, durable plans, subagent execution, and review/fix finalization.
 
 Full flow:
 
@@ -28,31 +28,28 @@ This plugin ships:
 - `Executing Plans` to execute plan tasks with state recovery and worktree-isolated subagents
 - `Finalizing Plan` to run complexity-based review/fix loops
 - `Workflow MCP` to describe bundled MCP tool contracts for plan/audit artifact state
-- consolidated Codex hooks for workflow startup/subagent contracts plus installed companion plugin hints/checks
-- a bundled workflow MCP server that syncs `workflow_*` custom agents globally at startup and exposes deterministic `.workflow/` plan/audit artifact tools
+- `workflow_*` reviewer/implementer subagents under `agents/`, loaded automatically by Claude Code
+- a `SessionStart` context hook that loads active `.workflow/` state plus installed companion plugin hints
+- a bundled workflow MCP server that exposes deterministic `.workflow/` plan/audit artifact tools
 
 Workflow artifacts are filesystem-first. Use workflow MCP to create, update, complete, inspect, and normalize plan/audit artifacts whenever tools are available; manual `.workflow/` writes are fallback only. This version does not use a workflow RAG layer.
 
-## Hook Consolidation
+## Hook
 
-Workflow is the only Wiolett plugin that registers Codex hooks. Its hook detects installed sibling plugins and adapts context:
+Workflow is the only Wiolett plugin that registers a hook. It runs on `SessionStart` (startup, resume, clear, and after compaction) to load context, and detects installed sibling plugins:
 
 - with `agent-memory`, SessionStart includes memory setup/read/write reminders
-- with `merge-request-review`, merge_request_* subagents get MR review prompts and output validation
+- with `merge-request-review`, SessionStart includes merge request review hints
 
-Companion plugins keep their skills and MCP servers, but they do not register separate hooks.
+Companion plugins keep their skills, subagents, and MCP servers, but they do not register separate hooks.
 
 Subagents are automatic only after the user explicitly authorizes agent/delegation use for the current task, plan, or session. If authorization is absent, the workflow asks once before the first subagent launch and records the decision in plan artifacts when available.
 
-## Custom Agents
+## Subagents
 
-The workflow custom agents use Codex's custom-agent schema (`name`, `description`, `developer_instructions`, and optional model/sandbox settings). They are shipped by the bundled `@wiolett/workflow` MCP package.
+The `workflow_*` subagents are native Claude Code subagents defined as Markdown files under `agents/`. Claude Code loads them automatically when the plugin is installed; there is no separate sync step. Each subagent pins its own model tier (`haiku` for the bounded implementer, `sonnet`/`opus` for reviewers) and tool access in its frontmatter.
 
-Codex loads custom agents from `.codex/agents/` or `~/.codex/agents/`. The workflow MCP syncs its packaged agent definitions into the correct Codex agents directory at startup and validates that the loaded versions match the package source.
-
-Workflow skills should use the named `workflow_*` custom agents directly. Missing workflow agents are a setup problem, not a reason to silently use generic built-in agents.
-
-The sync target is global only: `~/.codex/agents/`. Project-scoped `.codex/agents/` sync is intentionally not used. For other CLI compatibility, the workflow MCP also creates best-effort links under `~/.agents/agents/`.
+Each reviewer/implementer self-enforces its output contract: its prompt requires it to end every reply with the exact `Status:` / `Verdict:` block its caller expects. Workflow skills dispatch these subagents by name through the Task tool. Missing workflow subagents are a setup problem, not a reason to silently fall back to a generic agent.
 
 ## MCP Tools
 

@@ -6,7 +6,7 @@
         "-y",
         "@wiolett/merge-request-review@latest"
       ],
-      "note": "Merge Request Review MCP. Syncs merge_request_* custom agents and registers .workflow/mr-reviews artifact/state tools. GitLab access still comes from an external GitLab MCP."
+      "note": "Merge Request Review MCP. Registers .workflow/mr-reviews artifact/state tools (status/create/update/artifact/findings/note-draft). GitLab access comes from an external GitLab MCP."
     }
   }
 }

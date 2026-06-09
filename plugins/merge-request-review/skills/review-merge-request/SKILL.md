@@ -22,12 +22,12 @@ Every pass ends in one state: `blocked`, `findings`, or `clean`.
 4. Check reviewability: current CI/MR checks, draft notes, pending notes, approval state, likely local checks. Prefer isolated temporary worktree at MR head SHA for local verification. Record SHA, commands, and results. Red checks block. Passing checks with clearly unrelated pre-existing warnings are context, not blockers.
 5. Post a blocked top-level note only for real MR state: failing CI/MR status or reproducible repo checks in a sane local env. For local tooling/env uncertainty, report in chat without blocked GitLab note.
 6. Review actual diff plus full changed files for non-trivial logic. Inspect all branches for branching/control-flow fixes. Check generated/lock/snapshot/vendor/binary files only when risky, suspicious, or unexpectedly large.
-7. Dispatch agents when available:
+7. Dispatch reviewer subagents via the Task tool when available:
    - always `merge_request_discussion_auditor`
    - `merge_request_verification_reviewer` for reviewability
    - `normal`: `merge_request_primary_reviewer`
    - `high-risk`: `merge_request_primary_reviewer` + `merge_request_risk_reviewer`
-   - if a named `merge_request_*` agent is unavailable, stop that agentic step
+   - if a named `merge_request_*` subagent is unavailable, stop that agentic step and continue the review directly
 8. Post findings: inline threads for file/line issues; top-level notes only for blocked state or cross-cutting issues. Do not post summaries while blockers remain. Normalize findings before storing; draft notes before posting.
 9. Re-review after author updates as a fresh pass. Resolve plugin-created blocker threads only after verified fixes.
 10. Finalize only when gate passes:

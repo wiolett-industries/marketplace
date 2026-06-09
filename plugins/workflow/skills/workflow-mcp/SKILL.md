@@ -9,10 +9,6 @@ Use MCP for deterministic `.workflow/` filesystem operations whenever tools are 
 
 Before creating artifacts in a git repo, ensure `.workflow/` is ignored unless explicitly versioned.
 
-## Startup
-
-`@wiolett/workflow` syncs canonical `workflow_*` agents into `~/.codex/agents/` at MCP startup and creates best-effort `~/.agents/agents/` compatibility links/copies. Sync is automatic; there is no model-visible sync tool.
-
 ## Workspace Root
 
 All tools accept optional `workspace_root`. Default: explicit `workspace_root`, else process cwd, then nearest git root if present. Pass `workspace_root` when the task is in a child project or cwd may be a parent workspace.
@@ -69,7 +65,7 @@ Chunk status changes use the chunk lifecycle operations:
 - cancelled: `{"type":"cancel_chunk","chunk_id":"C1"}`
 - arbitrary status: `{"type":"set_chunk_status","chunk_id":"C1","status":"blocked"}`
 
-Use `upsert_chunk` only for chunk metadata such as title, path, scope, dependencies, owner, model class, or verification. `complete_chunk`, `cancel_chunk`, and `wait_chunk` clear `active_chunk` when they act on the active chunk.
+Use `upsert_chunk` only for chunk metadata such as title, path, scope, dependencies, owner, or verification. `complete_chunk`, `cancel_chunk`, and `wait_chunk` clear `active_chunk` when they act on the active chunk.
 
 `workflow_plan_complete` required input: none when completing the active plan; optional `workspace_root`, `plan_run` for an explicit run. Use this after finalization passes. It updates `state.json`, syncs `manifest.json`, and clears root `active_plan` if it points to that run.
 

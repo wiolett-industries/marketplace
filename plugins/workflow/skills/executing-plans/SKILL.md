@@ -38,8 +38,7 @@ Represent every task in `state.json`:
   "title": "Short title",
   "status": "pending | in_progress | blocked | review | complete",
   "owner": "main | agent:<id>",
-  "model_class": "spark_tiny | spark_mechanical | gpt54_implementation | gpt55_analysis",
-  "delegation_reason": "Why this model class is safe",
+  "delegation_reason": "Why delegating this task is safe",
   "worktree": null,
   "allowed_scope": ["paths or modules"],
   "verification": []
@@ -54,22 +53,21 @@ Use `workflow_plan_update` for state changes. Task status changes use `upsert_ta
 
 Use subagents aggressively only when work is independent and authorization is explicit.
 
-## Model Routing
+## Decomposition And Routing
 
-For `complex`/`very_complex` work, start with read-only analysis by `gpt-5.5 high` or `gpt-5.5 xhigh` when scope, architecture, risk, or decomposition is not already clear. Then split the work into the smallest safe implementation chunks.
+For `complex`/`very_complex` work, start with a read-only analysis agent when scope, architecture, risk, or decomposition is not already clear. Then split the work into the smallest safe implementation chunks.
 
 For `medium` work, still try to split independent code changes into bounded chunks when that reduces wall-clock time and does not create integration risk.
 
-Model defaults:
+Routing defaults:
 
-- tiny mechanical implementation: `gpt-5.3-codex-spark low`
-- small/medium mechanical implementation: `gpt-5.3-codex-spark medium`
-- broad implementation, larger code generation, or code that still needs local reasoning: `gpt-5.4 low | medium | high` by complexity
-- additional analysis, architecture, decomposition, or risk review: `gpt-5.5 high` or `gpt-5.5 xhigh`
+- mechanical implementation, bounded edits: dispatch the `workflow_implementer` subagent
+- broad implementation or code that still needs local reasoning: keep it local or split it into bounded implementer tasks once the approach is decided
+- additional analysis, architecture, decomposition, or risk review: dispatch a read-only review agent
 
-Spark has a smaller context budget. Treat it as a patch worker, not an analyst: give it a detailed prompt, exact files/modules, the chosen approach, expected edits, non-goals, and verification commands. Do not give Spark open-ended discovery, architecture, cross-repo analysis, broad refactors, or large code-generation tasks. If a task needs analysis before coding, run a `gpt-5.5 high/xhigh` analysis agent first or keep the task local; if it needs both analysis and substantial coding, consider `gpt-5.4`.
+Treat the implementer as a patch worker, not an analyst: give it a detailed prompt, exact files/modules, the chosen approach, expected edits, non-goals, and verification commands. Do not give it open-ended discovery, architecture, cross-repo analysis, broad refactors, or large code-generation tasks. If a task needs analysis before coding, run a read-only analysis agent first or keep the task local; if it needs both analysis and substantial coding, do the analysis first and only then hand a bounded, decided task to the implementer.
 
-Spark prompt template:
+Implementer prompt template:
 
 ```text
 Goal:

@@ -25,10 +25,6 @@ function ok() {
   console.log(JSON.stringify({ continue: true }));
 }
 
-function block(reason) {
-  console.log(JSON.stringify({ decision: "block", reason }));
-}
-
 function execGit(cwd, args) {
   try {
     return cp.execFileSync("git", args, {
@@ -54,11 +50,11 @@ function readJson(file) {
 }
 
 function workflowPluginRoot() {
-  return process.env.PLUGIN_ROOT || path.resolve(__dirname, "..");
+  return process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, "..");
 }
 
 function hasPluginManifest(root) {
-  return fs.existsSync(path.join(root, ".codex-plugin", "plugin.json"));
+  return fs.existsSync(path.join(root, ".claude-plugin", "plugin.json"));
 }
 
 function newestVersionRoot(container) {
@@ -179,182 +175,12 @@ function sessionContext(input) {
   writeContext(input.hook_event_name || "SessionStart", lines);
 }
 
-function postCompactContext() {
-  ok();
-}
-
-function subagentStart(input) {
-  const agentType = input.agent_type || "";
-  const lines = [
-    `Workflow agent ${agentType}: assigned artifacts/scope are source of truth.`,
-    "RO=no edits. Write=assigned worktree/scope only.",
-    "No scope creep, lint suppression, or unsupported assumptions.",
-  ];
-
-  if (agentType === "workflow_implementer") {
-    lines.push("Spark implementer is for bounded code patches only: no open-ended analysis, architecture discovery, or broad refactors.");
-    lines.push("Output: `Status: DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT`, `Changed files:`, `Verification:`, `Concerns:`.");
-  } else if (agentType === "workflow_fix_triage") {
-    lines.push("Output starts with `Verdict: FIX_TASKS | NO_ACTION`.");
-  } else if (agentType.includes("audit")) {
-    lines.push("Output includes `Verdict:` per agent instructions.");
-  } else if (agentType.includes("reviewer")) {
-    lines.push("Output includes `Verdict: CLEAN | LOW_ONLY | FINDINGS | BLOCKED` unless agent instructions narrow it.");
-  } else if (agentType === "workflow_intent_reviewer") {
-    lines.push("Output includes `Intent:`, `Confidence:`, `Complexity:`, `Recommended workflow path:`.");
-  }
-
-  writeContext("SubagentStart", lines);
-}
-
-function mergeRequestSubagentStart(input) {
-  if (!hasCompanionPlugin("merge-request-review")) {
-    ok();
-    return;
-  }
-
-  const agentType = input.agent_type || "";
-  const lines = [
-    `MR review agent ${agentType}: read current MR discussions/diff/CI + .workflow/mr-reviews first.`,
-    "No GitLab writes/approval/resolution unless parent delegates.",
-    "Never approve over blockers, stale state, or missing current verification.",
-  ];
-
-  if (agentType === "merge_request_discussion_auditor") {
-    lines.push("Output: current blocker state, threads to verify, preserved context, can review?");
-  } else if (agentType === "merge_request_verification_reviewer") {
-    lines.push("Output: `Reviewability: REVIEWABLE | BLOCKED`, evidence, weak/missing verification, blockers, next step.");
-  } else {
-    lines.push("Output includes `Scope Check:` and `Verdict: REVIEW_BLOCKED|REVIEW_FAIL|REVIEW_PASS_WITH_MINORS|REVIEW_PASS`.");
-  }
-
-  writeContext("SubagentStart", lines);
-}
-
-function hasVerdict(message, values) {
-  const match = message.match(/^Verdict:\s*([A-Z_]+)/im);
-  return Boolean(match && values.includes(match[1]));
-}
-
-function validateSubagentStop(input) {
-  if (input.stop_hook_active) {
-    ok();
-    return;
-  }
-
-  const agentType = input.agent_type || "";
-  const message = input.last_assistant_message || "";
-
-  if (!message.trim()) {
-    block("Return structured workflow output with required Status/Verdict.");
-    return;
-  }
-
-  if (agentType === "workflow_implementer") {
-    const hasStatus = /^Status:\s*(DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT)\s*$/im.test(message);
-    const hasChangedFiles = /^Changed files:/im.test(message);
-    const hasVerification = /^Verification:/im.test(message);
-    if (!hasStatus || !hasChangedFiles || !hasVerification) {
-      block("Need `Status: DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT`, `Changed files:`, `Verification:`.");
-      return;
-    }
-  } else if (agentType === "workflow_fix_triage") {
-    if (!hasVerdict(message, ["FIX_TASKS", "NO_ACTION"])) {
-      block("Need `Verdict: FIX_TASKS | NO_ACTION`.");
-      return;
-    }
-  } else if (agentType === "workflow_audit_reviewer") {
-    if (!hasVerdict(message, ["CLEAN", "FINDINGS", "BLOCKED"])) {
-      block("Need `Verdict: CLEAN | FINDINGS | BLOCKED`.");
-      return;
-    }
-  } else if (agentType === "workflow_audit_sanity_reviewer") {
-    if (!hasVerdict(message, ["CLEAN", "REVISE", "BLOCKED"])) {
-      block("Need `Verdict: CLEAN | REVISE | BLOCKED`.");
-      return;
-    }
-  } else if (agentType.includes("reviewer")) {
-    if (!hasVerdict(message, ["CLEAN", "LOW_ONLY", "FINDINGS", "BLOCKED"])) {
-      block("Need `Verdict: CLEAN | LOW_ONLY | FINDINGS | BLOCKED`.");
-      return;
-    }
-  }
-
-  ok();
-}
-
-function validateMergeRequestSubagentStop(input) {
-  if (!hasCompanionPlugin("merge-request-review") || input.stop_hook_active) {
-    ok();
-    return;
-  }
-
-  const agentType = input.agent_type || "";
-  const message = input.last_assistant_message || "";
-  if (!message.trim()) {
-    block("Return structured MR review output.");
-    return;
-  }
-
-  if (agentType === "merge_request_verification_reviewer") {
-    if (!/^Reviewability:\s*(REVIEWABLE|BLOCKED)\s*$/im.test(message)) {
-      block("Need `Reviewability: REVIEWABLE | BLOCKED`.");
-      return;
-    }
-  } else if (agentType === "merge_request_discussion_auditor") {
-    if (!/current blocker state/i.test(message) && !/blocker state/i.test(message)) {
-      block("Need current blocker state.");
-      return;
-    }
-  } else {
-    if (!/^Scope Check:\s*(PASS|FAIL)\b/im.test(message)) {
-      block("Need `Scope Check: PASS | FAIL`.");
-      return;
-    }
-    if (!hasVerdict(message, ["REVIEW_BLOCKED", "REVIEW_FAIL", "REVIEW_PASS_WITH_MINORS", "REVIEW_PASS"])) {
-      block("Need `Verdict: REVIEW_BLOCKED | REVIEW_FAIL | REVIEW_PASS_WITH_MINORS | REVIEW_PASS`.");
-      return;
-    }
-  }
-
-  ok();
-}
-
-function isWorkflowAgent(input) {
-  return (input.agent_type || "").startsWith("workflow_");
-}
-
-function isMergeRequestAgent(input) {
-  return (input.agent_type || "").startsWith("merge_request_");
-}
-
 function main() {
   try {
     const input = readInput();
     switch (input.hook_event_name) {
       case "SessionStart":
         sessionContext(input);
-        break;
-      case "PostCompact":
-        postCompactContext(input);
-        break;
-      case "SubagentStart":
-        if (isWorkflowAgent(input)) {
-          subagentStart(input);
-        } else if (isMergeRequestAgent(input)) {
-          mergeRequestSubagentStart(input);
-        } else {
-          ok();
-        }
-        break;
-      case "SubagentStop":
-        if (isWorkflowAgent(input)) {
-          validateSubagentStop(input);
-        } else if (isMergeRequestAgent(input)) {
-          validateMergeRequestSubagentStop(input);
-        } else {
-          ok();
-        }
         break;
       default:
         ok();

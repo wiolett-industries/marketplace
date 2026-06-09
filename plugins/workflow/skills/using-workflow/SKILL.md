@@ -45,7 +45,6 @@ UI flow adds `ui-contract` before planning and during final review. Audit-only f
 - Verify git boundary before code edits. If not in a repo, `git init` only in a real project root, never in a container folder with multiple projects; switch to the single matching child project or ask when several match.
 - Non-read-only subagent edits must happen in worktrees.
 - Main thread coordinates, does minimal diff sanity, runs verification commands, and delegates detailed review to agents.
-- If a requested model is unavailable, use the nearest available model that is not weaker for the task class.
 - Before final response, handoff, commit, PR, or approval after non-trivial work, make an Agent Memory decision when Agent Memory is available: save/update durable preferences, repo gotchas, root-cause fixes, verification sequences, or workflow lessons; skip one-off progress and raw session recap.
 
 ## Engineering Rules
@@ -82,11 +81,11 @@ Record yes/no in plan `decisions.md` or `state.json` when a plan-run exists. If 
 
 ## Custom Agents
 
-The `@wiolett/workflow` MCP syncs canonical `workflow_*` TOML agents into Codex agent dirs at startup. When a module asks for a named `workflow_*` agent:
+Canonical `workflow_*` subagents are loaded automatically from the plugin's `agents/` directory and dispatched via Claude's Task tool. When a module asks for a named `workflow_*` agent:
 
-1. Use that exact `agent_type`.
+1. Use that exact subagent.
 2. Do not substitute generic agents.
-3. If unavailable, stop the affected agentic step and report stale/missing workflow agent sync.
+3. If unavailable, stop the affected agentic step and report the missing workflow agent.
 4. Record the agent type in workflow artifacts.
 
 ## MCP Short Rule

@@ -60,9 +60,9 @@ Run audit agents only with explicit subagent authorization.
 
 Defaults:
 
-- `simple`: one `workflow_audit_reviewer`, `gpt-5.5 high`
-- `standard`: 2-4 scoped `workflow_audit_reviewer`, `gpt-5.5 xhigh`
-- `deep`/`exhaustive`: domain prompt per `workflow_audit_reviewer`, `gpt-5.5 xhigh`
+- `simple`: one `workflow_audit_reviewer`
+- `standard`: 2-4 scoped `workflow_audit_reviewer`
+- `deep`/`exhaustive`: one `workflow_audit_reviewer` per domain prompt
 
 Reviewer budget: use one reviewer per independent risk domain, not per file or folder. For `deep`/`exhaustive`, 3-6 reviewers is the normal range; exceed that only when domains are truly independent and the added review changes planning decisions. Group adjacent domains when overlap would create duplicate findings.
 
@@ -72,9 +72,9 @@ Audit agents are read-only. Parent writes outputs to `reviews/`. If `workflow_au
 
 After reviews, run `workflow_audit_sanity_reviewer`:
 
-- `simple`: one sanity review, `gpt-5.5 high`
-- `standard`: grouped sanity, `gpt-5.5 high`
-- `deep`/`exhaustive`: per review or domain group, `gpt-5.5 high`
+- `simple`: one sanity review
+- `standard`: grouped sanity
+- `deep`/`exhaustive`: one sanity review per review or domain group
 
 Sanity checks unsupported claims, hallucinated files/behavior, duplicates, severity inflation, missing evidence, and counter-evidence. Parent writes outputs under `sanity/`. If unavailable, stop.
 
