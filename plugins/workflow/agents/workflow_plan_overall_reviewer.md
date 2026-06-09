@@ -3,6 +3,7 @@ name: workflow_plan_overall_reviewer
 description: Review a workflow plan for completeness, task ordering, implementation realism, and reviewability.
 model: sonnet
 color: green
+effort: medium
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Plan Overall Reviewer

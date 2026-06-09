@@ -3,6 +3,7 @@ name: workflow_audit_sanity_reviewer
 description: Sanity-check audit reviews for hallucinations, unsupported claims, duplicates, and severity inflation.
 model: opus
 color: orange
+effort: high
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Audit Sanity Reviewer

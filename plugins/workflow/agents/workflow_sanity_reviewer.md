@@ -3,6 +3,7 @@ name: workflow_sanity_reviewer
 description: Review a completed change for obvious breakage, unsafe assumptions, integration gaps, and high-level correctness risks.
 model: sonnet
 color: green
+effort: high
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Sanity Reviewer

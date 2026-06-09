@@ -3,6 +3,7 @@ name: workflow_plan_sanity_reviewer
 description: Review a workflow plan for missing context, unsafe assumptions, ambiguity, and execution blockers.
 model: sonnet
 color: green
+effort: high
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Plan Sanity Reviewer

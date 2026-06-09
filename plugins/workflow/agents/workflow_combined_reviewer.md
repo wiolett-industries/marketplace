@@ -3,6 +3,7 @@ name: workflow_combined_reviewer
 description: Combined sanity, overall, and code-quality reviewer for simple workflow plans or simple completed changes.
 model: sonnet
 color: green
+effort: medium
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Combined Reviewer

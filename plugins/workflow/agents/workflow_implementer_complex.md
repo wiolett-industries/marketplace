@@ -3,6 +3,7 @@ name: workflow_implementer_complex
 description: Implement one complex scoped task that requires architectural judgment and reasoning within a defined boundary (deep tier). Use for tightly-coupled or design-bearing changes where the approach may still need to be worked out.
 model: opus
 color: purple
+effort: high
 tools: Read, Edit, Write, Bash, Grep, Glob
 ---
 # Workflow Implementer (Complex)
