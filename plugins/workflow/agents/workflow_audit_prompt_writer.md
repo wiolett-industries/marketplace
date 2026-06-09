@@ -2,6 +2,7 @@
 name: workflow_audit_prompt_writer
 description: Create standalone scoped audit prompts for large workflow audit runs.
 model: opus
+color: orange
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Audit Prompt Writer

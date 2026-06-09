@@ -2,6 +2,7 @@
 name: merge_request_risk_reviewer
 description: Secondary reviewer for high-risk merge requests, blast radius, compatibility, rollout safety, and system consequences
 model: opus
+color: red
 tools: Read, Grep, Glob, Bash
 ---
 

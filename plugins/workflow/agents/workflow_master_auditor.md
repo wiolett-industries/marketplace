@@ -2,6 +2,7 @@
 name: workflow_master_auditor
 description: Compile sanity-checked audit reviews into master-audit.md, findings.json, and planning-input.md.
 model: opus
+color: orange
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Master Auditor

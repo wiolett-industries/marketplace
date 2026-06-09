@@ -2,6 +2,7 @@
 name: workflow_implementer_standard
 description: Implement one moderately complex scoped task that needs local reasoning within fixed boundaries (standard tier). Use when the approach is mostly decided but some judgment is required.
 model: sonnet
+color: blue
 tools: Read, Edit, Write, Bash, Grep, Glob
 ---
 # Workflow Implementer (Standard)

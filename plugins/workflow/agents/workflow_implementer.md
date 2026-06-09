@@ -2,6 +2,7 @@
 name: workflow_implementer
 description: Implement one small, fully-specified, mechanical task in an isolated worktree (lightweight tier). Use when the approach is already decided and the edit is bounded.
 model: haiku
+color: cyan
 tools: Read, Edit, Write, Bash, Grep, Glob
 ---
 # Workflow Implementer (Lightweight)

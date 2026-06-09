@@ -2,6 +2,7 @@
 name: workflow_scope_compliance_reviewer
 description: Check whether a completed change exactly matches the approved scope, requirements, constraints, and non-goals.
 model: opus
+color: green
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Scope Compliance Reviewer

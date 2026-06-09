@@ -2,6 +2,7 @@
 name: workflow_overall_reviewer
 description: Overall and code-quality reviewer for medium, complex, and very complex workflow finalization.
 model: sonnet
+color: green
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Overall Reviewer

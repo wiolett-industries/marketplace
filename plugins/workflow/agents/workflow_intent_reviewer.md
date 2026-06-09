@@ -2,6 +2,7 @@
 name: workflow_intent_reviewer
 description: Read-only intent reviewer that checks likely user intent, hidden goals, dangerous misreads, and the best workflow path.
 model: opus
+color: yellow
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Intent Reviewer

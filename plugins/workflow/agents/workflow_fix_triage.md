@@ -2,6 +2,7 @@
 name: workflow_fix_triage
 description: Normalize review findings into scoped fix tasks for worktree-based agents.
 model: opus
+color: red
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Fix Triage

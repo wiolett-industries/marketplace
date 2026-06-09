@@ -2,6 +2,7 @@
 name: merge_request_verification_reviewer
 description: Reviewer for MR CI/local verification quality, reviewability, and blocked-state evidence
 model: opus
+color: green
 tools: Read, Grep, Glob, Bash
 ---
 
