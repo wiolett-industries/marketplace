@@ -141,10 +141,12 @@ function agentMemoryContext(root) {
   }
 
   return [
-    "Agent Memory installed: read `using-agent-memory` before memory tools.",
+    "Agent Memory installed: at session start and after compaction, load durable context BEFORE your first substantive reply. Do not wait until a memory tool feels needed.",
+    "Agent Memory MCP (`memory_*` tools) is the canonical durable store here — it is NOT Claude Code's built-in file memory (`memory/`, `MEMORY.md`). Route all durable user/project facts through `memory_save`/`memory_update`; do not save them into the built-in file memory, and do not treat a built-in-memory read as a substitute for `memory_list`/`memory_recall`.",
+    "Memory tools may be deferred: if `memory_list`/`memory_recall` are not already loaded, run ToolSearch for them first, then call `memory_list` for the global index and `memory_recall` on relevant entries. Read `using-agent-memory` for the full protocol.",
     authSummary(),
     projectMemorySummary(root),
-    "Finalizing durable work: save/update reusable preferences, repo gotchas, root-cause fixes, and recurring workflows.",
+    "Before finalizing non-trivial work, save or update durable preferences, repo gotchas, root-cause fixes, and recurring workflows via `memory_save`/`memory_update`.",
     "Never save secrets, raw session summaries, obvious code, temp work, or project facts to global.",
   ];
 }

@@ -1,6 +1,6 @@
 {
   "name": "agent-memory",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Persistent, searchable agent memory for Claude Code with global/project scopes, compiled recall, and automatic graph links.",
   "author": {
     "name": "Wiolett Industries",

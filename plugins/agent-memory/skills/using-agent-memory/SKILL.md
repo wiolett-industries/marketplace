@@ -7,6 +7,14 @@ description: ALWAYS use at conversation start, after compaction, and when durabl
 
 Use at conversation start, after compaction/context reset, and whenever durable user or project knowledge could matter.
 
+## Not The Built-In Memory
+
+Agent Memory (the `memory_*` MCP tools) is the canonical durable store. It is distinct from Claude Code's built-in file memory (`memory/` directory plus `MEMORY.md` index) that the harness may describe in the system prompt. Do not confuse them:
+
+- Route all durable user and project facts through `memory_save`/`memory_update`, not into the built-in file memory.
+- Reading or writing the built-in `MEMORY.md` is not a substitute for `memory_list`/`memory_recall`; if you only touched built-in memory, the Agent Memory step is still pending.
+- Do not split the same durable knowledge across both stores. When both exist, this MCP store wins for cross-session preferences, repo conventions, and workflow lessons.
+
 ## Model
 
 Scopes:
