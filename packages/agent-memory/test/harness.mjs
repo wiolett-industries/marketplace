@@ -21,6 +21,7 @@ import { getOutgoingEdgeRecords, replaceOutgoingEdges } from '../dist/db.js';
 import { writeGraphFile } from '../dist/files.js';
 import { handleInspect } from '../dist/tools/inspect.js';
 import { handleRecall } from '../dist/tools/recall.js';
+import { handleQuery } from '../dist/tools/query.js';
 import { rebuildFromFiles } from '../dist/rebuild.js';
 import { spreadingActivation } from '../dist/retrieval/activation.js';
 import { handlePath } from '../dist/tools/path.js';
@@ -645,6 +646,30 @@ async function runPrune() {
   });
 }
 
+async function runQueryExpand() {
+  const projectDir = createTempProject('pm-query-expand');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    // A matches the query text; B does not (and has no embedding without a key),
+    // so search alone never returns B. A manual edge connects them.
+    const a = await handleWrite({ content: 'deployment rollback runbook', tags: ['deploy'], summary: 'rollback runbook' });
+    const b = await handleWrite({ content: 'obscure vault token rotation', tags: ['vault'], summary: 'vault rotation' });
+    handleLink({ from_id: a.id, to_id: b.id, relation: 'related_to', weight: 0.9 });
+
+    const noExpand = await handleQuery({ query: 'deployment rollback', scope: 'project', expand: false });
+    const expand = await handleQuery({ query: 'deployment rollback', scope: 'project' });
+
+    return {
+      ids: { a: a.id, b: b.id },
+      noExpandCandidateIds: noExpand.candidates.map((candidate) => candidate.id),
+      expandCandidateIds: expand.candidates.map((candidate) => candidate.id),
+      expandCandidates: expand.candidates,
+      expandAnswer: expand.answer,
+    };
+  });
+}
+
 const mode = process.argv[2];
 
 const runners = {
@@ -652,6 +677,7 @@ const runners = {
   path: runPath,
   health: runHealth,
   prune: runPrune,
+  'query-expand': runQueryExpand,
   setup: runSetup,
   'setup-local-embeddings': runSetupLocalEmbeddings,
   memory: runMemory,
