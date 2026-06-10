@@ -16,7 +16,9 @@ import { handleReadAll } from '../dist/tools/read-all.js';
 import { handleGet } from '../dist/tools/get.js';
 import { handleSearch } from '../dist/tools/search.js';
 import { handleDelete } from '../dist/tools/delete.js';
-import { handleLink, handleNeighbors, handleSubgraph, handleUnlink } from '../dist/tools/graph.js';
+import { handleGraphPrune, handleLink, handleNeighbors, handleSubgraph, handleUnlink } from '../dist/tools/graph.js';
+import { getOutgoingEdgeRecords, replaceOutgoingEdges } from '../dist/db.js';
+import { writeGraphFile } from '../dist/files.js';
 import { handleInspect } from '../dist/tools/inspect.js';
 import { handleRecall } from '../dist/tools/recall.js';
 import { rebuildFromFiles } from '../dist/rebuild.js';
@@ -602,12 +604,54 @@ async function runHealth() {
   });
 }
 
+async function runPrune() {
+  const projectDir = createTempProject('pm-prune');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    const a = await handleWrite({ content: 'alpha apple', tags: ['alpha'], summary: 'alpha' });
+    const b = await handleWrite({ content: 'bravo banana', tags: ['bravo'], summary: 'bravo' });
+    const aEntry = handleGet({ id: a.id });
+    const ts = 1700000000000;
+
+    // Inject a controlled outgoing set on A: 2 manual (one low-weight) + 2 auto
+    // (one below threshold, one dangling). Disjoint content means no auto-links
+    // form on their own, so this is the entire outgoing set.
+    const edges = [
+      { from_id: a.id, to_id: b.id, relation: 'related_to', weight: 0.9, reason: null, source: 'manual', created_at: ts, updated_at: ts },
+      { from_id: a.id, to_id: b.id, relation: 'uses_service', weight: 0.05, reason: null, source: 'manual', created_at: ts, updated_at: ts },
+      { from_id: a.id, to_id: b.id, relation: 'depends_on', weight: 0.1, reason: null, source: 'auto', created_at: ts, updated_at: ts },
+      { from_id: a.id, to_id: 'zznonexist', relation: 'same_area', weight: 0.5, reason: null, source: 'auto', created_at: ts, updated_at: ts },
+    ];
+    writeGraphFile(aEntry.file_name, edges, 'project');
+    replaceOutgoingEdges(a.id, edges, 'project');
+
+    const before = getOutgoingEdgeRecords(a.id, 'project').length;
+    const dry = handleGraphPrune({ min_weight: 0.2, dry_run: true, scope: 'project' });
+    const afterDry = getOutgoingEdgeRecords(a.id, 'project').length;
+    const real = handleGraphPrune({ min_weight: 0.2, dry_run: false, scope: 'project' });
+    const afterReal = getOutgoingEdgeRecords(a.id, 'project');
+
+    return {
+      ids: { a: a.id, b: b.id },
+      before,
+      dry,
+      afterDry,
+      real,
+      afterRealCount: afterReal.length,
+      afterRealSources: afterReal.map((edge) => edge.source).sort(),
+      afterRealRelations: afterReal.map((edge) => edge.relation).sort(),
+    };
+  });
+}
+
 const mode = process.argv[2];
 
 const runners = {
   activation: runActivation,
   path: runPath,
   health: runHealth,
+  prune: runPrune,
   setup: runSetup,
   'setup-local-embeddings': runSetupLocalEmbeddings,
   memory: runMemory,
