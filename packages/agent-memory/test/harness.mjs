@@ -21,6 +21,7 @@ import { handleInspect } from '../dist/tools/inspect.js';
 import { handleRecall } from '../dist/tools/recall.js';
 import { rebuildFromFiles } from '../dist/rebuild.js';
 import { spreadingActivation } from '../dist/retrieval/activation.js';
+import { handlePath } from '../dist/tools/path.js';
 
 if (!process.env.PROJECT_MEMORY_AGENTS_HOME) {
   process.env.PROJECT_MEMORY_AGENTS_HOME = mkdtempSync(path.join(os.tmpdir(), 'pm-agents-home-'));
@@ -552,10 +553,44 @@ async function runActivation() {
   });
 }
 
+async function runPath() {
+  const projectDir = createTempProject('pm-path');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    const a = await handleWrite({ content: 'alpha apple', tags: ['alpha'], summary: 'alpha' });
+    const b = await handleWrite({ content: 'bravo banana', tags: ['bravo'], summary: 'bravo' });
+    const d = await handleWrite({ content: 'delta date', tags: ['delta'], summary: 'delta' });
+    const e = await handleWrite({ content: 'echo elderberry', tags: ['echo'], summary: 'echo' });
+
+    // Direct weak edge A->D (0.3, 1 hop) vs strong 2-hop A->B->D (0.9*0.9=0.81).
+    handleLink({ from_id: a.id, to_id: d.id, relation: 'related_to', weight: 0.3 });
+    handleLink({ from_id: a.id, to_id: b.id, relation: 'related_to', weight: 0.9 });
+    handleLink({ from_id: b.id, to_id: d.id, relation: 'related_to', weight: 0.9 });
+
+    let pointerError = false;
+    try {
+      handlePath({ from_id: a.pointer_id, to_id: d.id, scope: 'project' });
+    } catch {
+      pointerError = true;
+    }
+
+    return {
+      ids: { a: a.id, b: b.id, d: d.id, e: e.id, pointer: a.pointer_id },
+      shortest: handlePath({ from_id: a.id, to_id: d.id, strategy: 'shortest', scope: 'project' }),
+      strongest: handlePath({ from_id: a.id, to_id: d.id, strategy: 'strongest', scope: 'project' }),
+      noPath: handlePath({ from_id: a.id, to_id: e.id, scope: 'project' }),
+      selfPath: handlePath({ from_id: a.id, to_id: a.id, scope: 'project' }),
+      pointerError,
+    };
+  });
+}
+
 const mode = process.argv[2];
 
 const runners = {
   activation: runActivation,
+  path: runPath,
   setup: runSetup,
   'setup-local-embeddings': runSetupLocalEmbeddings,
   memory: runMemory,
