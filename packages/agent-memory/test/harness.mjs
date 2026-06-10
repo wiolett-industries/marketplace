@@ -586,11 +586,28 @@ async function runPath() {
   });
 }
 
+async function runHealth() {
+  const projectDir = createTempProject('pm-health');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    const a = await handleWrite({ content: 'alpha apple', tags: ['alpha'], summary: 'alpha' });
+    const b = await handleWrite({ content: 'bravo banana', tags: ['bravo'], summary: 'bravo' });
+    await handleWrite({ content: 'charlie cherry', tags: ['charlie'], summary: 'charlie' }); // orphan deep
+    await handleWrite({ content: 'lima lemon', tags: ['lima'], layer: 'lite' }); // orphan standalone lite
+
+    handleLink({ from_id: a.id, to_id: b.id, relation: 'related_to', weight: 0.9 });
+
+    return { health: handleInspect({ view: 'health' }) };
+  });
+}
+
 const mode = process.argv[2];
 
 const runners = {
   activation: runActivation,
   path: runPath,
+  health: runHealth,
   setup: runSetup,
   'setup-local-embeddings': runSetupLocalEmbeddings,
   memory: runMemory,
