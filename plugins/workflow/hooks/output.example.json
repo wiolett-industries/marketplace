@@ -1,0 +1,15 @@
+{
+  "enabled": true,
+  "maxBashChars": 9000,
+  "headChars": 3000,
+  "tailChars": 3000,
+  "stripAnsi": true,
+  "collapseRepeats": true,
+  "repeatThreshold": 3,
+  "keepLinesMatching": "error|fail|warn|✕|✗|exception|traceback|fatal|panic",
+  "rules": [
+    { "match": "^(npm|pnpm|yarn) (install|ci|add)", "mode": "tail", "keepLines": 30 },
+    { "match": "(jest|vitest|pytest|go test)", "mode": "tail", "keepLines": 60 },
+    { "match": "^git (diff|show|log)", "mode": "passthrough" }
+  ]
+}

@@ -71,6 +71,8 @@ When the user is actively testing and sends small fixes:
 
 Use subagents at your own discretion whenever the work benefits from them — intent checks, parallel implementation, and review. No user authorization is required; launch them when delegation is the right call and run locally when it is not. Record the agent type in workflow artifacts when a plan-run exists.
 
+Prefer delegating broad, read-heavy exploration to `workflow_explorer`: it reads widely in its own context window and returns a compact report, so large file contents and command output never enter the orchestrator context. Reach for it before reading many files yourself to answer where/how questions or to map a subsystem.
+
 ## Custom Agents
 
 Canonical `workflow_*` subagents are loaded automatically from the plugin's `agents/` directory and dispatched via Claude's Task tool. When a module asks for a named `workflow_*` agent:

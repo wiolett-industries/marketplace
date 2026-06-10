@@ -78,7 +78,7 @@ The plan must be decision-complete. Include:
 - chunks and dependencies, when used
 - expected artifacts/files
 - subagent delegation guidance; delegated write tasks require worktrees, review/audit tasks are read-only
-- delegation guidance: each delegated task/chunk records why delegation is safe and which implementer tier fits; analysis-heavy tasks go to reasoning-focused review agents, mechanical code goes to `workflow_implementer`, and code needing bounded reasoning goes to `workflow_implementer_standard` or `workflow_implementer_complex`
+- delegation guidance: each delegated task/chunk records why delegation is safe and which implementer tier fits; broad read-only discovery/mapping goes to `workflow_explorer`, analysis-heavy reasoning tasks go to reasoning-focused review agents, mechanical code goes to `workflow_implementer`, and code needing bounded reasoning goes to `workflow_implementer_standard` or `workflow_implementer_complex`
 - verification commands/acceptance checks
 - lint command/config when present
 - UI contract/visible criteria when UI is in scope

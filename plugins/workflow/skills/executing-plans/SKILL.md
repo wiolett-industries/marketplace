@@ -55,7 +55,7 @@ Use subagents aggressively when work is independent.
 
 ## Decomposition And Routing
 
-For `complex`/`very_complex` work, start with a read-only analysis agent when scope, architecture, risk, or decomposition is not already clear. Then split the work into the smallest safe implementation chunks.
+For `complex`/`very_complex` work, start with a read-only analysis agent when scope, architecture, risk, or decomposition is not already clear; use `workflow_explorer` when that first step is mainly locating and mapping code. Then split the work into the smallest safe implementation chunks.
 
 For `medium` work, still try to split independent code changes into bounded chunks when that reduces wall-clock time and does not create integration risk.
 
@@ -64,6 +64,7 @@ Routing defaults — pick the implementer tier by task complexity:
 - trivial/mechanical, fully-specified bounded edits: `workflow_implementer` (haiku, lightweight)
 - moderately complex scoped work that needs some local reasoning: `workflow_implementer_standard` (sonnet)
 - complex, tightly-coupled, or design-bearing work within a bounded scope: `workflow_implementer_complex` (opus)
+- broad read-only exploration, file/symbol discovery, or "where/how does this work" sweeps: `workflow_explorer` (sonnet, read-only) — keeps large reads out of the orchestrator context
 - additional analysis, architecture, decomposition, or risk review (read-only): dispatch a review agent
 
 Match the tier to the task: the lighter the tier, the more fully decided the approach must already be. Reserve `workflow_implementer_complex` for work that genuinely needs reasoning; do not default everything to it.

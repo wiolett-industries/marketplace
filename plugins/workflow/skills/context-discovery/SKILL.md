@@ -11,7 +11,7 @@ Use after `Intent Gate` when goal, scope, audience/operator, architecture, data/
 
 ## Process
 
-1. Inspect discoverable repo facts first: manifests, docs, related files, tests, recent patterns.
+1. Inspect discoverable repo facts first: manifests, docs, related files, tests, recent patterns. For broad or multi-file exploration, delegate to `workflow_explorer` so large reads stay in its context and the orchestrator gets only a compact findings report.
 2. Ask every material remaining question; prefer interactive questions when supported.
 3. Ask questions that choose real branches: scope, user-visible behavior, compatibility/migration, ownership/persistence, verification rigor, split strategy, design tradeoff.
 4. Do not ask for discoverable facts; look them up.
