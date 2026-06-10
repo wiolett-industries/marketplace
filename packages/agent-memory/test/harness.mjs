@@ -20,6 +20,7 @@ import { handleLink, handleNeighbors, handleSubgraph, handleUnlink } from '../di
 import { handleInspect } from '../dist/tools/inspect.js';
 import { handleRecall } from '../dist/tools/recall.js';
 import { rebuildFromFiles } from '../dist/rebuild.js';
+import { spreadingActivation } from '../dist/retrieval/activation.js';
 
 if (!process.env.PROJECT_MEMORY_AGENTS_HOME) {
   process.env.PROJECT_MEMORY_AGENTS_HOME = mkdtempSync(path.join(os.tmpdir(), 'pm-agents-home-'));
@@ -512,9 +513,49 @@ async function runMcpReadUninitialized() {
   };
 }
 
+function activationToObject(map) {
+  return Object.fromEntries([...map.entries()].map(([id, value]) => [id, value]));
+}
+
+async function runActivation() {
+  const projectDir = createTempProject('pm-activation');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    // Disjoint content/tags so no auto-links form (no API key -> semantic 0,
+    // zero tag/token overlap -> below the 0.10 project threshold). Only the
+    // manual edges below exist, making activation deterministic.
+    const a = await handleWrite({ content: 'alpha apple', tags: ['alpha'], summary: 'alpha' });
+    const b = await handleWrite({ content: 'bravo banana', tags: ['bravo'], summary: 'bravo' });
+    const c = await handleWrite({ content: 'charlie cherry', tags: ['charlie'], summary: 'charlie' });
+    const d = await handleWrite({ content: 'delta date', tags: ['delta'], summary: 'delta' });
+
+    handleLink({ from_id: a.id, to_id: b.id, relation: 'related_to', weight: 0.9 });
+    handleLink({ from_id: b.id, to_id: c.id, relation: 'depends_on', weight: 0.8 });
+    handleLink({ from_id: c.id, to_id: d.id, relation: 'related_to', weight: 0.5 });
+
+    const seeds = [{ id: a.id, weight: 1 }];
+    const both = spreadingActivation({ seeds, hops: 2, decay: 0.5, minWeight: 0.2, direction: 'both', scope: 'project' });
+    const hop1 = spreadingActivation({ seeds, hops: 1, decay: 0.5, minWeight: 0.2, direction: 'both', scope: 'project' });
+    const capped = spreadingActivation({ seeds, hops: 2, decay: 0.5, minWeight: 0.2, maxNodes: 1, direction: 'both', scope: 'project' });
+    const noSeeds = spreadingActivation({ seeds: [], hops: 2, scope: 'project' });
+    const minWeightFilter = spreadingActivation({ seeds, hops: 2, decay: 0.5, minWeight: 0.85, direction: 'both', scope: 'project' });
+
+    return {
+      ids: { a: a.id, b: b.id, c: c.id, d: d.id },
+      both: activationToObject(both),
+      hop1: activationToObject(hop1),
+      capped: activationToObject(capped),
+      noSeeds: activationToObject(noSeeds),
+      minWeightFilter: activationToObject(minWeightFilter),
+    };
+  });
+}
+
 const mode = process.argv[2];
 
 const runners = {
+  activation: runActivation,
   setup: runSetup,
   'setup-local-embeddings': runSetupLocalEmbeddings,
   memory: runMemory,
