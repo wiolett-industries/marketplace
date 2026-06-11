@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { api } from '../api/client';
 import { useResource } from '../api/useResource';
@@ -31,6 +31,15 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
   const [ref, size] = useSize<HTMLDivElement>();
   const fgRef = useRef<unknown>(null);
   const [hover, setHover] = useState<string | null>(null);
+
+  // Spread nodes apart so dense clusters and isolated nodes don't pile up and
+  // swallow each other's clicks.
+  useEffect(() => {
+    const fg = fgRef.current as { d3Force?: (name: string) => { strength: (value: number) => void; distance?: (value: number) => void } | undefined } | null;
+    if (!fg?.d3Force) return;
+    fg.d3Force('charge')?.strength(-180);
+    fg.d3Force('link')?.distance?.(60);
+  }, [size.width]);
 
   const graphData = useMemo(() => {
     const nodes: SimNode[] = payload.nodes.map((node) => ({ ...node }));
@@ -139,7 +148,9 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
             linkLineDash={((link: SimLink) => (link.symmetric ? [3, 2] : null)) as never}
             nodeCanvasObject={drawNode as never}
             nodePointerAreaPaint={((node: SimNode, color: string, ctx: CanvasRenderingContext2D) => {
-              const radius = 5 + Math.sqrt(node.degree) * 1.6;
+              // Generous, uniform hit target so every node is easy to click even
+              // when small or near neighbors.
+              const radius = Math.max(10, 7 + Math.sqrt(node.degree) * 2);
               ctx.fillStyle = color;
               ctx.beginPath();
               ctx.arc(node.x ?? 0, node.y ?? 0, radius, 0, 2 * Math.PI);
@@ -147,8 +158,9 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
             }) as never}
             onNodeClick={((node: SimNode) => select(node.id)) as never}
             onNodeHover={((node: SimNode | null) => setHover(node?.id ?? null)) as never}
-            cooldownTicks={120}
-            warmupTicks={20}
+            enableNodeDrag={false}
+            cooldownTicks={140}
+            warmupTicks={30}
           />
         ) : null}
       </div>
