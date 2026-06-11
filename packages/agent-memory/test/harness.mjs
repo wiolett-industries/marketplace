@@ -26,6 +26,7 @@ import { rebuildFromFiles } from '../dist/rebuild.js';
 import { spreadingActivation } from '../dist/retrieval/activation.js';
 import { handlePath } from '../dist/tools/path.js';
 import { buildSupersedeOutcome } from '../dist/auto-link.js';
+import { startViewServer } from '../dist/view/server.js';
 
 if (!process.env.PROJECT_MEMORY_AGENTS_HOME) {
   process.env.PROJECT_MEMORY_AGENTS_HOME = mkdtempSync(path.join(os.tmpdir(), 'pm-agents-home-'));
@@ -728,9 +729,93 @@ async function runDerank() {
   });
 }
 
+async function runViewServer() {
+  const projectDir = createTempProject('pm-view');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady('project');
+
+    const write = async (content, tags, summary) => {
+      const result = await handleWrite({ content, tags, summary });
+      return handleGet({ id: result.id });
+    };
+
+    const a = await write('Deployment pipeline uploads built assets to MinIO buckets', ['deploy', 'minio'], 'Deploy pipeline');
+    const b = await write('Static bucket configuration consumed by deployment jobs', ['bucket', 'config'], 'Bucket config');
+    const c = await write('Next.js plus FastAPI is the preferred testnet stack', ['stack', 'nextjs'], 'Preferred stack');
+    const d = await write('Old deploy pipeline using rsync to a VPS (deprecated)', ['deploy', 'legacy'], 'Legacy deploy');
+    const e = await write('Embedding model is OpenAI text-embedding-3-small', ['embeddings'], 'Embedding model');
+
+    handleLink({ from_id: a.id, to_id: b.id, relation: 'uses_service', weight: 0.82, reason: 'pipeline reads bucket config' });
+    handleLink({ from_id: a.id, to_id: b.id, relation: 'related_to', weight: 0.6, reason: 'both about asset delivery' });
+    handleLink({ from_id: b.id, to_id: c.id, relation: 'part_of', weight: 0.55, reason: 'config part of stack' });
+    handleLink({ from_id: a.id, to_id: d.id, relation: 'supersedes', weight: 0.9, reason: 'new pipeline replaces rsync' });
+    handleLink({ from_id: c.id, to_id: e.id, relation: 'depends_on', weight: 0.4, reason: 'stack depends on model' });
+
+    // Inject deterministic clustered embeddings so the scatter projects (no model).
+    const embDir = path.join(projectDir, '.memory', 'embeddings');
+    [a, b, c, d, e].forEach((entry, index) => {
+      const base = index < 2 ? 0 : 1;
+      const vector = Array.from({ length: 6 }, (_unused, k) => Number((base + Math.sin((index + 1) * (k + 1)) * 0.3).toFixed(4)));
+      writeFileSync(path.join(embDir, `${entry.file_name}.embeddings`), JSON.stringify(vector));
+    });
+
+    // Re-ingest from disk so the injected embeddings reach the cache. (resetMemoryReady
+    // keys on projectDir while the cached flag keys on the realpath cwd, so rebuild
+    // explicitly rather than relying on the lazy reset path.)
+    rebuildFromFiles('project');
+
+    const handle = await startViewServer({ scope: 'project', port: 0, version: '9.9.9' });
+    const base = handle.url;
+    const json = async (route) => (await fetch(base + route)).json();
+    try {
+      const meta = await json('/api/meta');
+      const graph = await json('/api/graph');
+      const health = await json('/api/health');
+      const scatter = await json('/api/scatter');
+      const list = await json('/api/list');
+      const search = await json('/api/search?q=bucket%20config');
+      const query = await json('/api/query?q=bucket%20config&expand=true');
+      const detail = await json(`/api/memory/${a.id}`);
+      const missing = await fetch(`${base}/api/memory/does-not-exist`);
+      const pathResult = await json(`/api/path?from=${a.id}&to=${c.id}&strategy=shortest`);
+      const indexHtml = await (await fetch(`${base}/`)).text();
+      const traversal = await fetch(`${base}/..%2f..%2fetc%2fpasswd`, { redirect: 'manual' });
+
+      return {
+        port: handle.port,
+        metaEnabled: meta.enabled === true,
+        metaVersion: meta.version,
+        embeddingsAvailable: meta.embeddings_available,
+        graphNodes: graph.nodes.length,
+        graphEdges: graph.edges.length,
+        supersededCount: graph.nodes.filter((node) => node.superseded).length,
+        symmetricEdgeCount: graph.edges.filter((edge) => edge.symmetric).length,
+        hasStandalone: graph.nodes.some((node) => node.is_standalone),
+        healthEdges: health.edges.total,
+        scatterN: scatter.n,
+        scatterPoints: scatter.points.length,
+        listCount: list.items.length,
+        searchCount: search.length,
+        queryHasCandidates: Array.isArray(query.candidates),
+        queryCandidateCount: Array.isArray(query.candidates) ? query.candidates.length : -1,
+        detailId: detail.id,
+        detailHasLinks: Boolean(detail.links),
+        missingStatus: missing.status,
+        pathFound: pathResult.found,
+        pathHops: pathResult.hops,
+        servesIndex: indexHtml.includes('id="root"'),
+        traversalStatus: traversal.status,
+      };
+    } finally {
+      await handle.close();
+    }
+  });
+}
+
 const mode = process.argv[2];
 
 const runners = {
+  'view-server': runViewServer,
   activation: runActivation,
   path: runPath,
   health: runHealth,

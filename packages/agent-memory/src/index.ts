@@ -3,12 +3,19 @@
 import { runInitCommand } from './cli/init.js';
 import { isCliAbortError } from './cli/prompts.js';
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
   if (command === 'init') {
     await runInitCommand(args);
+    return;
+  }
+
+  if (command === 'view') {
+    // Lazy import: keeps the UI/server (and its deps) out of the MCP server path.
+    const { runViewCommand } = await import('./view/cli.js');
+    await runViewCommand(args, VERSION);
     return;
   }
 
@@ -51,8 +58,12 @@ async function startMcpServer(): Promise<void> {
 function printHelp(): void {
   console.log([
     'Usage:',
-    '  agent-memory              Start MCP stdio server',
-    '  agent-memory init [opts]  Configure OpenAI API key',
+    '  agent-memory                    Start MCP stdio server',
+    '  agent-memory init [opts]        Configure OpenAI API key',
+    '  agent-memory view [path|global] Open the local memory dashboard',
+    '',
+    'view options: --port <n>, --no-open. Defaults to ./.memory; pass a',
+    'project path or "global" to target another store.',
     '',
     'Run agent-memory init --help for init options.',
   ].join('\n'));

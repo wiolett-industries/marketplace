@@ -182,6 +182,42 @@ memory_recall(memory_id="abc123xy")
 memory_inspect(view="all")
 ```
 
+## View — local dashboard
+
+`agent-memory view` opens a read-only control panel for a memory store in your
+browser. It boots a loopback-only HTTP server (`127.0.0.1`) that serves a
+prebuilt SPA plus a small JSON API, reading the same files the MCP server uses.
+
+```bash
+agent-memory view                 # current directory's ./.memory
+agent-memory view ./some/project  # that project's .memory
+agent-memory view global          # the global store (~/.agents/agent-memory)
+```
+
+Options:
+
+- `--port <n>` — preferred port (default `7077`; auto-increments if taken)
+- `--no-open` — do not launch the browser automatically
+
+Panels:
+
+- **Graph** — force-directed view of memories and their links; filter by
+  relation, manual/auto source, and weight; click a node for its content,
+  tags, and neighbors. Superseded memories are dimmed.
+- **Memory** — searchable list of every memory and index entry.
+- **Health** — graph metrics (orphans, dangling edges, hubs, weight
+  histogram, dead pointers) mirroring `memory_inspect view=health`.
+- **Query** — run `search` and graph-expanded `query` side by side and see how
+  results are scored and graph-connected.
+- **Path** — trace the shortest or strongest path between two memories and
+  highlight it on the graph.
+- **Scatter** — 2D PCA projection of memory embeddings (needs an embedding
+  provider and at least two embedded memories).
+
+The dashboard is read-only and live: editing a `.md` or graph file on disk
+refreshes the open panel automatically. The server is lazy-loaded, so running
+the MCP server never pays for the UI. Nothing is sent off the machine.
+
 ## Development
 
 Requirements:

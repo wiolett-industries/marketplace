@@ -1,0 +1,7 @@
+# Build output (also covered by the root ignore; kept here for clarity).
+dist/
+
+# Frontend (ui/) tooling artifacts.
+ui/node_modules/
+ui/.vite/
+ui/dist/
