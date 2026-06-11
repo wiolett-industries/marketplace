@@ -18,12 +18,14 @@ function weightBucket(weight: number): string {
   return '0.8-1.0';
 }
 
-export function computeGraphHealth(scope: MemoryScope) {
+function computeGraphHealth(scope: MemoryScope) {
   const entries = getAllEntries(scope);
   const edges = getAllEdgeRows(scope);
 
   const nodeIds = new Set(entries.map((entry) => entry.id));
   const fileNameById = new Map(entries.map((entry) => [entry.id, entry.file_name]));
+  // Mirrors canParticipateInGraph, inlined because getAllEntries omits `embedding`
+  // (canParticipateInGraph's param requires a full EntryRecord).
   const isGraphCapable = (entry: { layer: string; ref: string | null }): boolean =>
     entry.layer === 'deep' || (entry.layer === 'lite' && entry.ref === null);
   const graphCapableIds = new Set(entries.filter(isGraphCapable).map((entry) => entry.id));
@@ -50,7 +52,8 @@ export function computeGraphHealth(scope: MemoryScope) {
   const weightHistogram: Record<string, number> = Object.fromEntries(WEIGHT_BUCKETS.map((bucket) => [bucket, 0]));
   let autoEdges = 0;
   let manualEdges = 0;
-  const danglingEdges: Array<{ from_id: string; to_id: string; relation: string }> = [];
+  let danglingCount = 0;
+  const danglingSamples: Array<{ from_id: string; to_id: string; relation: string }> = [];
 
   for (const edge of edges) {
     degree.set(edge.from_id, (degree.get(edge.from_id) ?? 0) + 1);
@@ -60,8 +63,9 @@ export function computeGraphHealth(scope: MemoryScope) {
     if (edge.source === 'auto') autoEdges += 1;
     else manualEdges += 1;
     if (!graphCapableIds.has(edge.from_id) || !graphCapableIds.has(edge.to_id)) {
-      if (danglingEdges.length < SAMPLE_CAP) {
-        danglingEdges.push({ from_id: edge.from_id, to_id: edge.to_id, relation: edge.relation });
+      danglingCount += 1;
+      if (danglingSamples.length < SAMPLE_CAP) {
+        danglingSamples.push({ from_id: edge.from_id, to_id: edge.to_id, relation: edge.relation });
       }
     }
   }
@@ -100,7 +104,7 @@ export function computeGraphHealth(scope: MemoryScope) {
       related_to_share: relatedToShare,
     },
     orphans: { count: orphanCount, sample_ids: orphanIds },
-    dangling_edges: { count: danglingEdges.length, samples: danglingEdges },
+    dangling_edges: { count: danglingCount, samples: danglingSamples },
     hubs: { threshold: HUB_DEGREE_THRESHOLD, nodes: hubs.slice(0, SAMPLE_CAP) },
     weight_histogram: weightHistogram,
     dead_pointers: { count: deadPointerIds.length, ids: deadPointerIds.slice(0, SAMPLE_CAP) },

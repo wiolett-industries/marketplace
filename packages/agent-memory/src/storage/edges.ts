@@ -184,6 +184,16 @@ export function getFilteredEdgeRows(args: {
     .all(...directionParams, ...filterParams) as unknown as GraphEdgeRecord[];
 }
 
+/** Batch check: of the given ids, which have an incoming `supersedes` edge. */
+export function getIncomingSupersededIds(ids: string[], scope: MemoryScope = 'project'): Set<string> {
+  if (!ids.length) return new Set();
+  const placeholders = ids.map(() => '?').join(', ');
+  const rows = getDb(scope)
+    .prepare(`SELECT DISTINCT to_id FROM memory_edges WHERE relation = 'supersedes' AND to_id IN (${placeholders})`)
+    .all(...ids) as unknown as Array<{ to_id: string }>;
+  return new Set(rows.map((row) => row.to_id));
+}
+
 function toSummary(row: GraphEdgeSummaryRow, direction: 'outgoing' | 'incoming'): GraphEdgeSummary {
   return {
     id: row.id,

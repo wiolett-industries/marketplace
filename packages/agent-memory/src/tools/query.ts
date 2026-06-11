@@ -79,7 +79,9 @@ export async function handleQuery(args: {
       })
       .filter((candidate): candidate is QueryCandidate => candidate !== null);
 
-    candidates.push(...expansion);
+    // Cap graph-expanded extras at `limit` so total candidates stay bounded
+    // (search hits + at most `limit` expanded), never exceeding 2x limit.
+    candidates.push(...expansion.slice(0, limit));
   }
 
   return {
