@@ -25,6 +25,7 @@ import { handleQuery } from '../dist/tools/query.js';
 import { rebuildFromFiles } from '../dist/rebuild.js';
 import { spreadingActivation } from '../dist/retrieval/activation.js';
 import { handlePath } from '../dist/tools/path.js';
+import { buildSupersedeOutcome } from '../dist/auto-link.js';
 
 if (!process.env.PROJECT_MEMORY_AGENTS_HOME) {
   process.env.PROJECT_MEMORY_AGENTS_HOME = mkdtempSync(path.join(os.tmpdir(), 'pm-agents-home-'));
@@ -670,6 +671,33 @@ async function runQueryExpand() {
   });
 }
 
+async function runSupersede() {
+  const ts = 1700000000000;
+  const pure = buildSupersedeOutcome(
+    'SRC',
+    [
+      { id: 'old1', verdict: 'supersedes', confidence: 0.9, reason: 'replaced' },
+      { id: 'dup1', verdict: 'duplicate', confidence: 0.8 },
+      { id: 'ind1', verdict: 'independent', confidence: 0.95 },
+      { id: 'low1', verdict: 'supersedes', confidence: 0.5 }, // below confidence floor
+      { id: 'SRC', verdict: 'supersedes', confidence: 0.99 }, // self reference
+    ],
+    ts
+  );
+
+  const projectDir = createTempProject('pm-supersede');
+  const writes = await withProject(projectDir, async () => {
+    ensureMemoryReady();
+    // Two near-identical memories. With no model/key, supersede detection is a
+    // no-op: the write result must carry no supersedes/duplicate_of.
+    const first = await handleWrite({ content: 'The deploy region is us-east-1', tags: ['deploy', 'region'], summary: 'deploy region' });
+    const second = await handleWrite({ content: 'The deploy region is now eu-west-1, not us-east-1', tags: ['deploy', 'region'], summary: 'deploy region updated' });
+    return { first, second };
+  });
+
+  return { pure, ...writes };
+}
+
 const mode = process.argv[2];
 
 const runners = {
@@ -678,6 +706,7 @@ const runners = {
   health: runHealth,
   prune: runPrune,
   'query-expand': runQueryExpand,
+  supersede: runSupersede,
   setup: runSetup,
   'setup-local-embeddings': runSetupLocalEmbeddings,
   memory: runMemory,
