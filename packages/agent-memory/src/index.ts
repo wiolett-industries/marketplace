@@ -38,7 +38,7 @@ async function startMcpServer(): Promise<void> {
     },
     {
       instructions:
-        'Use memory_list or global_memory_read_lite at conversation start for persistent preferences, memory_save to store durable reusable knowledge, memory_update to refresh outdated memories, memory_recall for compiled context by ID, memory_query for topic lookup, memory_graph for relationships, and memory_inspect only for raw maintenance/debug views. Before finalizing non-trivial work, save/update distilled preferences, repo workflows, setup gotchas, root causes, fix patterns, or verification sequences when they are likely to matter again. Read tools never initialize missing project memory; project memory storage is created only by memory_setup or write/mutation tools.',
+        'Use memory_list or global_memory_read_lite at conversation start for persistent preferences, memory_save to store durable reusable knowledge, memory_update to refresh outdated memories, memory_recall for compiled context by ID, memory_query for topic lookup (graph-expands related memories), memory_graph for relationships, memory_path to trace how two memories connect, and memory_inspect (including view=health for graph metrics) for raw maintenance/debug views; memory_graph_prune removes unhealthy auto edges (dry run by default). Before finalizing non-trivial work, save/update distilled preferences, repo workflows, setup gotchas, root causes, fix patterns, or verification sequences when they are likely to matter again. Read tools never initialize missing project memory; project memory storage is created only by memory_setup or write/mutation tools.',
     }
   );
 

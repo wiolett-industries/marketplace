@@ -1,6 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
-import { GRAPH_RELATIONS } from '../graph.js';
 import { ensureMemoryReadable, ensureMemoryReady } from '../runtime.js';
 import { setupProjectMemory } from '../setup.js';
 import { handleDelete } from './delete.js';
@@ -15,23 +14,9 @@ import { handleReadLite } from './read-lite.js';
 import { handleSave } from './save.js';
 import { handleSearch } from './search.js';
 import { handleUpdate } from './update.js';
+import { asTextResult, detailSchema, directionEnum, relationEnum, scopeSchema } from './registry-helpers.js';
+import { registerGraphTools } from './register-graph.js';
 import type { MemoryScope } from '../scope.js';
-
-function asTextResult(payload: unknown) {
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(payload),
-      },
-    ],
-  };
-}
-
-const scopeSchema = z.enum(['project', 'global']).optional();
-const detailSchema = z.enum(['brief', 'normal', 'full']).optional();
-const relationEnum = z.enum(GRAPH_RELATIONS);
-const directionEnum = z.enum(['outgoing', 'incoming', 'both']);
 
 function emptyQueryResult() {
   return {
@@ -41,10 +26,10 @@ function emptyQueryResult() {
   };
 }
 
-function emptyInspectResult(view?: 'memory' | 'index' | 'graph' | 'all') {
-  return view === 'all'
-    ? { memories: [], index: [], graph: [] }
-    : [];
+function emptyInspectResult(view?: 'memory' | 'index' | 'graph' | 'health' | 'all') {
+  if (view === 'all') return { memories: [], index: [], graph: [] };
+  if (view === 'health') return {};
+  return [];
 }
 
 function missingMemoryError(id: string): Error {
@@ -53,6 +38,7 @@ function missingMemoryError(id: string): Error {
 
 export function registerMemoryTools(server: McpServer): void {
   registerCanonicalTools(server);
+  registerGraphTools(server);
   registerCompatibilityTools(server, 'project', '');
   registerCompatibilityTools(server, 'global', 'global_');
 }
@@ -139,14 +125,16 @@ function registerCanonicalTools(server: McpServer): void {
         query: z.string().min(1),
         limit: z.number().int().min(1).max(50).optional(),
         detail: detailSchema,
+        expand: z.boolean().optional().describe('Graph-expand candidates with linked memories. Defaults to true.'),
+        expand_hops: z.number().int().min(1).max(2).optional(),
       }),
     },
-    async ({ scope, query, limit, detail }) => {
+    async ({ scope, query, limit, detail, expand, expand_hops }) => {
       const resolvedScope = scope ?? 'project';
       if (!ensureMemoryReadable(resolvedScope)) {
         return asTextResult(emptyQueryResult());
       }
-      return asTextResult(await handleQuery({ scope: resolvedScope, query, limit, detail }));
+      return asTextResult(await handleQuery({ scope: resolvedScope, query, limit, detail, expand, expand_hops }));
     }
   );
 
@@ -176,10 +164,10 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_inspect',
     {
       title: 'Inspect Memory',
-      description: 'Raw maintenance/debug view of memory, index, and graph records.',
+      description: 'Raw maintenance/debug view of memory, index, and graph records, or graph health metrics.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
-        view: z.enum(['memory', 'index', 'graph', 'all']).optional(),
+        view: z.enum(['memory', 'index', 'graph', 'health', 'all']).optional(),
         memory_id: z.string().optional(),
         include_embedding: z.boolean().optional(),
       }),
