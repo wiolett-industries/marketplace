@@ -1,7 +1,10 @@
 import type { Config } from 'tailwindcss';
 
 export default {
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  // Globs resolve from the CWD where the build runs (the package root, via
+  // `vite build --config ui/vite.config.ts`), so they must be ui-prefixed —
+  // otherwise Tailwind scans the backend src/ and purges every UI utility.
+  content: ['./ui/index.html', './ui/src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
