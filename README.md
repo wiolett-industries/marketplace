@@ -51,7 +51,14 @@ The init command prompts for an OpenAI API key and writes `~/.agents/.wiolett/au
 - global memory for preferences, model behavior, and cross-project patterns
 - project memory for repo-specific workflows, conventions, redacted integration processes, and operational knowledge
 
-It supports lazy no-op reads for projects without memory, model-gated writes, compiled recall/query answers, and automatic graph links between graph-capable memories. When `workflow` is also installed, the consolidated workflow hook adds Agent Memory startup reminders.
+It supports lazy no-op reads for projects without memory, model-gated writes, compiled recall/query answers, automatic graph links between graph-capable memories, graph pathfinding, and health/prune maintenance tools. When `workflow` is also installed, the consolidated workflow hook adds Agent Memory startup reminders.
+
+Inspect a store visually with the bundled read-only dashboard — a local control panel for the memory graph, indices, health, search/query, pathfinding, and an embeddings scatter, with live refresh:
+
+```bash
+npx -y @wiolett/agent-memory@latest view            # ./.memory in the current dir
+npx -y @wiolett/agent-memory@latest view global     # the global store
+```
 
 ### Workflow
 

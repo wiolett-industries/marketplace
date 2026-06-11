@@ -188,6 +188,16 @@ memory_inspect(view="all")
 browser. It boots a loopback-only HTTP server (`127.0.0.1`) that serves a
 prebuilt SPA plus a small JSON API, reading the same files the MCP server uses.
 
+Run it with `npx` (no install needed):
+
+```bash
+npx -y @wiolett/agent-memory@latest view                # current dir's ./.memory
+npx -y @wiolett/agent-memory@latest view ./some/project # that project's .memory
+npx -y @wiolett/agent-memory@latest view global         # the global store
+```
+
+Or, if the package is installed, use the `agent-memory` bin directly:
+
 ```bash
 agent-memory view                 # current directory's ./.memory
 agent-memory view ./some/project  # that project's .memory
