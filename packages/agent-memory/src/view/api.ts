@@ -103,7 +103,13 @@ export interface GraphPayload {
 export function getGraphPayload(scope: MemoryScope): ApiResult<GraphPayload> {
   if (!readable(scope)) return disabled(scope);
 
-  const entries = getAllEntries(scope);
+  // Only graph-capable memories are nodes: deep entries and standalone lite
+  // entries. Index pointers (lite with a ref) are duplicates of their deep
+  // target and never carry edges, so including them just litters the canvas
+  // with unclickable, overlapping degree-0 dots. They live in the Memory panel.
+  const entries = getAllEntries(scope).filter(
+    (entry) => entry.layer === 'deep' || (entry.layer === 'lite' && entry.ref === null),
+  );
   const rawEdges = getAllEdgeRows(scope);
   const supersededIds = getIncomingSupersededIds(entries.map((entry) => entry.id), scope);
 
