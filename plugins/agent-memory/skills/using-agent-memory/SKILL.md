@@ -73,11 +73,14 @@ When updating or rewriting memory, preserve semantics exactly. Pay special atten
 
 Do not bypass the memory gate; the tool surface intentionally has no bypass parameter.
 
-## Query, Recall, Inspect
+## Query, Recall, Inspect, Graph
 
-- `memory_query`: compiled answer from search results
+- `memory_query`: compiled answer from search results; also graph-expands related memories into candidates
 - `memory_recall`: compiled context for a known memory ID plus valuable relations
-- `memory_inspect`: raw maintenance/debug only
+- `memory_graph`: neighbors or a bounded subgraph for one memory
+- `memory_path`: a path between two memories (`strategy: shortest | strongest`)
+- `memory_inspect`: raw maintenance/debug; `view: "health"` returns graph metrics
+- `memory_graph_prune`: remove unhealthy auto edges (dry run by default; never touches manual edges)
 
 ## Compaction Recovery
 

@@ -18,8 +18,11 @@ This package backs the standalone Agent Memory plugin.
 - deep canonical memories plus a separate lightweight index layer
 - semantic and keyword search
 - meaningful memory filenames
-- weighted graph links between deep memories and standalone lite memories
+- weighted, typed graph links between deep memories and standalone lite memories
 - automatic graph-link suggestions on save/update without touching manual links
+- graph-expanded `memory_query`: surfaces edge-connected memories the query text missed
+- supersede/duplicate detection on save: contradicting memories get a `supersedes` edge and are downranked (never deleted)
+- pathfinding between two memories and read-only graph health metrics + auto-edge pruning
 - sanity-gated saves and stable in-place memory updates
 - compiled recall/query answers with source references
 - automatic project-memory setup on write/mutation use; reads stay no-op when project memory is absent
@@ -91,9 +94,20 @@ Canonical tools:
 - `memory_link`
 - `memory_unlink`
 - `memory_graph`
+- `memory_path`
+- `memory_graph_prune`
 - `memory_setup`
 
 Every canonical tool except `memory_setup` accepts an optional `scope` of `project` or `global`; project is the default. `memory_setup` initializes or repairs project memory for the current repo.
+
+Graph tools:
+
+- `memory_graph` reads neighbors or a bounded subgraph for one memory
+- `memory_path` finds a path between two memories (`strategy: shortest | strongest`)
+- `memory_inspect` with `view: "health"` returns graph metrics (orphans, dangling edges, hubs, relation distribution, weight histogram, dead pointers)
+- `memory_graph_prune` removes unhealthy auto edges (dangling and/or below a weight floor); manual edges are never touched and it defaults to a dry run
+
+`memory_path` and `memory_graph_prune` also have `global_`-prefixed variants bound to global scope.
 
 Compatibility aliases remain available until the bundled skills move to the new names:
 
