@@ -47,7 +47,13 @@ export async function compileRecall(args: {
   });
   const related = neighbors
     .map((neighbor) => ({ neighbor, entry: getEntryById(neighbor.id, scope) }))
-    .filter((item): item is { neighbor: typeof neighbors[number]; entry: NonNullable<ReturnType<typeof getEntryById>> } => canParticipateInGraph(item.entry ?? null));
+    .filter((item): item is { neighbor: typeof neighbors[number]; entry: NonNullable<ReturnType<typeof getEntryById>> } => canParticipateInGraph(item.entry ?? null))
+    .map((item) => ({
+      ...item,
+      superseded: getEdgeSummaries(item.entry.id, scope).incoming.some((edge) => edge.relation === 'supersedes'),
+    }))
+    // B1: down-rank superseded memories so fresh context wins the related cap.
+    .sort((left, right) => Number(left.superseded) - Number(right.superseded));
 
   const deterministic = buildDeterministicAnswer(primary, related, args.detail ?? 'normal');
   const model = await getModelClient();

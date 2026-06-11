@@ -6,6 +6,9 @@ import { cosineSimilarity } from '../utils/cosine.js';
 import { normalizeScores } from '../utils/normalize.js';
 import type { MemoryScope } from '../scope.js';
 
+// B1: memories with an incoming `supersedes` edge are downranked, not hidden.
+const SUPERSEDE_PENALTY = 0.3;
+
 function tokenize(input: string): string[] {
   return input
     .toLowerCase()
@@ -112,9 +115,12 @@ export async function handleSearch(args: { query: string; limit?: number; scope?
         return null;
       }
 
+      const linked = withLinks(entry, scope);
+      const superseded = linked.links.incoming.some((edge) => edge.relation === 'supersedes');
       return {
-        ...withLinks(entry, scope),
-        score,
+        ...linked,
+        score: superseded ? score * SUPERSEDE_PENALTY : score,
+        superseded,
       };
     })
     .filter((result): result is NonNullable<typeof result> => result !== null)

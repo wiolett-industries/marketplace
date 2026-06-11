@@ -698,6 +698,36 @@ async function runSupersede() {
   return { pure, ...writes };
 }
 
+async function runDerank() {
+  const projectDir = createTempProject('pm-derank');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    // A and B match the query equally; C supersedes B (manual supersedes edge),
+    // so B carries an incoming supersedes edge and must be downranked.
+    const a = await handleWrite({ content: 'deploy region config alpha', tags: ['deploy'], summary: 'a' });
+    const b = await handleWrite({ content: 'deploy region config bravo', tags: ['deploy'], summary: 'b' });
+    const c = await handleWrite({ content: 'vault token rotation secret', tags: ['vault'], summary: 'c' });
+    handleLink({ from_id: c.id, to_id: b.id, relation: 'supersedes', weight: 0.9 });
+
+    const search = await handleSearch({ query: 'deploy region config', scope: 'project' });
+
+    // Recall: primary P links to a fresh memory D and the superseded B at equal
+    // weight; the superseded one must sort after the fresh one in related order.
+    const p = await handleWrite({ content: 'primary anchor note xyz', tags: ['anchor'], summary: 'p' });
+    const d = await handleWrite({ content: 'fresh distinct note qwe', tags: ['fresh'], summary: 'd' });
+    handleLink({ from_id: p.id, to_id: b.id, relation: 'related_to', weight: 0.5 });
+    handleLink({ from_id: p.id, to_id: d.id, relation: 'related_to', weight: 0.5 });
+    const recall = await handleRecall({ memory_id: p.id, scope: 'project' });
+
+    return {
+      ids: { a: a.id, b: b.id, c: c.id, d: d.id, p: p.id },
+      search: search.map((entry) => ({ id: entry.id, score: entry.score, superseded: entry.superseded })),
+      recallRelatedIds: recall.sources.filter((source) => source.role === 'related').map((source) => source.id),
+    };
+  });
+}
+
 const mode = process.argv[2];
 
 const runners = {
@@ -707,6 +737,7 @@ const runners = {
   prune: runPrune,
   'query-expand': runQueryExpand,
   supersede: runSupersede,
+  derank: runDerank,
   setup: runSetup,
   'setup-local-embeddings': runSetupLocalEmbeddings,
   memory: runMemory,
