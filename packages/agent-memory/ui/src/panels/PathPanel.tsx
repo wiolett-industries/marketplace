@@ -191,8 +191,8 @@ function Segmented({
 }
 
 export function PathPanel(): JSX.Element {
-  const { scope } = useStore();
-  const resource = useResource(() => api.graph(scope), [scope]);
+  const { scope, revision } = useStore();
+  const resource = useResource(() => api.graph(scope), [scope, revision]);
   return (
     <ResourceView resource={resource} loadingLabel="loading nodes">
       {(payload: GraphPayload) => <PathTool payload={payload} />}

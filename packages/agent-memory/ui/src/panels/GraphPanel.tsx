@@ -157,8 +157,8 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
 }
 
 export function GraphPanel(): JSX.Element {
-  const { scope } = useStore();
-  const resource = useResource(() => api.graph(scope), [scope]);
+  const { scope, revision } = useStore();
+  const resource = useResource(() => api.graph(scope), [scope, revision]);
   return (
     <ResourceView resource={resource} loadingLabel="mapping graph">
       {(payload: GraphPayload) =>

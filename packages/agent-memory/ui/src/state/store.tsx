@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useEvents } from '../api/useEvents';
 import type { Relation, Scope } from '../types';
 
 export type PanelId = 'graph' | 'memory' | 'health' | 'playground' | 'path' | 'scatter';
@@ -26,6 +27,10 @@ interface StoreValue {
   setFilters: (filters: GraphFilters) => void;
   pathHighlight: PathHighlight | null;
   setPathHighlight: (highlight: PathHighlight | null) => void;
+  /** Bumps on every live-refresh (SSE) change; include in resource deps to refetch. */
+  revision: number;
+  live: boolean;
+  pulse: number;
 }
 
 const ALL_RELATIONS: Relation[] = [
@@ -51,6 +56,7 @@ export function StoreProvider({ children }: { children: ReactNode }): JSX.Elemen
     minWeight: 0,
   });
   const [pathHighlight, setPathHighlight] = useState<PathHighlight | null>(null);
+  const { revision, live, pulse } = useEvents();
 
   const value = useMemo<StoreValue>(
     () => ({
@@ -68,8 +74,11 @@ export function StoreProvider({ children }: { children: ReactNode }): JSX.Elemen
       setFilters,
       pathHighlight,
       setPathHighlight,
+      revision,
+      live,
+      pulse,
     }),
-    [scope, panel, selectedId, filters, pathHighlight],
+    [scope, panel, selectedId, filters, pathHighlight, revision, live, pulse],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

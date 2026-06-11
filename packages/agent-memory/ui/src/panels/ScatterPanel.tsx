@@ -55,8 +55,8 @@ function ScatterView({ payload }: { payload: ScatterPayload }): JSX.Element {
 }
 
 export function ScatterPanel(): JSX.Element {
-  const { scope } = useStore();
-  const resource = useResource(() => api.scatter(scope), [scope]);
+  const { scope, revision } = useStore();
+  const resource = useResource(() => api.scatter(scope), [scope, revision]);
   return (
     <ResourceView resource={resource} loadingLabel="projecting embeddings">
       {(payload: ScatterPayload) => <ScatterView payload={payload} />}

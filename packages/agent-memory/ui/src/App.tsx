@@ -1,5 +1,4 @@
 import { api } from './api/client';
-import { useEvents } from './api/useEvents';
 import { useResource } from './api/useResource';
 import { RailNav } from './components/RailNav';
 import { StatusBar } from './components/StatusBar';
@@ -34,8 +33,7 @@ function PanelHost(): JSX.Element {
 }
 
 function AppInner(): JSX.Element {
-  const { scope } = useStore();
-  const { revision, live, pulse } = useEvents();
+  const { scope, revision, live, pulse } = useStore();
   const metaResource = useResource(() => api.meta(scope), [scope, revision]);
   const meta = metaResource.data && !isDisabled(metaResource.data) ? metaResource.data : null;
 
@@ -44,7 +42,7 @@ function AppInner(): JSX.Element {
       <StatusBar meta={meta} live={live} pulse={pulse} />
       <div className="flex min-h-0 flex-1">
         <RailNav />
-        <main key={`${scope}-${revision}`} className="relative min-w-0 flex-1 animate-rise-in">
+        <main key={scope} className="relative min-w-0 flex-1 animate-rise-in">
           <PanelHost />
         </main>
         <Inspector revision={revision} />

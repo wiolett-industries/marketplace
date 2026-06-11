@@ -85,8 +85,8 @@ function Browser({ payload }: { payload: MemoryListPayload }): JSX.Element {
 }
 
 export function MemoryPanel(): JSX.Element {
-  const { scope } = useStore();
-  const resource = useResource(() => api.list(scope), [scope]);
+  const { scope, revision } = useStore();
+  const resource = useResource(() => api.list(scope), [scope, revision]);
   return (
     <ResourceView resource={resource} loadingLabel="loading memories">
       {(payload: MemoryListPayload) =>

@@ -6,6 +6,12 @@ import type { MemoryScope } from '../scope.js';
 
 const DEBOUNCE_MS = 250;
 
+/** True for the disposable SQLite cache files (basename starts with memory.db). */
+function isCacheFile(filename: string): boolean {
+  const base = filename.split(/[/\\]/).pop() ?? filename;
+  return base.startsWith('memory.db');
+}
+
 /**
  * Pushes Server-Sent `change` events to connected clients when the watched
  * `.memory` directory mutates, and drops the rebuilt-cache flag so the next read
@@ -23,7 +29,13 @@ export class ChangeHub {
   start(): void {
     if (this.watcher) return;
     try {
-      this.watcher = watch(this.memoryDir, { recursive: true }, () => this.schedule());
+      this.watcher = watch(this.memoryDir, { recursive: true }, (_event, filename) => {
+        // Ignore our own SQLite cache writes (memory.db, -wal, -shm, -journal).
+        // The DB lives inside .memory, so WAL writes on every read would otherwise
+        // feed back as change events and loop the dashboard endlessly.
+        if (filename && isCacheFile(filename)) return;
+        this.schedule();
+      });
     } catch {
       // Watching is best-effort; the UI still works with manual refresh.
       this.watcher = null;

@@ -98,8 +98,8 @@ function HealthView({ health }: { health: Health }): JSX.Element {
 }
 
 export function HealthPanel(): JSX.Element {
-  const { scope } = useStore();
-  const resource = useResource(() => api.health(scope), [scope]);
+  const { scope, revision } = useStore();
+  const resource = useResource(() => api.health(scope), [scope, revision]);
   return (
     <ResourceView resource={resource} loadingLabel="reading health">
       {(health: Health) => <HealthView health={health} />}
