@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
+import { forceCollide } from 'd3-force-3d';
 import { api } from '../api/client';
 import { useResource } from '../api/useResource';
 import { FilterBar } from '../components/FilterBar';
@@ -32,14 +33,19 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
   const fgRef = useRef<unknown>(null);
   const [hover, setHover] = useState<string | null>(null);
 
-  // Spread nodes apart so dense clusters and isolated nodes don't pile up and
-  // swallow each other's clicks.
+  // A collision force guarantees no two nodes occupy the same spot — otherwise an
+  // overlapping node's hit area covers its neighbor and steals hover/click events.
   useEffect(() => {
-    const fg = fgRef.current as { d3Force?: (name: string) => { strength: (value: number) => void; distance?: (value: number) => void } | undefined } | null;
+    const fg = fgRef.current as {
+      d3Force?: (name: string, force?: unknown) => { strength?: (value: number) => void; distance?: (value: number) => void } | undefined;
+      d3ReheatSimulation?: () => void;
+    } | null;
     if (!fg?.d3Force) return;
-    fg.d3Force('charge')?.strength(-180);
-    fg.d3Force('link')?.distance?.(60);
-  }, [size.width]);
+    fg.d3Force('charge')?.strength?.(-140);
+    fg.d3Force('link')?.distance?.(50);
+    fg.d3Force('collide', forceCollide((node: SimNode) => 14 + Math.sqrt(node.degree) * 2));
+    fg.d3ReheatSimulation?.();
+  }, [size.width, payload]);
 
   const graphData = useMemo(() => {
     const nodes: SimNode[] = payload.nodes.map((node) => ({ ...node }));
@@ -148,9 +154,9 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
             linkLineDash={((link: SimLink) => (link.symmetric ? [3, 2] : null)) as never}
             nodeCanvasObject={drawNode as never}
             nodePointerAreaPaint={((node: SimNode, color: string, ctx: CanvasRenderingContext2D) => {
-              // Generous, uniform hit target so every node is easy to click even
-              // when small or near neighbors.
-              const radius = Math.max(10, 7 + Math.sqrt(node.degree) * 2);
+              // Hit target a touch larger than the visual dot; collision spacing
+              // keeps these from overlapping so every node stays hoverable.
+              const radius = 6 + Math.sqrt(node.degree) * 1.6;
               ctx.fillStyle = color;
               ctx.beginPath();
               ctx.arc(node.x ?? 0, node.y ?? 0, radius, 0, 2 * Math.PI);
@@ -158,7 +164,6 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
             }) as never}
             onNodeClick={((node: SimNode) => select(node.id)) as never}
             onNodeHover={((node: SimNode | null) => setHover(node?.id ?? null)) as never}
-            enableNodeDrag={false}
             cooldownTicks={140}
             warmupTicks={30}
           />
