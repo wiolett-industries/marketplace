@@ -75,28 +75,28 @@ function PathTool({ payload }: { payload: GraphPayload }): JSX.Element {
         <button
           type="submit"
           disabled={busy}
-          className="focusable label rounded-sm bg-amber px-4 py-2 text-xs text-bg hover:opacity-90 disabled:opacity-40"
+          className="focusable label rounded-sm bg-amber px-4 py-2 text-sm text-bg hover:opacity-90 disabled:opacity-40"
         >
           {busy ? 'tracing…' : 'trace'}
         </button>
       </form>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        {error ? <span className="readout text-xs text-danger">{error}</span> : null}
+        {error ? <span className="readout text-sm text-danger">{error}</span> : null}
         {result === null ? (
-          <span className="readout text-[11px] text-ink-faint">pick two memories to trace a path through the graph.</span>
+          <span className="readout text-[14px] text-ink-faint">pick two memories to trace a path through the graph.</span>
         ) : !result.found ? (
-          <span className="readout text-[11px] text-warn">no path found between these memories with the current filters.</span>
+          <span className="readout text-[14px] text-warn">no path found between these memories with the current filters.</span>
         ) : (
           <div>
-            <div className="readout mb-3 flex items-center gap-3 text-[11px] text-ink-dim">
+            <div className="readout mb-3 flex items-center gap-3 text-[14px] text-ink-dim">
               <span className="text-amber">{result.strategy}</span>
               <span>{result.hops} hops</span>
               <span>weight Π {result.total_weight}</span>
               <button
                 type="button"
                 onClick={() => setPanel('graph')}
-                className="focusable label rounded-sm border border-line px-2 py-0.5 text-[9px] text-cyan hover:border-cyan"
+                className="focusable label rounded-sm border border-line px-2 py-0.5 text-[12px] text-cyan hover:border-cyan"
               >
                 show on graph
               </button>
@@ -109,7 +109,7 @@ function PathTool({ payload }: { payload: GraphPayload }): JSX.Element {
                     {edge ? (
                       <div className="ml-2 flex items-center gap-2 py-1">
                         <span className="h-4 w-px" style={{ backgroundColor: relationColor(edge.relation) }} />
-                        <span className="readout text-[10px]" style={{ color: relationColor(edge.relation) }}>
+                        <span className="readout text-[13px]" style={{ color: relationColor(edge.relation) }}>
                           {edge.relation} · {edge.weight}
                         </span>
                       </div>
@@ -120,7 +120,7 @@ function PathTool({ payload }: { payload: GraphPayload }): JSX.Element {
                       className="focusable flex items-center gap-2 rounded-sm px-2 py-1 text-left hover:bg-panel-2"
                     >
                       <span className="h-2 w-2 rounded-full bg-amber" />
-                      <span className="readout text-xs text-ink">{node.file_name}</span>
+                      <span className="readout text-sm text-ink">{node.file_name}</span>
                     </button>
                   </li>
                 );
@@ -146,12 +146,12 @@ function Field({
 }): JSX.Element {
   return (
     <label className="flex flex-col gap-1">
-      <span className="label text-[9px] text-ink-faint">{label}</span>
+      <span className="label text-[12px] text-ink-faint">{label}</span>
       <input
         value={value}
         list={listId}
         onChange={(event) => onChange(event.target.value)}
-        className="focusable readout w-52 rounded-sm border border-line bg-panel px-2 py-1.5 text-xs text-ink"
+        className="focusable readout w-52 rounded-sm border border-line bg-panel px-2 py-1.5 text-sm text-ink"
         placeholder="file name…"
       />
     </label>
@@ -171,14 +171,14 @@ function Segmented({
 }): JSX.Element {
   return (
     <div className="flex flex-col gap-1">
-      <span className="label text-[9px] text-ink-faint">{label}</span>
+      <span className="label text-[12px] text-ink-faint">{label}</span>
       <div className="flex overflow-hidden rounded-sm border border-line">
         {options.map((option) => (
           <button
             key={option}
             type="button"
             onClick={() => onChange(option)}
-            className={`focusable label px-2 py-1.5 text-[10px] transition-colors ${
+            className={`focusable label px-2 py-1.5 text-[13px] transition-colors ${
               value === option ? 'bg-panel-2 text-amber' : 'text-ink-faint hover:text-ink-dim'
             }`}
           >

@@ -13,11 +13,7 @@ const PANELS: Array<{ id: PanelId; label: string; glyph: string }> = [
 export function RailNav(): JSX.Element {
   const { panel, setPanel } = useStore();
   return (
-    <nav className="flex w-[78px] flex-col items-stretch border-r border-line bg-panel/60 py-3">
-      <div className="px-3 pb-4">
-        <div className="readout text-[10px] leading-tight text-amber">A·M</div>
-        <div className="label text-[8px] text-ink-faint">view</div>
-      </div>
+    <nav className="flex w-[96px] flex-col items-stretch border-r border-line bg-panel/60 py-3">
       {PANELS.map((item) => {
         const active = panel === item.id;
         return (
@@ -35,8 +31,8 @@ export function RailNav(): JSX.Element {
                 active ? 'bg-amber shadow-[0_0_10px_0_rgba(255,122,24,0.7)]' : 'bg-transparent'
               }`}
             />
-            <span className="text-lg leading-none">{item.glyph}</span>
-            <span className="label text-[9px]">{item.label}</span>
+            <span className="text-xl leading-none">{item.glyph}</span>
+            <span className="label text-[12px]">{item.label}</span>
           </button>
         );
       })}

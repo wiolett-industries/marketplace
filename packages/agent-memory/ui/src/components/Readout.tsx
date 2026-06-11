@@ -23,9 +23,9 @@ export function Readout({
             : 'text-ink';
   return (
     <div className="panel flex flex-col gap-1 px-4 py-3">
-      <span className="label text-[10px]">{label}</span>
-      <span className={`readout text-2xl font-medium leading-none ${toneClass}`}>{value}</span>
-      {sub ? <span className="readout text-[11px] text-ink-faint">{sub}</span> : null}
+      <span className="label text-[13px]">{label}</span>
+      <span className={`readout text-3xl font-medium leading-none ${toneClass}`}>{value}</span>
+      {sub ? <span className="readout text-[14px] text-ink-faint">{sub}</span> : null}
     </div>
   );
 }

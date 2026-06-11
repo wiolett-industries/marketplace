@@ -33,7 +33,7 @@ function PanelHost(): JSX.Element {
 }
 
 function AppInner(): JSX.Element {
-  const { scope, revision, live, pulse } = useStore();
+  const { scope, panel, revision, live, pulse } = useStore();
   const metaResource = useResource(() => api.meta(scope), [scope, revision]);
   const meta = metaResource.data && !isDisabled(metaResource.data) ? metaResource.data : null;
 
@@ -42,7 +42,7 @@ function AppInner(): JSX.Element {
       <StatusBar meta={meta} live={live} pulse={pulse} />
       <div className="flex min-h-0 flex-1">
         <RailNav />
-        <main key={scope} className="relative min-w-0 flex-1 animate-rise-in">
+        <main key={`${scope}-${panel}`} className="relative min-w-0 flex-1 animate-panel-in">
           <PanelHost />
         </main>
         <Inspector revision={revision} />

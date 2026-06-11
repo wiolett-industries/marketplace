@@ -17,22 +17,22 @@ function Row({ item, active, onClick }: { item: MemoryListItem; active: boolean;
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <span className={`readout truncate text-xs ${active ? 'text-amber' : 'text-ink'}`}>{item.file_name}</span>
-          <span className="label shrink-0 text-[8px] text-ink-faint">{isPointer ? 'pointer' : item.layer}</span>
-          {item.has_embedding ? <span className="text-[9px] text-cyan">◆</span> : null}
+          <span className={`readout truncate text-sm ${active ? 'text-amber' : 'text-ink'}`}>{item.file_name}</span>
+          <span className="label shrink-0 text-[11px] text-ink-faint">{isPointer ? 'pointer' : item.layer}</span>
+          {item.has_embedding ? <span className="text-[12px] text-cyan">◆</span> : null}
         </div>
-        <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-ink-dim">{item.content}</p>
+        <p className="mt-0.5 line-clamp-2 text-[14px] leading-snug text-ink-dim">{item.content}</p>
         {item.tags.length ? (
           <div className="mt-1 flex flex-wrap gap-1">
             {item.tags.slice(0, 6).map((tag) => (
-              <span key={tag} className="readout rounded-sm bg-panel px-1 text-[9px] text-ink-faint">
+              <span key={tag} className="readout rounded-sm bg-panel px-1 text-[12px] text-ink-faint">
                 {tag}
               </span>
             ))}
           </div>
         ) : null}
       </div>
-      <div className="readout flex flex-col items-end gap-0.5 text-[9px] text-ink-faint">
+      <div className="readout flex flex-col items-end gap-0.5 text-[12px] text-ink-faint">
         <span>{item.source}</span>
         <span>c{item.confidence.toFixed(2)} · i{item.importance.toFixed(2)}</span>
         <span>{new Date(item.updated_at).toISOString().slice(0, 10)}</span>
@@ -63,9 +63,9 @@ function Browser({ payload }: { payload: MemoryListPayload }): JSX.Element {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="filter by name, content, tag…"
-          className="focusable readout w-full max-w-sm rounded-sm border border-line bg-panel px-2 py-1 text-xs text-ink placeholder:text-ink-faint"
+          className="focusable readout w-full max-w-sm rounded-sm border border-line bg-panel px-2 py-1 text-sm text-ink placeholder:text-ink-faint"
         />
-        <span className="readout text-[10px] text-ink-faint">
+        <span className="readout text-[13px] text-ink-faint">
           {filtered.length}/{payload.items.length}
         </span>
       </div>

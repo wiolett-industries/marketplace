@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import { forceCollide } from 'd3-force-3d';
 import { api } from '../api/client';
 import { useResource } from '../api/useResource';
 import { FilterBar } from '../components/FilterBar';
@@ -10,6 +9,10 @@ import { relationColor, RELATION_STYLES } from '../lib/relations';
 import { useSize } from '../lib/useSize';
 import { useStore } from '../state/store';
 import type { GraphEdge, GraphNode, GraphPayload, Relation } from '../types';
+
+const NODE_REL_SIZE = 4;
+const nodeValOf = (node: SimNode): number => 1 + node.degree * 0.4;
+const nodeRadiusOf = (node: SimNode): number => NODE_REL_SIZE * Math.sqrt(nodeValOf(node));
 
 interface SimNode extends GraphNode {
   x?: number;
@@ -33,19 +36,32 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
   const fgRef = useRef<unknown>(null);
   const [hover, setHover] = useState<string | null>(null);
 
-  // A collision force guarantees no two nodes occupy the same spot — otherwise an
-  // overlapping node's hit area covers its neighbor and steals hover/click events.
-  useEffect(() => {
-    const fg = fgRef.current as {
-      d3Force?: (name: string, force?: unknown) => { strength?: (value: number) => void; distance?: (value: number) => void } | undefined;
-      d3ReheatSimulation?: () => void;
-    } | null;
-    if (!fg?.d3Force) return;
-    fg.d3Force('charge')?.strength?.(-140);
-    fg.d3Force('link')?.distance?.(50);
-    fg.d3Force('collide', forceCollide((node: SimNode) => 14 + Math.sqrt(node.degree) * 2));
-    fg.d3ReheatSimulation?.();
-  }, [size.width, payload]);
+  // Custom hit detection. force-graph's built-in pointer detection uses a
+  // separate shadow simulation whose node positions can diverge from the visible
+  // ones, leaving some nodes (especially hubs) permanently unclickable. We map
+  // the cursor to graph space and pick the nearest node ourselves — reliable
+  // because it reads the exact node.x/node.y the visible canvas renders.
+  const pickNode = (clientX: number, clientY: number): SimNode | null => {
+    const fg = fgRef.current as { screen2GraphCoords?: (x: number, y: number) => { x: number; y: number } } | null;
+    const container = ref.current;
+    if (!fg?.screen2GraphCoords || !container) return null;
+    const rect = container.getBoundingClientRect();
+    const target = fg.screen2GraphCoords(clientX - rect.left, clientY - rect.top);
+    let best: SimNode | null = null;
+    let bestDist = Infinity;
+    for (const node of graphData.nodes) {
+      if (node.x == null || node.y == null) continue;
+      const dx = node.x - target.x;
+      const dy = node.y - target.y;
+      const dist = dx * dx + dy * dy;
+      const radius = nodeRadiusOf(node) + 4; // visual node radius + small tolerance
+      if (dist <= radius * radius && dist < bestDist) {
+        bestDist = dist;
+        best = node;
+      }
+    }
+    return best;
+  };
 
   const graphData = useMemo(() => {
     const nodes: SimNode[] = payload.nodes.map((node) => ({ ...node }));
@@ -78,30 +94,25 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
 
   const highlightNodes = pathHighlight ? new Set(pathHighlight.nodeIds) : null;
 
-  const drawNode = (node: SimNode, ctx: CanvasRenderingContext2D, scale: number): void => {
-    const radius = 3 + Math.sqrt(node.degree) * 1.6;
+  const nodeColor = (node: SimNode): string => {
+    const isSelected = node.id === selectedId;
+    const isPath = highlightNodes?.has(node.id) ?? false;
+    if (isSelected || isPath) return '#ff7a18';
+    if (node.id === hover) return '#ffffff';
+    if (highlightNodes && !isPath) return '#3a3f47'; // dim when a path is highlighted
+    if (node.superseded) return '#6c4a4a';
+    return node.is_standalone ? '#3fd0c9' : '#cfd3d8';
+  };
+
+  // Visual extras only — drawn over the built-in circle. Hit detection is our own
+  // (pickNode), so this never affects clickability.
+  const drawNodeExtras = (node: SimNode, ctx: CanvasRenderingContext2D, scale: number): void => {
+    const radius = nodeRadiusOf(node);
     const x = node.x ?? 0;
     const y = node.y ?? 0;
     const isSelected = node.id === selectedId;
     const isHover = node.id === hover;
     const isPath = highlightNodes?.has(node.id) ?? false;
-    const dim = (highlightNodes != null && !isPath) || node.superseded;
-
-    const base = node.is_standalone ? '#3fd0c9' : '#cfd3d8';
-    const color = isSelected || isPath ? '#ff7a18' : base;
-
-    ctx.globalAlpha = dim ? 0.3 : 1;
-    ctx.beginPath();
-    if (node.is_standalone) {
-      ctx.rect(x - radius, y - radius, radius * 2, radius * 2);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1.4 / scale;
-      ctx.stroke();
-    } else {
-      ctx.arc(x, y, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = color;
-      ctx.fill();
-    }
 
     if (node.superseded) {
       ctx.beginPath();
@@ -113,22 +124,26 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
       ctx.setLineDash([]);
     }
 
+    if (node.is_standalone) {
+      ctx.strokeStyle = '#3fd0c9';
+      ctx.lineWidth = 1.4 / scale;
+      ctx.strokeRect(x - radius, y - radius, radius * 2, radius * 2);
+    }
+
     if (isSelected || isHover || isPath) {
       ctx.beginPath();
       ctx.arc(x, y, radius + 3 / scale, 0, 2 * Math.PI);
       ctx.strokeStyle = '#ff7a18';
-      ctx.lineWidth = 1.2 / scale;
+      ctx.lineWidth = 1.4 / scale;
       ctx.stroke();
     }
 
-    if (scale > 1.6 || isHover || isSelected) {
-      ctx.globalAlpha = dim ? 0.4 : 1;
+    if (scale > 1.4 || isHover || isSelected) {
       ctx.font = `${10 / scale}px "IBM Plex Mono", monospace`;
-      ctx.fillStyle = '#8b9099';
+      ctx.fillStyle = isHover || isSelected ? '#e6e8ea' : '#8b9099';
       ctx.textAlign = 'center';
       ctx.fillText(node.file_name.slice(0, 28), x, y + radius + 9 / scale);
     }
-    ctx.globalAlpha = 1;
   };
 
   return (
@@ -137,7 +152,17 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
         <FilterBar visibleNodes={graphData.nodes.length} visibleEdges={visibleEdgeCount} />
         <RelationLegend counts={relationCounts} />
       </div>
-      <div ref={ref} className="relative min-h-0 flex-1">
+      <div
+        ref={ref}
+        className="relative min-h-0 flex-1"
+        style={{ cursor: hover ? 'pointer' : 'default' }}
+        onClick={(event) => {
+          const node = pickNode(event.clientX, event.clientY);
+          if (node) select(node.id);
+        }}
+        onMouseMove={(event) => setHover(pickNode(event.clientX, event.clientY)?.id ?? null)}
+        onMouseLeave={() => setHover(null)}
+      >
         {size.width > 0 ? (
           <ForceGraph2D
             ref={fgRef as never}
@@ -146,26 +171,19 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
             graphData={graphData}
             backgroundColor="rgba(0,0,0,0)"
             nodeId="id"
+            nodeRelSize={NODE_REL_SIZE}
+            nodeVal={nodeValOf as never}
+            nodeColor={nodeColor as never}
+            nodeCanvasObjectMode={(() => 'after') as never}
+            nodeCanvasObject={drawNodeExtras as never}
+            enablePointerInteraction={false}
             linkVisibility={visibleLink as never}
             linkColor={((link: SimLink) => `${relationColor(link.relation)}${link.weight >= 0.6 ? 'cc' : '66'}`) as never}
             linkWidth={((link: SimLink) => 0.5 + link.weight * 2.2) as never}
             linkDirectionalArrowLength={((link: SimLink) => (RELATION_STYLES[link.relation]?.directional ? 3.5 : 0)) as never}
             linkDirectionalArrowRelPos={0.92}
             linkLineDash={((link: SimLink) => (link.symmetric ? [3, 2] : null)) as never}
-            nodeCanvasObject={drawNode as never}
-            nodePointerAreaPaint={((node: SimNode, color: string, ctx: CanvasRenderingContext2D) => {
-              // Hit target a touch larger than the visual dot; collision spacing
-              // keeps these from overlapping so every node stays hoverable.
-              const radius = 6 + Math.sqrt(node.degree) * 1.6;
-              ctx.fillStyle = color;
-              ctx.beginPath();
-              ctx.arc(node.x ?? 0, node.y ?? 0, radius, 0, 2 * Math.PI);
-              ctx.fill();
-            }) as never}
-            onNodeClick={((node: SimNode) => select(node.id)) as never}
-            onNodeHover={((node: SimNode | null) => setHover(node?.id ?? null)) as never}
-            cooldownTicks={140}
-            warmupTicks={30}
+            cooldownTicks={120}
           />
         ) : null}
       </div>

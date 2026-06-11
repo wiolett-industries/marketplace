@@ -35,8 +35,8 @@ export function RelationLegend({ counts }: { counts: Record<string, number> }): 
                 border: style.directional ? 'none' : `1.5px dashed ${style.color}`,
               }}
             />
-            <span className="readout text-[10px] text-ink-dim">{relation}</span>
-            <span className="readout text-[10px] text-ink-faint">{count}</span>
+            <span className="readout text-[13px] text-ink-dim">{relation}</span>
+            <span className="readout text-[13px] text-ink-faint">{count}</span>
           </button>
         );
       })}

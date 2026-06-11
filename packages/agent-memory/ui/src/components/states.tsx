@@ -7,7 +7,7 @@ export function PanelLoading({ label = 'acquiring' }: { label?: string }): JSX.E
     <div className="flex h-full w-full items-center justify-center">
       <div className="flex flex-col items-center gap-3">
         <div className="h-7 w-7 animate-pulse-signal rounded-full border border-cyan/60" />
-        <span className="label readout text-xs text-cyan animate-pulse-signal">{label}…</span>
+        <span className="label readout text-sm text-cyan animate-pulse-signal">{label}…</span>
       </div>
     </div>
   );
@@ -18,7 +18,7 @@ export function PanelEmpty({ title, hint }: { title: string; hint?: string }): J
     <div className="flex h-full w-full items-center justify-center p-8 text-center">
       <div className="max-w-sm">
         <div className="label mb-2 text-ink-dim">{title}</div>
-        {hint ? <p className="readout text-xs leading-relaxed text-ink-faint">{hint}</p> : null}
+        {hint ? <p className="readout text-sm leading-relaxed text-ink-faint">{hint}</p> : null}
       </div>
     </div>
   );
@@ -29,12 +29,12 @@ export function PanelError({ message, onRetry }: { message: string; onRetry?: ()
     <div className="flex h-full w-full items-center justify-center p-8 text-center">
       <div className="max-w-sm">
         <div className="label mb-2 text-danger">signal lost</div>
-        <p className="readout mb-4 break-words text-xs text-ink-dim">{message}</p>
+        <p className="readout mb-4 break-words text-sm text-ink-dim">{message}</p>
         {onRetry ? (
           <button
             type="button"
             onClick={onRetry}
-            className="focusable label rounded-sm border border-line px-3 py-1 text-xs text-ink-dim hover:border-amber hover:text-amber"
+            className="focusable label rounded-sm border border-line px-3 py-1 text-sm text-ink-dim hover:border-amber hover:text-amber"
           >
             retry
           </button>

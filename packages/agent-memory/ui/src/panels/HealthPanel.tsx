@@ -28,39 +28,39 @@ function HealthView({ health }: { health: Health }): JSX.Element {
 
       <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
         <section className="panel p-4">
-          <div className="label mb-3 text-[10px]">relation distribution</div>
+          <div className="label mb-3 text-[13px]">relation distribution</div>
           <div className="flex flex-col gap-2">
             {RELATION_ORDER.map((relation: Relation) => {
               const count = health.edges.by_relation[relation] ?? 0;
               return (
                 <div key={relation} className="grid grid-cols-[120px_1fr_28px] items-center gap-2">
-                  <span className="readout text-[10px] text-ink-dim">{relation}</span>
+                  <span className="readout text-[13px] text-ink-dim">{relation}</span>
                   <Bar value={count} max={relMax} color={relationColor(relation)} />
-                  <span className="readout text-right text-[10px] text-ink-faint">{count}</span>
+                  <span className="readout text-right text-[13px] text-ink-faint">{count}</span>
                 </div>
               );
             })}
           </div>
-          <div className="readout mt-3 text-[10px] text-ink-faint">related_to share: {health.edges.related_to_share}</div>
+          <div className="readout mt-3 text-[13px] text-ink-faint">related_to share: {health.edges.related_to_share}</div>
         </section>
 
         <section className="panel p-4">
-          <div className="label mb-3 text-[10px]">edge weight histogram</div>
+          <div className="label mb-3 text-[13px]">edge weight histogram</div>
           <div className="flex flex-col gap-2">
             {Object.entries(health.weight_histogram).map(([bucket, count]) => (
               <div key={bucket} className="grid grid-cols-[64px_1fr_28px] items-center gap-2">
-                <span className="readout text-[10px] text-ink-dim">{bucket}</span>
+                <span className="readout text-[13px] text-ink-dim">{bucket}</span>
                 <Bar value={count} max={histMax} color="#3fd0c9" />
-                <span className="readout text-right text-[10px] text-ink-faint">{count}</span>
+                <span className="readout text-right text-[13px] text-ink-faint">{count}</span>
               </div>
             ))}
           </div>
         </section>
 
         <section className="panel p-4">
-          <div className="label mb-3 text-[10px]">hubs · degree &gt; {health.hubs.threshold}</div>
+          <div className="label mb-3 text-[13px]">hubs · degree &gt; {health.hubs.threshold}</div>
           {health.hubs.nodes.length === 0 ? (
-            <span className="readout text-[11px] text-ink-faint">no hubs</span>
+            <span className="readout text-[14px] text-ink-faint">no hubs</span>
           ) : (
             <div className="flex flex-col gap-1">
               {health.hubs.nodes.map((hub) => (
@@ -70,8 +70,8 @@ function HealthView({ health }: { health: Health }): JSX.Element {
                   onClick={() => select(hub.id)}
                   className="focusable flex items-center justify-between rounded-sm px-2 py-1 text-left hover:bg-panel-2"
                 >
-                  <span className="readout truncate text-[11px] text-ink-dim">{hub.file_name}</span>
-                  <span className="readout text-[11px] text-amber">{hub.degree}</span>
+                  <span className="readout truncate text-[14px] text-ink-dim">{hub.file_name}</span>
+                  <span className="readout text-[14px] text-amber">{hub.degree}</span>
                 </button>
               ))}
             </div>
@@ -79,13 +79,13 @@ function HealthView({ health }: { health: Health }): JSX.Element {
         </section>
 
         <section className="panel p-4">
-          <div className="label mb-3 text-[10px] text-danger">dangling edges</div>
+          <div className="label mb-3 text-[13px] text-danger">dangling edges</div>
           {health.dangling_edges.count === 0 ? (
-            <span className="readout text-[11px] text-ink-faint">none — graph is consistent</span>
+            <span className="readout text-[14px] text-ink-faint">none — graph is consistent</span>
           ) : (
             <div className="flex flex-col gap-1">
               {health.dangling_edges.samples.map((sample, index) => (
-                <div key={index} className="readout text-[10px] text-ink-dim">
+                <div key={index} className="readout text-[13px] text-ink-dim">
                   <span className="text-danger">{sample.relation}</span> {sample.from_id} → {sample.to_id}
                 </div>
               ))}
