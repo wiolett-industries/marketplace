@@ -13,6 +13,7 @@ function readInput() {
 function writeContext(eventName, lines) {
   console.log(
     JSON.stringify({
+      continue: true,
       hookSpecificOutput: {
         hookEventName: eventName,
         additionalContext: lines.filter(Boolean).join("\n"),

@@ -45,6 +45,7 @@ test('workflow session hook emits recovery context for active plans', () => {
 
   const output = runHook({ hook_event_name: 'SessionStart', cwd: workspace }, workspace);
 
+  assert.equal(output.continue, true);
   assert.equal(output.hookSpecificOutput.hookEventName, 'SessionStart');
   assert.match(output.hookSpecificOutput.additionalContext, /Active workflow plan: \.workflow\/plans\/01-01-26-hooks/);
   assert.match(output.hookSpecificOutput.additionalContext, /using-workflow/);
@@ -101,6 +102,7 @@ test('workflow subagent start reminds implementers to stay bounded', () => {
     agent_type: 'workflow_implementer',
   });
 
+  assert.equal(output.continue, true);
   assert.equal(output.hookSpecificOutput.hookEventName, 'SubagentStart');
   assert.match(output.hookSpecificOutput.additionalContext, /bounded code patches only/);
   assert.match(output.hookSpecificOutput.additionalContext, /no open-ended analysis/);
@@ -134,6 +136,7 @@ test('workflow hook applies merge request reviewer context and validation when p
     agent_type: 'merge_request_primary_reviewer',
   });
 
+  assert.equal(startOutput.continue, true);
   assert.equal(startOutput.hookSpecificOutput.hookEventName, 'SubagentStart');
   assert.match(startOutput.hookSpecificOutput.additionalContext, /MR review agent merge_request_primary_reviewer/);
   assert.match(startOutput.hookSpecificOutput.additionalContext, /Verdict: REVIEW_BLOCKED/);
