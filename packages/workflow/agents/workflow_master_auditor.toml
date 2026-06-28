@@ -1,6 +1,6 @@
 name = "workflow_master_auditor"
 description = "Compile sanity-checked audit reviews into master-audit.md, findings.json, and planning-input.md."
-model = "gpt-5.5"
+model = "gpt-5.4"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 nickname_candidates = ["Master Auditor", "Audit Compiler", "Findings Lead"]

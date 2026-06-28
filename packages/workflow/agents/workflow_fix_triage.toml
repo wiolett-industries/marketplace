@@ -1,6 +1,6 @@
 name = "workflow_fix_triage"
 description = "Normalize review findings into scoped fix tasks for worktree-based agents."
-model = "gpt-5.5"
+model = "gpt-5.3-codex-spark"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 nickname_candidates = ["Fix Triage", "Task Splitter", "Finding Grouper"]
@@ -34,7 +34,7 @@ Tasks:
 - id:
   findings:
   allowed_scope:
-  model_class: spark_tiny | spark_mechanical | gpt54_implementation | gpt55_analysis
+  model_class: spark_tiny | spark_mechanical | gpt54_implementation | gpt54_analysis | gpt54_risk_review
   expected_fix:
 ```
 """

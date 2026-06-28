@@ -98,7 +98,7 @@ Delegated task objects should include:
   "title": "Short title",
   "status": "pending",
   "owner": "agent:workflow_implementer",
-  "model_class": "spark_tiny | spark_mechanical | gpt54_implementation | gpt55_analysis",
+  "model_class": "spark_tiny | spark_mechanical | gpt54_implementation | gpt54_analysis | gpt54_risk_review",
   "delegation_reason": "Why this model class is safe for this task",
   "allowed_scope": ["path/or/module"],
   "verification": ["command"]

@@ -135,7 +135,7 @@ function authSummary() {
 
 function projectMemorySummary(root) {
   if (fs.existsSync(path.join(root, ".memory"))) {
-    return "Project `.memory/` exists; focused reads OK after repo boundary.";
+    return "Project Agent Memory `.memory/` exists; after repo boundary, run focused `memory_list`/`memory_query` before answering repo workflow/setup/history questions.";
   }
   return "No project `.memory/`: reads no-op; writes may init only for durable saves.";
 }
@@ -146,10 +146,11 @@ function agentMemoryContext(root) {
   }
 
   return [
-    "Agent Memory installed: read `using-agent-memory` before memory tools.",
+    "Agent Memory MCP installed: read `using-agent-memory`, then use Agent Memory MCP tools for durable memory.",
+    "Do not rely on Codex built-in memory for repo facts when Agent Memory MCP is available.",
     authSummary(),
     projectMemorySummary(root),
-    "Finalizing durable work: save/update reusable preferences, repo gotchas, root-cause fixes, and recurring workflows.",
+    "Finalizing durable work: make an Agent Memory MCP decision; save/update reusable preferences, repo gotchas, root-cause fixes, and recurring workflows.",
     "Never save secrets, raw session summaries, obvious code, temp work, or project facts to global.",
   ];
 }

@@ -1,6 +1,7 @@
 name = "merge_request_risk_reviewer"
 description = "Secondary reviewer for high-risk merge requests, blast radius, compatibility, rollout safety, and system consequences"
-model = "gpt-5.5"
+model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
 
 developer_instructions = """
 # Merge Request Risk Reviewer

@@ -21,7 +21,7 @@ Trigger for planning, implementation, refactoring, review, architecture/product 
 
 ## Subagent
 
-For serious tasks, use read-only `workflow_intent_reviewer` (`gpt-5.5 xhigh`) when subagents are authorized. If unavailable, stop the agentic intent step. If authorization is missing, ask once; if denied, run locally and lower confidence when appropriate.
+For serious tasks, use read-only `workflow_intent_reviewer` (`gpt-5.4 xhigh`) when subagents are authorized. If unavailable, stop the agentic intent step. If authorization is missing, ask once; if denied, run locally and lower confidence when appropriate.
 
 Agent asks for likely intent, shallow misreads, missing constraints, recommended workflow path, and complexity. It must not edit files.
 

@@ -51,7 +51,8 @@ test('workflow session hook emits recovery context for active plans', () => {
   assert.match(output.hookSpecificOutput.additionalContext, /using-workflow/);
   assert.match(output.hookSpecificOutput.additionalContext, /Intent Gate is the default first module/);
   assert.match(output.hookSpecificOutput.additionalContext, /Use Workflow MCP/);
-  assert.match(output.hookSpecificOutput.additionalContext, /Agent Memory installed/);
+  assert.match(output.hookSpecificOutput.additionalContext, /Agent Memory MCP installed/);
+  assert.match(output.hookSpecificOutput.additionalContext, /Do not rely on Codex built-in memory/);
   assert.match(output.hookSpecificOutput.additionalContext, /Merge Request Review installed/);
 });
 
@@ -63,7 +64,7 @@ test('workflow session hook omits companion context when companion plugins are a
 
   const output = runHookWithEnv({ hook_event_name: 'SessionStart', cwd: workspace }, { PLUGIN_ROOT: isolatedPluginRoot }, workspace);
 
-  assert.doesNotMatch(output.hookSpecificOutput.additionalContext, /Agent Memory installed/);
+  assert.doesNotMatch(output.hookSpecificOutput.additionalContext, /Agent Memory MCP installed/);
   assert.doesNotMatch(output.hookSpecificOutput.additionalContext, /Merge Request Review installed/);
 });
 
@@ -203,7 +204,7 @@ test('workflow prompts route subagents by task shape and cap review loops', () =
 
   assert.match(writingPlans, /separate analysis\/decision tasks from small implementation tasks/);
   assert.match(writingPlans, /model_class.*delegation_reason/s);
-  assert.match(executingPlans, /gpt-5\.5 high.*gpt-5\.5 xhigh/);
+  assert.match(executingPlans, /gpt-5\.4 high.*gpt-5\.4 xhigh/);
   assert.match(executingPlans, /gpt-5\.3-codex-spark low/);
   assert.match(executingPlans, /Spark has a smaller context budget/);
   assert.match(executingPlans, /Spark prompt template/);
@@ -216,7 +217,7 @@ test('workflow prompts route subagents by task shape and cap review loops', () =
   assert.match(implementer, /report `NEEDS_CONTEXT`/);
   assert.match(fixTriage, /Stop low-value loops/);
   assert.match(fixTriage, /must_fix.*should_fix.*accept_low.*out_of_scope/s);
-  assert.match(fixTriage, /spark_tiny \| spark_mechanical \| gpt54_implementation \| gpt55_analysis/);
+  assert.match(fixTriage, /spark_tiny \| spark_mechanical \| gpt54_implementation \| gpt54_analysis \| gpt54_risk_review/);
 });
 
 test('workflow skills preserve memory, audit, and MCP guardrails', () => {
@@ -225,8 +226,10 @@ test('workflow skills preserve memory, audit, and MCP guardrails', () => {
   const auditFlow = readFileSync(path.join(skillDir, 'audit-flow/SKILL.md'), 'utf8');
   const workflowMcp = readFileSync(path.join(skillDir, 'workflow-mcp/SKILL.md'), 'utf8');
 
-  assert.match(usingWorkflow, /make an Agent Memory decision/);
-  assert.match(finalizingPlan, /When Agent Memory is available/);
+  assert.match(usingWorkflow, /make an Agent Memory MCP decision/);
+  assert.match(usingWorkflow, /standing authorization/);
+  assert.match(finalizingPlan, /When Agent Memory MCP is available/);
+  assert.match(finalizingPlan, /Do not substitute Codex built-in memory/);
   assert.match(auditFlow, /Reviewer budget/);
   assert.match(auditFlow, /3-6 reviewers is the normal range/);
   assert.match(workflowMcp, /Create vs update guard/);

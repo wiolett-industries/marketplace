@@ -1,7 +1,7 @@
 name = "workflow_sanity_reviewer"
 description = "Review a completed change for obvious breakage, unsafe assumptions, integration gaps, and high-level correctness risks."
 model = "gpt-5.4"
-model_reasoning_effort = "high"
+model_reasoning_effort = "xhigh"
 sandbox_mode = "read-only"
 nickname_candidates = ["Sanity Review", "Breakage Check", "Risk Check"]
 

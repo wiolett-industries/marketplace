@@ -71,7 +71,7 @@ test('review skill keeps public severity format and caps low-value loops', () =>
   assert.match(skill, /Minor` does not block unless it materially affects acceptance/);
   assert.match(skill, /Notes` never block approval/);
   assert.match(skill, /after two failed fix\/re-review cycles escalate/);
-  assert.match(skill, /make an Agent Memory decision/);
+  assert.match(skill, /make an Agent Memory MCP decision/);
   assert.match(skill, /no internal triage labels in GitLab comments/);
 });
 

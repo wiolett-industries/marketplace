@@ -36,7 +36,7 @@ Every pass ends in one state: `blocked`, `findings`, or `clean`.
     - no unresolved plugin-created blockers, pending draft notes, or unposted blocker notes
     - MR CI succeeds, or a user-approved exception is recorded
     - final clean note and approval happen together
-    - before final chat handoff or approval, make an Agent Memory decision when Agent Memory is available; save only durable review/release workflow lessons, repo gotchas, verification sequences, or accepted review patterns
+    - before final chat handoff or approval, make an Agent Memory MCP decision when Agent Memory MCP is available; save only durable review/release workflow lessons, repo gotchas, verification sequences, or accepted review patterns; do not substitute Codex built-in memory
 
 ## MCP Artifacts
 
@@ -98,7 +98,7 @@ Every non-blocked review covers these gates and records coverage:
 
 ## GitLab Comment Formats
 
-Use the dominant MR/discussion language; default English when unclear. Follow project memory/repo convention for review language.
+Use the dominant MR/discussion language; default English when unclear. Follow Agent Memory MCP `scope: "project"` or repo convention for review language.
 
 ### Inline Finding Thread
 

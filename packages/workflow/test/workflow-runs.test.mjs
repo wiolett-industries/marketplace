@@ -249,7 +249,7 @@ test('creates an audit run and writes audit artifacts', () => {
   });
   const update = updateAuditRun(workspace, undefined, [
     { type: 'set_phase', phase: 'sanity_review' },
-    { type: 'upsert_reviewer', reviewer: { id: 'R1', model: 'gpt-5.5', status: 'done' } },
+    { type: 'upsert_reviewer', reviewer: { id: 'R1', model: 'gpt-5.4', status: 'done' } },
   ]);
   const write = writeAuditArtifact({
     workspace_root: workspace,

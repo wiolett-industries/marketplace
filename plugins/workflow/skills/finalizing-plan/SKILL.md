@@ -43,16 +43,16 @@ Run review agents only with explicit subagent authorization. Review agents are r
 
 `medium`/`complex`:
 
-- `workflow_sanity_reviewer`, `gpt-5.4 high`
+- `workflow_sanity_reviewer`, `gpt-5.4 xhigh`
 - `workflow_overall_reviewer`, `gpt-5.4 medium`
-- add `workflow_scope_compliance_reviewer`, `gpt-5.4 medium`, when requirements/contract/acceptance criteria are specific
+- add `workflow_scope_compliance_reviewer`, `gpt-5.4 xhigh`, when requirements/contract/acceptance criteria are specific
 - exit: one `CLEAN`
 
 `very_complex`:
 
-- `workflow_scope_compliance_reviewer`, `gpt-5.5 xhigh`
-- `workflow_sanity_reviewer`, `gpt-5.5 xhigh`
-- `workflow_overall_reviewer`, `gpt-5.5 medium`
+- `workflow_scope_compliance_reviewer`, `gpt-5.4 xhigh`
+- `workflow_sanity_reviewer`, `gpt-5.4 xhigh`
+- `workflow_overall_reviewer`, `gpt-5.4 medium`
 - exit: two acceptable rounds; acceptable is `CLEAN`, or `LOW_ONLY` only immediately after `CLEAN`; `FINDINGS`/`BLOCKED` reset streak
 
 If a named review agent is unavailable, stop the affected step.
@@ -93,10 +93,10 @@ artifacts/review-round-N/
 
 When findings remain:
 
-1. Run `workflow_fix_triage`, `gpt-5.5 medium`.
+1. Run `workflow_fix_triage`, `gpt-5.3-codex-spark medium`.
 2. Remove duplicates/false positives.
 3. Produce 1-4 scoped fix tasks.
-4. Assign tiny mechanical fixes to `gpt-5.3-codex-spark low`, small/medium mechanical fixes to `gpt-5.3-codex-spark medium`, analysis-heavy fixes to `gpt-5.5 high/xhigh`, and broad implementation fixes to `gpt-5.4` at the needed effort.
+4. Assign tiny mechanical fixes to `gpt-5.3-codex-spark low`, small/medium mechanical fixes to `gpt-5.3-codex-spark medium`, analysis-heavy fixes to `gpt-5.4 high/xhigh`, and broad implementation fixes to `gpt-5.4` at the needed effort.
 5. Fix agents use worktrees.
 6. Merge only after review gate.
 7. Reset clean streak when code changes.
@@ -141,7 +141,7 @@ Main thread coordinates agents, normalizes findings, runs verification commands,
 
 Do not require full build/test/review after every tiny user-testing correction. At finalization, use fresh verification evidence.
 
-When Agent Memory is available, make the memory decision before final output: save/update durable repo workflow, verification sequence, root cause, user preference, or recurring gotcha; skip raw progress, obvious code facts, and one-off edits.
+When Agent Memory MCP is available, make the Agent Memory MCP decision before final output: save/update durable repo workflow, verification sequence, root cause, user preference, or recurring gotcha; skip raw progress, obvious code facts, and one-off edits. Do not substitute Codex built-in memory for this decision.
 
 When exit threshold is met and the plan implementation is complete, call `workflow_plan_complete` before final output, handoff, commit, PR, or approval. This is mandatory: a realized plan must not remain active in workflow status. Do not substitute `workflow_plan_update` with `set_phase: complete` unless `workflow_plan_complete` is unavailable; if forced into fallback, also clear root `active_plan` only when it points to the completed run and state that fallback was used.
 

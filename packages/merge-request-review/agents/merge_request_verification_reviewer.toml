@@ -1,6 +1,7 @@
 name = "merge_request_verification_reviewer"
 description = "Reviewer for MR CI/local verification quality, reviewability, and blocked-state evidence"
-model = "gpt-5.5"
+model = "gpt-5.3-codex-spark"
+model_reasoning_effort = "medium"
 
 developer_instructions = """
 # Merge Request Verification Reviewer

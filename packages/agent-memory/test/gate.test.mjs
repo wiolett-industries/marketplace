@@ -32,7 +32,9 @@ describe('memory write gate', () => {
   test('memory skill contains positive write triggers', () => {
     const skill = readFileSync(memorySkill, 'utf8');
 
-    expect(skill).toMatch(/Memory writes are expected for durable lessons/);
+    expect(skill).toMatch(/Agent Memory MCP writes are expected for durable lessons/);
+    expect(skill).toMatch(/Agent Memory MCP vs Codex Built-In Memory/);
+    expect(skill).toMatch(/Do not substitute Codex built-in memory/);
     expect(skill).toMatch(/Before the final response for non-trivial work/);
     expect(skill).toMatch(/root cause, fix pattern, or architecture decision/);
     expect(skill).toMatch(/raw session recap/);

@@ -46,7 +46,7 @@ UI flow adds `ui-contract` before planning and during final review. Audit-only f
 - Non-read-only subagent edits must happen in worktrees.
 - Main thread coordinates, does minimal diff sanity, runs verification commands, and delegates detailed review to agents.
 - If a requested model is unavailable, use the nearest available model that is not weaker for the task class.
-- Before final response, handoff, commit, PR, or approval after non-trivial work, make an Agent Memory decision when Agent Memory is available: save/update durable preferences, repo gotchas, root-cause fixes, verification sequences, or workflow lessons; skip one-off progress and raw session recap.
+- Before final response, handoff, commit, PR, or approval after non-trivial work, make an Agent Memory MCP decision when Agent Memory MCP is available: save/update durable preferences, repo gotchas, root-cause fixes, verification sequences, or workflow lessons; skip one-off progress and raw session recap. Do not substitute Codex built-in memory for this decision.
 
 ## Engineering Rules
 
@@ -70,7 +70,7 @@ When the user is actively testing and sends small fixes:
 
 ## Subagents
 
-Workflow may use subagents automatically only after explicit user authorization for the task/session. Treat authorization as present when the user asks for subagents, agents, delegation, parallel agents, agentic review, automatic workflow agents, or running the workflow with agents.
+Workflow may use subagents automatically only after explicit user authorization for the task/session. Treat authorization as present when the user asks for subagents, agents, delegation, parallel agents, agentic review, automatic workflow agents, running the workflow with agents, or when AGENTS.md/developer/session settings grant standing authorization.
 
 If needed and not yet authorized, ask once:
 
