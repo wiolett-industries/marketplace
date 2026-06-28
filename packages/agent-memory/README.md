@@ -1,8 +1,8 @@
 # Agent Memory
 
-Persistent memory for Codex with separate global and project scopes.
+Persistent memory for agent platforms with separate global and project scopes.
 
-`agent-memory` helps Codex retain durable knowledge without turning every session into prompt archaeology. It gives the model a structured way to store and retrieve:
+`agent-memory` helps Codex and Claude Code retain durable knowledge without turning every session into prompt archaeology. It gives the model a structured way to store and retrieve:
 
 - user preferences and long-lived behavior rules
 - cross-project coding patterns
@@ -129,13 +129,17 @@ Normal reads should use:
 
 ## Install
 
-Register the Wiolett marketplace in Codex:
+Register the Wiolett marketplace in Codex or Claude Code:
 
 ```bash
 codex plugin marketplace add wiolett-industries/marketplace
 ```
 
-Then install `agent-memory` from that marketplace in Codex.
+```text
+/plugin marketplace add wiolett-industries/marketplace
+```
+
+Then install `agent-memory` from that marketplace in your agent platform.
 
 Model access uses Agent Memory's built-in OpenAI-compatible auth resolver. Configure it with:
 
@@ -163,7 +167,7 @@ Without an API key, model-gated writes and semantic search are disabled. Memory 
 
 ## Usage
 
-At conversation start, the bundled skill tells Codex to read global lite memory first:
+At conversation start, the bundled skill tells the agent to read global lite memory first:
 
 ```text
 global_memory_read_lite()

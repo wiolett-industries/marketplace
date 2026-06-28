@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -8,8 +8,19 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const hookScript = path.join(repoRoot, 'plugins/workflow/hooks/workflow-hook.cjs');
-const hookConfig = path.join(repoRoot, 'plugins/workflow/hooks/hooks.json');
+const hookConfig = path.join(repoRoot, 'plugins/workflow/hooks/codex-hooks.json');
 const skillDir = path.join(repoRoot, 'plugins/workflow/skills');
+
+function agentNames(dir, extension) {
+  return readdirSync(path.join(repoRoot, dir))
+    .filter((file) => file.endsWith(extension))
+    .map((file) => path.basename(file, extension))
+    .sort();
+}
+
+function readAgentFile(dir, name, extension) {
+  return readFileSync(path.join(repoRoot, dir, `${name}${extension}`), 'utf8');
+}
 
 function runHook(input, cwd = repoRoot) {
   const result = spawnSync(process.execPath, [hookScript], {
@@ -66,6 +77,41 @@ test('workflow session hook omits companion context when companion plugins are a
 
   assert.doesNotMatch(output.hookSpecificOutput.additionalContext, /Agent Memory MCP installed/);
   assert.doesNotMatch(output.hookSpecificOutput.additionalContext, /Merge Request Review installed/);
+});
+
+test('workflow session hook detects Claude plugin roots and companion manifests', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-claude-workspace-'));
+  const pluginParent = mkdtempSync(path.join(os.tmpdir(), 'workflow-claude-plugins-'));
+  const workflowRoot = path.join(pluginParent, 'workflow');
+  const memoryRoot = path.join(pluginParent, 'agent-memory');
+  const reviewRoot = path.join(pluginParent, 'merge-request-review');
+
+  for (const root of [workflowRoot, memoryRoot, reviewRoot]) {
+    mkdirSync(path.join(root, '.claude-plugin'), { recursive: true });
+    writeFileSync(path.join(root, '.claude-plugin/plugin.json'), JSON.stringify({ name: path.basename(root) }), 'utf8');
+  }
+
+  const output = runHookWithEnv(
+    { hook_event_name: 'SessionStart', cwd: workspace },
+    { PLUGIN_ROOT: '', CLAUDE_PLUGIN_ROOT: workflowRoot },
+    workspace
+  );
+
+  assert.equal(output.continue, true);
+  assert.match(output.hookSpecificOutput.additionalContext, /Agent Memory MCP installed/);
+  assert.match(output.hookSpecificOutput.additionalContext, /Merge Request Review installed/);
+});
+
+test('Codex and Claude workflow hook configs stay platform-specific', () => {
+  const codexConfig = JSON.parse(readFileSync(hookConfig, 'utf8'));
+  const claudeConfig = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/workflow/hooks/hooks.json'), 'utf8'));
+
+  assert.match(codexConfig.hooks.SessionStart[0].hooks[0].command, /PLUGIN_ROOT/);
+  assert.equal(codexConfig.hooks.PostCompact[0].matcher, 'manual|auto');
+  assert.equal(codexConfig.hooks.SubagentStart[0].matcher, '^(workflow_|merge_request_)');
+  assert.match(claudeConfig.hooks.SessionStart[0].hooks[0].command, /CLAUDE_PLUGIN_ROOT/);
+  assert.equal(claudeConfig.hooks.PostToolUse[0].matcher, 'Bash');
+  assert.equal(claudeConfig.hooks.SubagentStart, undefined);
 });
 
 test('workflow subagent stop blocks malformed reviewer output', () => {
@@ -171,9 +217,43 @@ test('only workflow plugin manifest registers hooks', () => {
   const agentMemoryPlugin = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/agent-memory/.codex-plugin/plugin.json'), 'utf8'));
   const mrReviewPlugin = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/merge-request-review/.codex-plugin/plugin.json'), 'utf8'));
 
-  assert.equal(workflowPlugin.hooks, './hooks/hooks.json');
+  assert.equal(workflowPlugin.hooks, './hooks/codex-hooks.json');
   assert.equal(agentMemoryPlugin.hooks, undefined);
   assert.equal(mrReviewPlugin.hooks, undefined);
+});
+
+test('repository ships both Codex and Claude plugin manifests', () => {
+  const codexMarketplace = JSON.parse(readFileSync(path.join(repoRoot, '.agents/plugins/marketplace.json'), 'utf8'));
+  const claudeMarketplace = JSON.parse(readFileSync(path.join(repoRoot, '.claude-plugin/marketplace.json'), 'utf8'));
+  const codexWorkflow = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/workflow/.codex-plugin/plugin.json'), 'utf8'));
+  const claudeWorkflow = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/workflow/.claude-plugin/plugin.json'), 'utf8'));
+  const codexMemory = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/agent-memory/.codex-plugin/plugin.json'), 'utf8'));
+  const claudeMemory = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/agent-memory/.claude-plugin/plugin.json'), 'utf8'));
+  const codexReview = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/merge-request-review/.codex-plugin/plugin.json'), 'utf8'));
+  const claudeReview = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/merge-request-review/.claude-plugin/plugin.json'), 'utf8'));
+  const claudeHookConfig = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/workflow/hooks/hooks.json'), 'utf8'));
+
+  assert.deepEqual(codexMarketplace.plugins.map((plugin) => plugin.name), ['agent-memory', 'workflow', 'merge-request-review']);
+  assert.deepEqual(claudeMarketplace.plugins.map((plugin) => plugin.name), ['agent-memory', 'workflow', 'merge-request-review']);
+  assert.equal(codexWorkflow.hooks, './hooks/codex-hooks.json');
+  assert.equal(claudeWorkflow.name, 'workflow');
+  assert.equal(codexMemory.version, claudeMemory.version);
+  assert.equal(codexWorkflow.version, claudeWorkflow.version);
+  assert.equal(codexReview.version, claudeReview.version);
+  assert.equal(claudeHookConfig.hooks.PostToolUse[0].matcher, 'Bash');
+});
+
+test('workflow and merge request agents stay paired across Codex and Claude', () => {
+  assert.deepEqual(agentNames('packages/workflow/agents', '.toml'), agentNames('plugins/workflow/agents', '.md'));
+  assert.deepEqual(agentNames('packages/merge-request-review/agents', '.toml'), agentNames('plugins/merge-request-review/agents', '.md'));
+});
+
+test('shared workflow agent output contracts keep routing fields', () => {
+  const codexFixTriage = readAgentFile('packages/workflow/agents', 'workflow_fix_triage', '.toml');
+  const claudeFixTriage = readAgentFile('plugins/workflow/agents', 'workflow_fix_triage', '.md');
+
+  assert.match(codexFixTriage, /model_class: spark_tiny \| spark_mechanical \| gpt54_implementation \| gpt54_analysis \| gpt54_risk_review/);
+  assert.match(claudeFixTriage, /model_class: spark_tiny \| spark_mechanical \| gpt54_implementation \| gpt54_analysis \| gpt54_risk_review/);
 });
 
 test('workflow skills make intent gate and MCP usage mandatory by default', () => {

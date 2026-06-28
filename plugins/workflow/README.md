@@ -1,6 +1,6 @@
 # Workflow
 
-Modular Codex workflow framework for intent checks, context discovery, audits, frontend UI contracts, durable plans, subagent execution, and review/fix finalization.
+Modular workflow framework for Codex and Claude Code: intent checks, context discovery, audits, frontend UI contracts, durable plans, subagent execution, and review/fix finalization.
 
 Full flow:
 
@@ -28,14 +28,14 @@ This plugin ships:
 - `Executing Plans` to execute plan tasks with state recovery and worktree-isolated subagents
 - `Finalizing Plan` to run complexity-based review/fix loops
 - `Workflow MCP` to describe bundled MCP tool contracts for plan/audit artifact state
-- consolidated Codex hooks for workflow startup/subagent contracts plus installed companion plugin hints/checks
+- consolidated platform hooks for workflow startup/subagent contracts plus installed companion plugin hints/checks
 - a bundled workflow MCP server that syncs `workflow_*` custom agents globally at startup and exposes deterministic `.workflow/` plan/audit artifact tools
 
 Workflow artifacts are filesystem-first. Use workflow MCP to create, update, complete, inspect, and normalize plan/audit artifacts whenever tools are available; manual `.workflow/` writes are fallback only. This version does not use a workflow RAG layer.
 
 ## Hook Consolidation
 
-Workflow is the only Wiolett plugin that registers Codex hooks. Its hook detects installed sibling plugins and adapts context:
+Workflow is the only Wiolett plugin that registers platform hooks. Its hook detects installed sibling plugins and adapts context:
 
 - with `agent-memory`, SessionStart includes memory setup/read/write reminders
 - with `merge-request-review`, merge_request_* subagents get MR review prompts and output validation
@@ -46,13 +46,16 @@ Subagents are automatic only after the user explicitly authorizes agent/delegati
 
 ## Custom Agents
 
-The workflow custom agents use Codex's custom-agent schema (`name`, `description`, `developer_instructions`, and optional model/sandbox settings). They are shipped by the bundled `@wiolett/workflow` MCP package.
+The workflow custom agents are committed in platform-native formats:
+
+- Codex TOML agents are shipped by the bundled `@wiolett/workflow` MCP package.
+- Claude Code markdown agents live under `plugins/workflow/agents/`.
 
 Codex loads custom agents from `.codex/agents/` or `~/.codex/agents/`. The workflow MCP syncs its packaged agent definitions into the correct Codex agents directory at startup and validates that the loaded versions match the package source.
 
 Workflow skills should use the named `workflow_*` custom agents directly. Missing workflow agents are a setup problem, not a reason to silently use generic built-in agents.
 
-The sync target is global only: `~/.codex/agents/`. Project-scoped `.codex/agents/` sync is intentionally not used. For other CLI compatibility, the workflow MCP also creates best-effort links under `~/.agents/agents/`.
+The Codex sync target is global only: `~/.codex/agents/`. Project-scoped `.codex/agents/` sync is intentionally not used. For other CLI compatibility, the workflow MCP also creates best-effort links under `~/.agents/agents/`.
 
 ## MCP Tools
 

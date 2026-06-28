@@ -55,11 +55,11 @@ function readJson(file) {
 }
 
 function workflowPluginRoot() {
-  return process.env.PLUGIN_ROOT || path.resolve(__dirname, "..");
+  return process.env.PLUGIN_ROOT || process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, "..");
 }
 
 function hasPluginManifest(root) {
-  return fs.existsSync(path.join(root, ".codex-plugin", "plugin.json"));
+  return fs.existsSync(path.join(root, ".codex-plugin", "plugin.json")) || fs.existsSync(path.join(root, ".claude-plugin", "plugin.json"));
 }
 
 function newestVersionRoot(container) {

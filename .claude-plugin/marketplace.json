@@ -1,0 +1,27 @@
+{
+  "name": "wiolett-industries",
+  "owner": {
+    "name": "Wiolett Industries",
+    "url": "https://wiolett.net"
+  },
+  "plugins": [
+    {
+      "name": "agent-memory",
+      "source": "./plugins/agent-memory",
+      "description": "Persistent scoped agent memory with compiled recall, graph tools, and a local dashboard.",
+      "category": "productivity"
+    },
+    {
+      "name": "workflow",
+      "source": "./plugins/workflow",
+      "description": "Modular agentic workflow framework for intent, planning, execution, and review/fix loops.",
+      "category": "development"
+    },
+    {
+      "name": "merge-request-review",
+      "source": "./plugins/merge-request-review",
+      "description": "Discussion-aware GitLab merge request review with strict gates and approval discipline.",
+      "category": "development"
+    }
+  ]
+}

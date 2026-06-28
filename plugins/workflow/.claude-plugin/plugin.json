@@ -1,0 +1,24 @@
+{
+  "name": "workflow",
+  "version": "0.4.0",
+  "description": "Modular agentic workflows for Claude Code: intent gating, context discovery, audits, UI contracts, durable plans, workflow MCP artifacts, subagent execution, and review/fix loops.",
+  "author": {
+    "name": "Wiolett Industries",
+    "url": "https://wiolett.net"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/workflow",
+  "repository": "https://github.com/wiolett-industries/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "planning",
+    "audit",
+    "review",
+    "ui",
+    "frontend",
+    "agents",
+    "intent",
+    "subagents",
+    "worktrees"
+  ]
+}

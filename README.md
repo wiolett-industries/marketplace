@@ -1,79 +1,95 @@
-# Wiolett Marketplace
+# Wiolett Industries Agent Plugins
 
-Codex plugin marketplace for Wiolett Industries.
+Unified marketplace source for Wiolett Industries agent plugins.
 
-This repository provides a Codex marketplace source, exposed through [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json).
+This repository ships both Codex and Claude Code plugin metadata from the same
+branch. Platform-specific manifests and generated agent definitions are committed
+so users can install directly without running generators or setup commands.
 
-The marketplace currently ships:
+## Plugins
 
-- [`agent-memory`](./plugins/agent-memory) — persistent scoped memory for Codex with compiled recall and automatic graph links
-- [`workflow`](./plugins/workflow) — modular agentic workflow framework for intent, planning, execution, review/fix loops, and consolidated hooks
-- [`merge-request-review`](./plugins/merge-request-review) — discussion-aware GitLab merge request review with strict gates and approval discipline
+- [`agent-memory`](./plugins/agent-memory) - persistent scoped memory with
+  compiled recall, automatic graph links, graph pathfinding, health/prune
+  maintenance, and a local read-only dashboard
+- [`workflow`](./plugins/workflow) - modular agentic workflow framework for
+  intent, planning, execution, audits, UI contracts, and review/fix loops
+- [`merge-request-review`](./plugins/merge-request-review) - discussion-aware
+  GitLab merge request review with strict gates and approval discipline
 
 ## Install In Codex
 
-Register the marketplace with Codex:
+Register the marketplace:
 
 ```bash
 codex plugin marketplace add wiolett-industries/marketplace
 ```
 
-To pin a specific ref:
-
-```bash
-codex plugin marketplace add wiolett-industries/marketplace --ref main
-```
-
-To register a local checkout:
+For local development:
 
 ```bash
 codex plugin marketplace add /absolute/path/to/local/marketplace
 ```
 
-To refresh or remove the marketplace:
+Then install the plugins you want from Codex.
 
-```bash
-codex plugin marketplace upgrade wiolett-industries
-codex plugin marketplace remove wiolett-industries
+## Install In Claude Code
+
+Register the same branch as a Claude Code marketplace:
+
+```text
+/plugin marketplace add wiolett-industries/marketplace
 ```
 
-After the marketplace is registered, install the plugin you want from Codex.
+Then install the plugins you want:
 
-The marketplace itself does not require an OpenAI API key. The `agent-memory` plugin uses `OPENAI_API_KEY` or `~/.agents/.wiolett/auth-config.json` for model-gated writes, embeddings, semantic search, and graph-link review when configured.
+```text
+/plugin install agent-memory@wiolett-industries
+/plugin install workflow@wiolett-industries
+/plugin install merge-request-review@wiolett-industries
+```
 
-After installing `agent-memory`, configure model access once:
+## Model Access
+
+`agent-memory` uses `OPENAI_API_KEY` or
+`~/.agents/.wiolett/auth-config.json` for model-gated writes, embeddings,
+semantic search, and graph-link review.
+
+Configure once:
 
 ```bash
 npx -y @wiolett/agent-memory@latest init
 ```
 
-The init command prompts for an OpenAI API key and writes `~/.agents/.wiolett/auth-config.json`.
+## Agent Memory Dashboard
 
-## Included Plugins
+Inspect a project or global memory store visually:
 
-### Agent Memory
-
-`agent-memory` gives Codex durable memory in two scopes:
-
-- global memory for preferences, model behavior, and cross-project patterns
-- project memory for repo-specific workflows, conventions, redacted integration processes, and operational knowledge
-
-It supports lazy no-op reads for projects without memory, model-gated writes, compiled recall/query answers, and automatic graph links between graph-capable memories. When `workflow` is also installed, the consolidated workflow hook adds Agent Memory startup reminders.
-
-### Workflow
-
-`workflow` is the consolidated engineering workflow plugin. It includes intent gating, context discovery, frontend UI contracts, durable `.workflow/plans/<date-slug>/` and `.workflow/audits/<date-slug>/` artifacts, stateful execution, worktree-isolated subagent policy, final review/fix loops, consolidated Codex startup/subagent hooks, and a bundled MCP server that syncs workflow custom agents globally at startup and provides deterministic plan/audit artifact tools.
-
-### Merge Request Review
-
-`merge-request-review` gives Codex a careful GitLab merge request review workflow with discussion intake, strict findings, re-review loops, fixed note formats, and approval only after blocker threads are resolved. When `workflow` is also installed, the consolidated workflow hook applies merge-request reviewer prompts and output checks.
+```bash
+npx -y @wiolett/agent-memory@latest view
+npx -y @wiolett/agent-memory@latest view global
+```
 
 ## Repository Layout
 
-- marketplace manifest: [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json)
-- plugin: [`plugins/agent-memory`](./plugins/agent-memory)
-- plugin: [`plugins/workflow`](./plugins/workflow)
-- plugin: [`plugins/merge-request-review`](./plugins/merge-request-review)
-- MCP implementation: [`packages/agent-memory`](./packages/agent-memory)
-- Workflow MCP implementation: [`packages/workflow`](./packages/workflow)
-- Merge request review implementation: [`packages/merge-request-review`](./packages/merge-request-review)
+- Codex marketplace: [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json)
+- Claude Code marketplace: [`.claude-plugin/marketplace.json`](./.claude-plugin/marketplace.json)
+- Codex plugin manifests: `plugins/*/.codex-plugin/plugin.json`
+- Claude Code plugin manifests: `plugins/*/.claude-plugin/plugin.json`
+- Codex workflow/MR agents: `packages/*/agents/*.toml`
+- Claude Code workflow/MR agents: `plugins/*/agents/*.md`
+
+The platform-specific agent files are intentionally committed. Maintainers may
+use generators in the future, but generated outputs must stay in git so install
+and runtime behavior remain turnkey.
+
+## Development
+
+```bash
+pnpm install
+pnpm test
+pnpm typecheck
+```
+
+## License
+
+MIT - see [LICENSE.md](./LICENSE.md).
