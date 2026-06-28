@@ -1,7 +1,7 @@
 {
   "name": "agent-memory",
-  "version": "0.2.5",
-  "description": "Persistent, searchable Agent Memory with global/project scopes, compiled recall, and automatic graph links.",
+  "version": "0.4.0",
+  "description": "Persistent, searchable Agent Memory with global/project scopes, compiled recall, graph links, pathfinding, health/prune tools, and a local dashboard.",
   "author": {
     "name": "Wiolett Industries",
     "url": "https://wiolett.net"
@@ -20,8 +20,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Agent Memory",
-    "shortDescription": "Persistent scoped memory with compiled recall and graph links",
-    "longDescription": "A persistent memory plugin for Codex. It stores durable global preferences and project-specific workflows, supports deep memories, lite indexes, automatic/manual graph links, semantic search when embeddings are configured, lazy no-op reads for uninitialized projects, model-gated writes, and an interactive init flow for OpenAI API credentials.",
+    "shortDescription": "Persistent scoped memory with recall, graph tools, and a dashboard",
+    "longDescription": "A persistent memory plugin for Codex. It stores durable global preferences and project-specific workflows, supports deep memories, lite indexes, automatic/manual graph links, graph-expanded query, memory pathfinding, graph health/prune maintenance, semantic search when embeddings are configured, lazy no-op reads for uninitialized projects, model-gated writes, an interactive init flow for OpenAI API credentials, and a local read-only dashboard via agent-memory view.",
     "developerName": "Wiolett Industries",
     "category": "Productivity",
     "capabilities": [

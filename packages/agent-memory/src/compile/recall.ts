@@ -1,4 +1,4 @@
-import { getEdgeSummaries, getEntryById, getNeighborSummaries } from '../db.js';
+import { getEdgeSummaries, getEntryById, getIncomingSupersededIds, getNeighborSummaries } from '../db.js';
 import { withoutEmbedding } from '../entry.js';
 import { canParticipateInGraph } from '../graph.js';
 import { getModelClient } from '../model-provider.js';
@@ -32,16 +32,28 @@ export async function compileRecall(args: {
   const primary = entry?.layer === 'lite' && entry.ref ? getEntryById(entry.ref, scope) : entry;
   if (!primary || !canParticipateInGraph(primary)) return null;
 
+  // NOTE: `max_depth` does NOT traverse multiple graph hops. Recall always
+  // compiles a single hop of direct neighbors; `max_depth > 1` only widens how
+  // many 1-hop neighbors are included (breadth: 20 -> 40), surfacing more
+  // directly-related memories rather than more distant ones. Multi-hop graph
+  // traversal lives in handleSubgraph / spreadingActivation, not here.
+  const neighborLimit = args.max_depth && args.max_depth > 1 ? 40 : 20;
   const neighbors = getNeighborSummaries({
     id: primary.id,
     direction: 'both',
     minWeight: 0,
-    limit: args.max_depth && args.max_depth > 1 ? 40 : 20,
+    limit: neighborLimit,
     scope,
   });
-  const related = neighbors
+  const relatedEntries = neighbors
     .map((neighbor) => ({ neighbor, entry: getEntryById(neighbor.id, scope) }))
     .filter((item): item is { neighbor: typeof neighbors[number]; entry: NonNullable<ReturnType<typeof getEntryById>> } => canParticipateInGraph(item.entry ?? null));
+  // Batch the superseded check (one query) instead of per-neighbor edge lookups.
+  const supersededIds = getIncomingSupersededIds(relatedEntries.map((item) => item.entry.id), scope);
+  const related = relatedEntries
+    .map((item) => ({ ...item, superseded: supersededIds.has(item.entry.id) }))
+    // B1: down-rank superseded memories so fresh context wins the related cap.
+    .sort((left, right) => Number(left.superseded) - Number(right.superseded));
 
   const deterministic = buildDeterministicAnswer(primary, related, args.detail ?? 'normal');
   const model = await getModelClient();

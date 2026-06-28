@@ -16,10 +16,17 @@ import { handleReadAll } from '../dist/tools/read-all.js';
 import { handleGet } from '../dist/tools/get.js';
 import { handleSearch } from '../dist/tools/search.js';
 import { handleDelete } from '../dist/tools/delete.js';
-import { handleLink, handleNeighbors, handleSubgraph, handleUnlink } from '../dist/tools/graph.js';
+import { handleGraphPrune, handleLink, handleNeighbors, handleSubgraph, handleUnlink } from '../dist/tools/graph.js';
+import { getOutgoingEdgeRecords, replaceOutgoingEdges } from '../dist/db.js';
+import { writeGraphFile } from '../dist/files.js';
 import { handleInspect } from '../dist/tools/inspect.js';
 import { handleRecall } from '../dist/tools/recall.js';
+import { handleQuery } from '../dist/tools/query.js';
 import { rebuildFromFiles } from '../dist/rebuild.js';
+import { spreadingActivation } from '../dist/retrieval/activation.js';
+import { handlePath } from '../dist/tools/path.js';
+import { buildSupersedeOutcome } from '../dist/auto-link.js';
+import { startViewServer } from '../dist/view/server.js';
 
 if (!process.env.PROJECT_MEMORY_AGENTS_HOME) {
   process.env.PROJECT_MEMORY_AGENTS_HOME = mkdtempSync(path.join(os.tmpdir(), 'pm-agents-home-'));
@@ -512,9 +519,310 @@ async function runMcpReadUninitialized() {
   };
 }
 
+function activationToObject(map) {
+  return Object.fromEntries([...map.entries()].map(([id, value]) => [id, value]));
+}
+
+async function runActivation() {
+  const projectDir = createTempProject('pm-activation');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    // Disjoint content/tags so no auto-links form (no API key -> semantic 0,
+    // zero tag/token overlap -> below the 0.10 project threshold). Only the
+    // manual edges below exist, making activation deterministic.
+    const a = await handleWrite({ content: 'alpha apple', tags: ['alpha'], summary: 'alpha' });
+    const b = await handleWrite({ content: 'bravo banana', tags: ['bravo'], summary: 'bravo' });
+    const c = await handleWrite({ content: 'charlie cherry', tags: ['charlie'], summary: 'charlie' });
+    const d = await handleWrite({ content: 'delta date', tags: ['delta'], summary: 'delta' });
+
+    handleLink({ from_id: a.id, to_id: b.id, relation: 'related_to', weight: 0.9 });
+    handleLink({ from_id: b.id, to_id: c.id, relation: 'depends_on', weight: 0.8 });
+    handleLink({ from_id: c.id, to_id: d.id, relation: 'related_to', weight: 0.5 });
+
+    const seeds = [{ id: a.id, weight: 1 }];
+    const both = spreadingActivation({ seeds, hops: 2, decay: 0.5, minWeight: 0.2, direction: 'both', scope: 'project' });
+    const hop1 = spreadingActivation({ seeds, hops: 1, decay: 0.5, minWeight: 0.2, direction: 'both', scope: 'project' });
+    const capped = spreadingActivation({ seeds, hops: 2, decay: 0.5, minWeight: 0.2, maxNodes: 1, direction: 'both', scope: 'project' });
+    const noSeeds = spreadingActivation({ seeds: [], hops: 2, scope: 'project' });
+    const minWeightFilter = spreadingActivation({ seeds, hops: 2, decay: 0.5, minWeight: 0.85, direction: 'both', scope: 'project' });
+
+    return {
+      ids: { a: a.id, b: b.id, c: c.id, d: d.id },
+      both: activationToObject(both),
+      hop1: activationToObject(hop1),
+      capped: activationToObject(capped),
+      noSeeds: activationToObject(noSeeds),
+      minWeightFilter: activationToObject(minWeightFilter),
+    };
+  });
+}
+
+async function runPath() {
+  const projectDir = createTempProject('pm-path');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    const a = await handleWrite({ content: 'alpha apple', tags: ['alpha'], summary: 'alpha' });
+    const b = await handleWrite({ content: 'bravo banana', tags: ['bravo'], summary: 'bravo' });
+    const d = await handleWrite({ content: 'delta date', tags: ['delta'], summary: 'delta' });
+    const e = await handleWrite({ content: 'echo elderberry', tags: ['echo'], summary: 'echo' });
+
+    // Direct weak edge A->D (0.3, 1 hop) vs strong 2-hop A->B->D (0.9*0.9=0.81).
+    handleLink({ from_id: a.id, to_id: d.id, relation: 'related_to', weight: 0.3 });
+    handleLink({ from_id: a.id, to_id: b.id, relation: 'related_to', weight: 0.9 });
+    handleLink({ from_id: b.id, to_id: d.id, relation: 'related_to', weight: 0.9 });
+
+    let pointerError = false;
+    try {
+      handlePath({ from_id: a.pointer_id, to_id: d.id, scope: 'project' });
+    } catch {
+      pointerError = true;
+    }
+
+    return {
+      ids: { a: a.id, b: b.id, d: d.id, e: e.id, pointer: a.pointer_id },
+      shortest: handlePath({ from_id: a.id, to_id: d.id, strategy: 'shortest', scope: 'project' }),
+      strongest: handlePath({ from_id: a.id, to_id: d.id, strategy: 'strongest', scope: 'project' }),
+      noPath: handlePath({ from_id: a.id, to_id: e.id, scope: 'project' }),
+      selfPath: handlePath({ from_id: a.id, to_id: a.id, scope: 'project' }),
+      pointerError,
+    };
+  });
+}
+
+async function runHealth() {
+  const projectDir = createTempProject('pm-health');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    const a = await handleWrite({ content: 'alpha apple', tags: ['alpha'], summary: 'alpha' });
+    const b = await handleWrite({ content: 'bravo banana', tags: ['bravo'], summary: 'bravo' });
+    await handleWrite({ content: 'charlie cherry', tags: ['charlie'], summary: 'charlie' }); // orphan deep
+    await handleWrite({ content: 'lima lemon', tags: ['lima'], layer: 'lite' }); // orphan standalone lite
+
+    handleLink({ from_id: a.id, to_id: b.id, relation: 'related_to', weight: 0.9 });
+
+    return { health: handleInspect({ view: 'health' }) };
+  });
+}
+
+async function runPrune() {
+  const projectDir = createTempProject('pm-prune');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    const a = await handleWrite({ content: 'alpha apple', tags: ['alpha'], summary: 'alpha' });
+    const b = await handleWrite({ content: 'bravo banana', tags: ['bravo'], summary: 'bravo' });
+    const aEntry = handleGet({ id: a.id });
+    const ts = 1700000000000;
+
+    // Inject a controlled outgoing set on A: 2 manual (one low-weight) + 2 auto
+    // (one below threshold, one dangling). Disjoint content means no auto-links
+    // form on their own, so this is the entire outgoing set.
+    const edges = [
+      { from_id: a.id, to_id: b.id, relation: 'related_to', weight: 0.9, reason: null, source: 'manual', created_at: ts, updated_at: ts },
+      { from_id: a.id, to_id: b.id, relation: 'uses_service', weight: 0.05, reason: null, source: 'manual', created_at: ts, updated_at: ts },
+      { from_id: a.id, to_id: b.id, relation: 'depends_on', weight: 0.1, reason: null, source: 'auto', created_at: ts, updated_at: ts },
+      { from_id: a.id, to_id: 'zznonexist', relation: 'same_area', weight: 0.5, reason: null, source: 'auto', created_at: ts, updated_at: ts },
+    ];
+    writeGraphFile(aEntry.file_name, edges, 'project');
+    replaceOutgoingEdges(a.id, edges, 'project');
+
+    const before = getOutgoingEdgeRecords(a.id, 'project').length;
+    const dry = handleGraphPrune({ min_weight: 0.2, dry_run: true, scope: 'project' });
+    const afterDry = getOutgoingEdgeRecords(a.id, 'project').length;
+    const real = handleGraphPrune({ min_weight: 0.2, dry_run: false, scope: 'project' });
+    const afterReal = getOutgoingEdgeRecords(a.id, 'project');
+
+    return {
+      ids: { a: a.id, b: b.id },
+      before,
+      dry,
+      afterDry,
+      real,
+      afterRealCount: afterReal.length,
+      afterRealSources: afterReal.map((edge) => edge.source).sort(),
+      afterRealRelations: afterReal.map((edge) => edge.relation).sort(),
+    };
+  });
+}
+
+async function runQueryExpand() {
+  const projectDir = createTempProject('pm-query-expand');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    // A matches the query text; B does not (and has no embedding without a key),
+    // so search alone never returns B. A manual edge connects them.
+    const a = await handleWrite({ content: 'deployment rollback runbook', tags: ['deploy'], summary: 'rollback runbook' });
+    const b = await handleWrite({ content: 'obscure vault token rotation', tags: ['vault'], summary: 'vault rotation' });
+    handleLink({ from_id: a.id, to_id: b.id, relation: 'related_to', weight: 0.9 });
+
+    const noExpand = await handleQuery({ query: 'deployment rollback', scope: 'project', expand: false });
+    const expand = await handleQuery({ query: 'deployment rollback', scope: 'project' });
+
+    return {
+      ids: { a: a.id, b: b.id },
+      noExpandCandidateIds: noExpand.candidates.map((candidate) => candidate.id),
+      expandCandidateIds: expand.candidates.map((candidate) => candidate.id),
+      expandCandidates: expand.candidates,
+      expandAnswer: expand.answer,
+    };
+  });
+}
+
+async function runSupersede() {
+  const ts = 1700000000000;
+  const pure = buildSupersedeOutcome(
+    'SRC',
+    [
+      { id: 'old1', verdict: 'supersedes', confidence: 0.9, reason: 'replaced' },
+      { id: 'dup1', verdict: 'duplicate', confidence: 0.8 },
+      { id: 'ind1', verdict: 'independent', confidence: 0.95 },
+      { id: 'low1', verdict: 'supersedes', confidence: 0.5 }, // below confidence floor
+      { id: 'SRC', verdict: 'supersedes', confidence: 0.99 }, // self reference
+    ],
+    ts
+  );
+
+  const projectDir = createTempProject('pm-supersede');
+  const writes = await withProject(projectDir, async () => {
+    ensureMemoryReady();
+    // Two near-identical memories. With no model/key, supersede detection is a
+    // no-op: the write result must carry no supersedes/duplicate_of.
+    const first = await handleWrite({ content: 'The deploy region is us-east-1', tags: ['deploy', 'region'], summary: 'deploy region' });
+    const second = await handleWrite({ content: 'The deploy region is now eu-west-1, not us-east-1', tags: ['deploy', 'region'], summary: 'deploy region updated' });
+    return { first, second };
+  });
+
+  return { pure, ...writes };
+}
+
+async function runDerank() {
+  const projectDir = createTempProject('pm-derank');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    // A and B match the query equally; C supersedes B (manual supersedes edge),
+    // so B carries an incoming supersedes edge and must be downranked.
+    const a = await handleWrite({ content: 'deploy region config alpha', tags: ['deploy'], summary: 'a' });
+    const b = await handleWrite({ content: 'deploy region config bravo', tags: ['deploy'], summary: 'b' });
+    const c = await handleWrite({ content: 'vault token rotation secret', tags: ['vault'], summary: 'c' });
+    handleLink({ from_id: c.id, to_id: b.id, relation: 'supersedes', weight: 0.9 });
+
+    const search = await handleSearch({ query: 'deploy region config', scope: 'project' });
+
+    // Recall: primary P links to a fresh memory D and the superseded B at equal
+    // weight; the superseded one must sort after the fresh one in related order.
+    const p = await handleWrite({ content: 'primary anchor note xyz', tags: ['anchor'], summary: 'p' });
+    const d = await handleWrite({ content: 'fresh distinct note qwe', tags: ['fresh'], summary: 'd' });
+    handleLink({ from_id: p.id, to_id: b.id, relation: 'related_to', weight: 0.5 });
+    handleLink({ from_id: p.id, to_id: d.id, relation: 'related_to', weight: 0.5 });
+    const recall = await handleRecall({ memory_id: p.id, scope: 'project' });
+
+    return {
+      ids: { a: a.id, b: b.id, c: c.id, d: d.id, p: p.id },
+      search: search.map((entry) => ({ id: entry.id, score: entry.score, superseded: entry.superseded })),
+      recallRelatedIds: recall.sources.filter((source) => source.role === 'related').map((source) => source.id),
+    };
+  });
+}
+
+async function runViewServer() {
+  const projectDir = createTempProject('pm-view');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady('project');
+
+    const write = async (content, tags, summary) => {
+      const result = await handleWrite({ content, tags, summary });
+      return handleGet({ id: result.id });
+    };
+
+    const a = await write('Deployment pipeline uploads built assets to MinIO buckets', ['deploy', 'minio'], 'Deploy pipeline');
+    const b = await write('Static bucket configuration consumed by deployment jobs', ['bucket', 'config'], 'Bucket config');
+    const c = await write('Next.js plus FastAPI is the preferred testnet stack', ['stack', 'nextjs'], 'Preferred stack');
+    const d = await write('Old deploy pipeline using rsync to a VPS (deprecated)', ['deploy', 'legacy'], 'Legacy deploy');
+    const e = await write('Embedding model is OpenAI text-embedding-3-small', ['embeddings'], 'Embedding model');
+
+    handleLink({ from_id: a.id, to_id: b.id, relation: 'uses_service', weight: 0.82, reason: 'pipeline reads bucket config' });
+    handleLink({ from_id: a.id, to_id: b.id, relation: 'related_to', weight: 0.6, reason: 'both about asset delivery' });
+    handleLink({ from_id: b.id, to_id: c.id, relation: 'part_of', weight: 0.55, reason: 'config part of stack' });
+    handleLink({ from_id: a.id, to_id: d.id, relation: 'supersedes', weight: 0.9, reason: 'new pipeline replaces rsync' });
+    handleLink({ from_id: c.id, to_id: e.id, relation: 'depends_on', weight: 0.4, reason: 'stack depends on model' });
+
+    // Inject deterministic clustered embeddings so the scatter projects (no model).
+    const embDir = path.join(projectDir, '.memory', 'embeddings');
+    [a, b, c, d, e].forEach((entry, index) => {
+      const base = index < 2 ? 0 : 1;
+      const vector = Array.from({ length: 6 }, (_unused, k) => Number((base + Math.sin((index + 1) * (k + 1)) * 0.3).toFixed(4)));
+      writeFileSync(path.join(embDir, `${entry.file_name}.embeddings`), JSON.stringify(vector));
+    });
+
+    // Re-ingest from disk so the injected embeddings reach the cache. (resetMemoryReady
+    // keys on projectDir while the cached flag keys on the realpath cwd, so rebuild
+    // explicitly rather than relying on the lazy reset path.)
+    rebuildFromFiles('project');
+
+    const handle = await startViewServer({ scope: 'project', port: 0, version: '9.9.9' });
+    const base = handle.url;
+    const json = async (route) => (await fetch(base + route)).json();
+    try {
+      const meta = await json('/api/meta');
+      const graph = await json('/api/graph');
+      const health = await json('/api/health');
+      const scatter = await json('/api/scatter');
+      const list = await json('/api/list');
+      const search = await json('/api/search?q=bucket%20config');
+      const query = await json('/api/query?q=bucket%20config&expand=true');
+      const detail = await json(`/api/memory/${a.id}`);
+      const missing = await fetch(`${base}/api/memory/does-not-exist`);
+      const pathResult = await json(`/api/path?from=${a.id}&to=${c.id}&strategy=shortest`);
+      const indexHtml = await (await fetch(`${base}/`)).text();
+      const traversal = await fetch(`${base}/..%2f..%2fetc%2fpasswd`, { redirect: 'manual' });
+
+      return {
+        port: handle.port,
+        metaEnabled: meta.enabled === true,
+        metaVersion: meta.version,
+        embeddingsAvailable: meta.embeddings_available,
+        graphNodes: graph.nodes.length,
+        graphEdges: graph.edges.length,
+        supersededCount: graph.nodes.filter((node) => node.superseded).length,
+        symmetricEdgeCount: graph.edges.filter((edge) => edge.symmetric).length,
+        hasStandalone: graph.nodes.some((node) => node.is_standalone),
+        healthEdges: health.edges.total,
+        scatterN: scatter.n,
+        scatterPoints: scatter.points.length,
+        listCount: list.items.length,
+        searchCount: search.length,
+        queryHasCandidates: Array.isArray(query.candidates),
+        queryCandidateCount: Array.isArray(query.candidates) ? query.candidates.length : -1,
+        detailId: detail.id,
+        detailHasLinks: Boolean(detail.links),
+        missingStatus: missing.status,
+        pathFound: pathResult.found,
+        pathHops: pathResult.hops,
+        servesIndex: indexHtml.includes('id="root"'),
+        traversalStatus: traversal.status,
+      };
+    } finally {
+      await handle.close();
+    }
+  });
+}
+
 const mode = process.argv[2];
 
 const runners = {
+  'view-server': runViewServer,
+  activation: runActivation,
+  path: runPath,
+  health: runHealth,
+  prune: runPrune,
+  'query-expand': runQueryExpand,
+  supersede: runSupersede,
+  derank: runDerank,
   setup: runSetup,
   'setup-local-embeddings': runSetupLocalEmbeddings,
   memory: runMemory,

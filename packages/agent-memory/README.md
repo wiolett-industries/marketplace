@@ -18,8 +18,11 @@ This package backs the standalone Agent Memory plugin.
 - deep canonical memories plus a separate lightweight index layer
 - semantic and keyword search
 - meaningful memory filenames
-- weighted graph links between deep memories and standalone lite memories
+- weighted, typed graph links between deep memories and standalone lite memories
 - automatic graph-link suggestions on save/update without touching manual links
+- graph-expanded `memory_query`: surfaces edge-connected memories the query text missed
+- supersede/duplicate detection on save: contradicting memories get a `supersedes` edge and are downranked (never deleted)
+- pathfinding between two memories and read-only graph health metrics + auto-edge pruning
 - sanity-gated saves and stable in-place memory updates
 - compiled recall/query answers with source references
 - automatic project-memory setup on write/mutation use; reads stay no-op when project memory is absent
@@ -91,9 +94,20 @@ Canonical tools:
 - `memory_link`
 - `memory_unlink`
 - `memory_graph`
+- `memory_path`
+- `memory_graph_prune`
 - `memory_setup`
 
 Every canonical tool except `memory_setup` accepts an optional `scope` of `project` or `global`; project is the default. `memory_setup` initializes or repairs project memory for the current repo.
+
+Graph tools:
+
+- `memory_graph` reads neighbors or a bounded subgraph for one memory
+- `memory_path` finds a path between two memories (`strategy: shortest | strongest`)
+- `memory_inspect` with `view: "health"` returns graph metrics (orphans, dangling edges, hubs, relation distribution, weight histogram, dead pointers)
+- `memory_graph_prune` removes unhealthy auto edges (dangling and/or below a weight floor); manual edges are never touched and it defaults to a dry run
+
+`memory_path` and `memory_graph_prune` also have `global_`-prefixed variants bound to global scope.
 
 Compatibility aliases remain available until the bundled skills move to the new names:
 
@@ -167,6 +181,52 @@ memory_query(query="How do releases work?")
 memory_recall(memory_id="abc123xy")
 memory_inspect(view="all")
 ```
+
+## View — local dashboard
+
+`agent-memory view` opens a read-only control panel for a memory store in your
+browser. It boots a loopback-only HTTP server (`127.0.0.1`) that serves a
+prebuilt SPA plus a small JSON API, reading the same files the MCP server uses.
+
+Run it with `npx` (no install needed):
+
+```bash
+npx -y @wiolett/agent-memory@latest view                # current dir's ./.memory
+npx -y @wiolett/agent-memory@latest view ./some/project # that project's .memory
+npx -y @wiolett/agent-memory@latest view global         # the global store
+```
+
+Or, if the package is installed, use the `agent-memory` bin directly:
+
+```bash
+agent-memory view                 # current directory's ./.memory
+agent-memory view ./some/project  # that project's .memory
+agent-memory view global          # the global store (~/.agents/agent-memory)
+```
+
+Options:
+
+- `--port <n>` — preferred port (default `7077`; auto-increments if taken)
+- `--no-open` — do not launch the browser automatically
+
+Panels:
+
+- **Graph** — force-directed view of memories and their links; filter by
+  relation, manual/auto source, and weight; click a node for its content,
+  tags, and neighbors. Superseded memories are dimmed.
+- **Memory** — searchable list of every memory and index entry.
+- **Health** — graph metrics (orphans, dangling edges, hubs, weight
+  histogram, dead pointers) mirroring `memory_inspect view=health`.
+- **Query** — run `search` and graph-expanded `query` side by side and see how
+  results are scored and graph-connected.
+- **Path** — trace the shortest or strongest path between two memories and
+  highlight it on the graph.
+- **Scatter** — 2D PCA projection of memory embeddings (needs an embedding
+  provider and at least two embedded memories).
+
+The dashboard is read-only and live: editing a `.md` or graph file on disk
+refreshes the open panel automatically. The server is lazy-loaded, so running
+the MCP server never pays for the UI. Nothing is sent off the machine.
 
 ## Development
 

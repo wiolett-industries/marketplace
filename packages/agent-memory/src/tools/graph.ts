@@ -1,4 +1,4 @@
-import { getEdgeSummaries, getEntryById, getFilteredEdgeRows, getNeighborSummaries, getOutgoingEdgeRecords, replaceOutgoingEdges } from '../db.js';
+import { getAllEntries, getEdgeSummaries, getEntryById, getFilteredEdgeRows, getNeighborSummaries, getOutgoingEdgeRecords, replaceOutgoingEdges } from '../db.js';
 import { deleteGraphFile, listGraphFileNames, readGraphFile, readEntryFileByFileName, writeGraphFile } from '../files.js';
 import { type EntryRecord, type EntryWithLinks, withoutEmbedding } from '../entry.js';
 import { assertGraphNode, type GraphDirection, type GraphEdgeRecord, type GraphRelation, type GraphSubgraph, isSymmetricRelation, normalizeWeight } from '../graph.js';
@@ -48,6 +48,85 @@ function removeOutgoingEdge(owner: EntryRecord, toId: string, relation: GraphRel
   }
 
   return changed;
+}
+
+export interface GraphPruneArgs {
+  scope?: MemoryScope;
+  dry_run?: boolean;
+  drop_dangling?: boolean;
+  min_weight?: number;
+}
+
+/**
+ * Remove unhealthy AUTO edges (dangling and/or below a weight floor). Manual
+ * edges are never touched. Mirrors the dangling validation in rebuildFromFiles.
+ * `dry_run` (default true) reports what would be removed without writing.
+ * Persists through both the per-owner graph JSON and the SQLite cache.
+ */
+export function handleGraphPrune(args: GraphPruneArgs) {
+  const scope = args.scope ?? 'project';
+  const dryRun = args.dry_run ?? true;
+  const dropDangling = args.drop_dangling ?? true;
+  const minWeight = typeof args.min_weight === 'number' && Number.isFinite(args.min_weight) ? args.min_weight : undefined;
+  const SAMPLE_CAP = 50;
+
+  const graphNodeIds = new Set(
+    getAllEntries(scope)
+      .filter((entry) => entry.layer === 'deep' || (entry.layer === 'lite' && entry.ref === null))
+      .map((entry) => entry.id)
+  );
+
+  let danglingRemoved = 0;
+  let belowWeightRemoved = 0;
+  let affectedOwners = 0;
+  const samples: Array<{ from_id: string; to_id: string; relation: GraphRelation; weight: number; reason: string }> = [];
+
+  for (const ownerId of graphNodeIds) {
+    const current = getOutgoingEdgeRecords(ownerId, scope);
+    if (current.length === 0) continue;
+
+    const kept: GraphEdgeRecord[] = [];
+    let changed = false;
+    for (const edge of current) {
+      let reason: 'dangling' | 'below_min_weight' | null = null;
+      if (edge.source === 'auto') {
+        if (dropDangling && !graphNodeIds.has(edge.to_id)) reason = 'dangling';
+        else if (minWeight !== undefined && edge.weight < minWeight) reason = 'below_min_weight';
+      }
+      if (reason) {
+        changed = true;
+        if (reason === 'dangling') danglingRemoved += 1;
+        else belowWeightRemoved += 1;
+        if (samples.length < SAMPLE_CAP) {
+          samples.push({ from_id: edge.from_id, to_id: edge.to_id, relation: edge.relation, weight: edge.weight, reason });
+        }
+      } else {
+        kept.push(edge);
+      }
+    }
+
+    if (changed) {
+      affectedOwners += 1;
+      if (!dryRun) {
+        const owner = getEntryById(ownerId, scope);
+        if (owner) persistOutgoingEdges(owner, kept, scope);
+      }
+    }
+  }
+
+  return {
+    scope,
+    dry_run: dryRun,
+    drop_dangling: dropDangling,
+    min_weight: minWeight ?? null,
+    removed: {
+      dangling: danglingRemoved,
+      below_min_weight: belowWeightRemoved,
+      total: danglingRemoved + belowWeightRemoved,
+    },
+    affected_owners: affectedOwners,
+    samples,
+  };
 }
 
 export function withLinks(entry: EntryRecord, scope: MemoryScope = 'project'): EntryWithLinks {

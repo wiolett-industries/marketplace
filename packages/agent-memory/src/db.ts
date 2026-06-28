@@ -1,12 +1,12 @@
 import type { EntryLayer, EntryRecord, EntryRow } from './entry.js';
 import type { MemoryScope } from './scope.js';
 import { closeDb, getDb, getDbPath, resetDbCacheFiles } from './storage/connection.js';
-import { deleteEdgesForEntry, deleteIncomingAutoEdges, getAllEdgeRows, getEdgeSummaries, getFilteredEdgeRows, getNeighborSummaries, getOutgoingEdgeRecords, replaceAutoOutgoingEdges, replaceOutgoingEdges } from './storage/edges.js';
+import { deleteEdgesForEntry, deleteIncomingAutoEdges, getAllEdgeRows, getEdgeSummaries, getFilteredEdgeRows, getIncomingSupersededIds, getNeighborSummaries, getOutgoingEdgeRecords, replaceAutoOutgoingEdges, replaceOutgoingEdges } from './storage/edges.js';
 import { deleteIndexById, deleteIndexForMemory, getIndexById, getIndexByMemoryId, getLiteEntries, upsertIndexEntry } from './storage/index-records.js';
 import { deleteMemory, getAllMemoryIds, getDeepEntries, getMemoryById, getMemoryHash, searchMemoriesFTS, upsertMemory } from './storage/memories.js';
 
 export { closeDb, getDb, getDbPath, resetDbCacheFiles };
-export { deleteEdgesForEntry, deleteIncomingAutoEdges, getAllEdgeRows, getEdgeSummaries, getFilteredEdgeRows, getNeighborSummaries, getOutgoingEdgeRecords, replaceAutoOutgoingEdges, replaceOutgoingEdges };
+export { deleteEdgesForEntry, deleteIncomingAutoEdges, getAllEdgeRows, getEdgeSummaries, getFilteredEdgeRows, getIncomingSupersededIds, getNeighborSummaries, getOutgoingEdgeRecords, replaceAutoOutgoingEdges, replaceOutgoingEdges };
 export { getLiteEntries, getDeepEntries };
 
 export function upsertEntry(entry: EntryRecord, hash: string, scope: MemoryScope = 'project'): void {

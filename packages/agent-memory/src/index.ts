@@ -3,12 +3,19 @@
 import { runInitCommand } from './cli/init.js';
 import { isCliAbortError } from './cli/prompts.js';
 
-const VERSION = '0.2.3';
+const VERSION = '0.4.0';
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
   if (command === 'init') {
     await runInitCommand(args);
+    return;
+  }
+
+  if (command === 'view') {
+    // Lazy import: keeps the UI/server (and its deps) out of the MCP server path.
+    const { runViewCommand } = await import('./view/cli.js');
+    await runViewCommand(args, VERSION);
     return;
   }
 
@@ -38,7 +45,7 @@ async function startMcpServer(): Promise<void> {
     },
     {
       instructions:
-        'Agent Memory is this MCP-backed memory system, separate from Codex built-in memory, chat history, and workflow artifacts. Use memory_list or global_memory_read_lite at conversation start for persistent preferences, memory_save to store durable reusable knowledge, memory_update to refresh outdated memories, memory_recall for compiled context by ID, memory_query for topic lookup, memory_graph for relationships, and memory_inspect only for raw maintenance/debug views. Do not substitute Codex built-in memory for Agent Memory MCP reads/writes when these tools are available. Before finalizing non-trivial work, save/update distilled preferences, repo workflows, setup gotchas, root causes, fix patterns, or verification sequences when they are likely to matter again. Read tools never initialize missing project memory; project memory storage is created only by memory_setup or write/mutation tools.',
+        'Agent Memory is this MCP-backed memory system, separate from Codex built-in memory, chat history, and workflow artifacts. Use memory_list or global_memory_read_lite at conversation start for persistent preferences, memory_save to store durable reusable knowledge, memory_update to refresh outdated memories, memory_recall for compiled context by ID, memory_query for topic lookup (graph-expands related memories), memory_graph for relationships, memory_path to trace how two memories connect, and memory_inspect (including view=health for graph metrics) for raw maintenance/debug views; memory_graph_prune removes unhealthy auto edges (dry run by default). Do not substitute Codex built-in memory for Agent Memory MCP reads/writes when these tools are available. Before finalizing non-trivial work, save/update distilled preferences, repo workflows, setup gotchas, root causes, fix patterns, or verification sequences when they are likely to matter again. Read tools never initialize missing project memory; project memory storage is created only by memory_setup or write/mutation tools.',
     }
   );
 
@@ -51,8 +58,12 @@ async function startMcpServer(): Promise<void> {
 function printHelp(): void {
   console.log([
     'Usage:',
-    '  agent-memory              Start MCP stdio server',
-    '  agent-memory init [opts]  Configure OpenAI API key',
+    '  agent-memory                    Start MCP stdio server',
+    '  agent-memory init [opts]        Configure OpenAI API key',
+    '  agent-memory view [path|global] Open the local memory dashboard',
+    '',
+    'view options: --port <n>, --no-open. Defaults to ./.memory; pass a',
+    'project path or "global" to target another store.',
     '',
     'Run agent-memory init --help for init options.',
   ].join('\n'));

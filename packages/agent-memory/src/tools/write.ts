@@ -19,6 +19,8 @@ interface WriteResult {
   pointer_id?: string;
   action: 'created' | 'updated';
   auto_links?: number;
+  supersedes?: string[];
+  duplicate_of?: string[];
 }
 
 function persist(entry: EntryRecord, scope: MemoryScope): void {
@@ -50,7 +52,13 @@ export async function handleWrite(args: WriteArgs): Promise<WriteResult> {
 
     persist(entry, scope);
     const autoLinks = await refreshAutoLinks(entry, scope);
-    return { id: entry.id, action: existing ? 'updated' : 'created', auto_links: autoLinks.linked };
+    return {
+      id: entry.id,
+      action: existing ? 'updated' : 'created',
+      auto_links: autoLinks.linked,
+      ...(autoLinks.supersedes.length ? { supersedes: autoLinks.supersedes } : {}),
+      ...(autoLinks.duplicate_of.length ? { duplicate_of: autoLinks.duplicate_of } : {}),
+    };
   }
 
   const existingDeep = getDeepEntries(scope).find((entry) => entry.content === content);
@@ -91,5 +99,7 @@ export async function handleWrite(args: WriteArgs): Promise<WriteResult> {
     pointer_id: pointerEntry.id,
     action: existingDeep ? 'updated' : 'created',
     auto_links: autoLinks.linked,
+    ...(autoLinks.supersedes.length ? { supersedes: autoLinks.supersedes } : {}),
+    ...(autoLinks.duplicate_of.length ? { duplicate_of: autoLinks.duplicate_of } : {}),
   };
 }

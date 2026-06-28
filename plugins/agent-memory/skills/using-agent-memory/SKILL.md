@@ -30,7 +30,7 @@ Layers:
 - `deep`: canonical durable memories with full text, embeddings when configured, and graph links
 - `lite`: cheap index/pointer layer for recall; standalone lite can link, pointer lite cannot
 
-Canonical Agent Memory MCP tools: `memory_list`, `memory_query`, `memory_recall`, `memory_save`, `memory_update`, `memory_inspect`. Use compatibility aliases only when canonical tools are absent.
+Canonical Agent Memory MCP tools: `memory_list`, `memory_query`, `memory_recall`, `memory_save`, `memory_update`, `memory_inspect`, `memory_graph`, `memory_path`, `memory_graph_prune`. Use compatibility aliases only when canonical tools are absent.
 
 ## Reads
 

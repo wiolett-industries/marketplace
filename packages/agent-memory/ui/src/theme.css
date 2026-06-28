@@ -1,0 +1,220 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0b0c0e;
+  --panel: #121417;
+  --panel-2: #16191d;
+  --line: #23272e;
+  --ink: #e6e8ea;
+  --ink-dim: #8b9099;
+  --ink-faint: #565b63;
+  --amber: #ff7a18;
+  --cyan: #3fd0c9;
+  --danger: #ff3b3b;
+  --warn: #ffc23b;
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
+  body {
+    margin: 0;
+    /* App owns the viewport; panels scroll internally. No page scroll/bounce/zoom. */
+    overflow: hidden;
+    touch-action: pan-x pan-y;
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    /* Blueprint grid + radial vignette over near-black graphite. */
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+      radial-gradient(120% 90% at 50% -10%, rgba(63, 208, 201, 0.05), transparent 55%);
+    background-size: 28px 28px, 28px 28px, 100% 100%;
+  }
+
+  /* Faint film grain over the whole viewport. */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2a2f37;
+    border: 2px solid var(--bg);
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a404a;
+  }
+}
+
+@layer components {
+  .panel {
+    background-color: var(--panel);
+    box-shadow: var(--panel-shadow, inset 0 1px 0 0 rgba(255, 255, 255, 0.03), 0 1px 2px 0 rgba(0, 0, 0, 0.4));
+    border: 1px solid var(--line);
+  }
+
+  .label {
+    font-family: "Saira Condensed", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    color: var(--ink-dim);
+  }
+
+  .readout {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .focusable:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 1px var(--amber), 0 0 14px -2px rgba(255, 122, 24, 0.5);
+  }
+
+  .hairline {
+    background-image: linear-gradient(90deg, transparent, var(--line) 12%, var(--line) 88%, transparent);
+    height: 1px;
+  }
+
+  /* Markdown rendering inside the inspector. */
+  .md {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+  .md > :first-child {
+    margin-top: 0;
+  }
+  .md p {
+    margin: 0.6em 0;
+  }
+  .md h1,
+  .md h2,
+  .md h3,
+  .md h4 {
+    font-family: "Saira Condensed", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    margin: 1em 0 0.4em;
+    line-height: 1.2;
+  }
+  .md h1 { font-size: 1.2rem; }
+  .md h2 { font-size: 1.1rem; }
+  .md h3 { font-size: 1rem; }
+  .md h4 { font-size: 0.95rem; color: var(--ink-dim); }
+  .md ul,
+  .md ol {
+    margin: 0.5em 0;
+    padding-left: 1.3em;
+  }
+  .md li {
+    margin: 0.25em 0;
+  }
+  .md ul li {
+    list-style: square;
+  }
+  .md a {
+    color: var(--cyan);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .md strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .md em {
+    color: var(--ink-dim);
+  }
+  .md code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.85em;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 0.05em 0.35em;
+    color: var(--amber);
+  }
+  .md pre {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.8em;
+    overflow-x: auto;
+    margin: 0.7em 0;
+  }
+  .md pre code {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: var(--ink);
+    font-size: 0.82rem;
+  }
+  .md blockquote {
+    border-left: 2px solid var(--amber);
+    margin: 0.7em 0;
+    padding-left: 0.9em;
+    color: var(--ink-dim);
+  }
+  .md table {
+    border-collapse: collapse;
+    margin: 0.7em 0;
+    width: 100%;
+    font-size: 0.85rem;
+  }
+  .md th,
+  .md td {
+    border: 1px solid var(--line);
+    padding: 0.4em 0.6em;
+    text-align: left;
+  }
+  .md th {
+    background: var(--panel-2);
+    color: var(--ink-dim);
+    font-family: "Saira Condensed", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .md hr {
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: 1em 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

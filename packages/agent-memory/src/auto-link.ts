@@ -9,9 +9,22 @@ import { cosineSimilarity } from './utils/cosine.js';
 interface CandidateScore {
   entry: EntryRecord;
   score: number;
+  cosine: number;
   relation: GraphRelation;
   reason: string;
 }
+
+export interface SupersedeVerdict {
+  id: string;
+  verdict: 'supersedes' | 'duplicate' | 'independent';
+  confidence: number;
+  reason?: string;
+}
+
+// Raw cosine gate to even consider a high-similarity candidate for supersession.
+const SUPERSEDE_COSINE_THRESHOLD = 0.82;
+// Minimum model confidence before acting on a supersede/duplicate verdict.
+const SUPERSEDE_CONFIDENCE = 0.7;
 
 interface ModelLinkDecision {
   id: string;
@@ -65,9 +78,9 @@ export async function refreshAutoLinks(
   entry: EntryRecord,
   scope: MemoryScope = 'project',
   options: { pruneIncoming?: boolean } = {}
-): Promise<{ linked: number; candidates: number; pruned_incoming: number }> {
+): Promise<{ linked: number; candidates: number; pruned_incoming: number; supersedes: string[]; duplicate_of: string[] }> {
   if (!canParticipateInGraph(entry)) {
-    return { linked: 0, candidates: 0, pruned_incoming: 0 };
+    return { linked: 0, candidates: 0, pruned_incoming: 0, supersedes: [], duplicate_of: [] };
   }
 
   const prunedIncomingFromIds = options.pruneIncoming ? deleteIncomingAutoEdges(entry.id, scope) : [];
@@ -82,8 +95,19 @@ export async function refreshAutoLinks(
 
   const modelDecisions = await refineWithModel(entry, scored, scope);
   const timestamp = Date.now();
-  const edges = (modelDecisions.length ? modelDecisions : scored.slice(0, scope === 'global' ? 3 : 5).map(toDeterministicDecision))
+
+  // B1: detect supersession/duplication on the highest-similarity candidates and
+  // fold the resulting `supersedes` edges into the auto set, so they survive the
+  // replaceAutoOutgoingEdges replace (a post-write edge would be clobbered).
+  const highSimilarity = scored.filter((candidate) => candidate.cosine >= SUPERSEDE_COSINE_THRESHOLD);
+  const { supersedeEdges, duplicateOf } = await detectSupersession(entry, highSimilarity, timestamp);
+  const supersededIds = new Set(supersedeEdges.map((edge) => edge.to_id));
+  const duplicateIds = new Set(duplicateOf);
+
+  const linkEdges = (modelDecisions.length ? modelDecisions : scored.slice(0, scope === 'global' ? 3 : 5).map(toDeterministicDecision))
     .filter((decision) => decision.id !== entry.id)
+    .filter((decision) => decision.relation !== 'supersedes') // supersession owns this relation
+    .filter((decision) => !supersededIds.has(decision.id) && !duplicateIds.has(decision.id))
     .filter((decision) => GRAPH_RELATIONS.includes(decision.relation))
     .filter((decision) => decision.weight >= threshold(scope))
     .slice(0, scope === 'global' ? 3 : 5)
@@ -98,6 +122,8 @@ export async function refreshAutoLinks(
       updated_at: timestamp,
     }));
 
+  const edges = dedupeEdges([...linkEdges, ...supersedeEdges]);
+
   replaceAutoOutgoingEdges(entry.id, edges, scope);
   const outgoing = getOutgoingEdgeRecords(entry.id, scope);
   if (outgoing.length) {
@@ -106,7 +132,13 @@ export async function refreshAutoLinks(
     deleteGraphFile(entry.file_name, scope);
   }
 
-  return { linked: edges.length, candidates: scored.length, pruned_incoming: prunedIncomingFromIds.length };
+  return {
+    linked: edges.length,
+    candidates: scored.length,
+    pruned_incoming: prunedIncomingFromIds.length,
+    supersedes: [...supersededIds],
+    duplicate_of: duplicateOf,
+  };
 }
 
 function getGraphCandidates(scope: MemoryScope): EntryRecord[] {
@@ -129,6 +161,7 @@ function scoreCandidate(source: EntryRecord, candidate: EntryRecord): CandidateS
   return {
     entry: candidate,
     score,
+    cosine: semantic,
     ...inferRelation(source, candidate, tagOverlap, tokenOverlap),
   };
 }
@@ -228,6 +261,112 @@ function toDeterministicDecision(candidate: CandidateScore): ModelLinkDecision {
     weight: candidate.score,
     reason: candidate.reason,
   };
+}
+
+/**
+ * Turn model supersession verdicts into outgoing `supersedes` edges (new -> old)
+ * and a list of near-duplicate ids. Pure: only confident, non-self verdicts act.
+ */
+export function buildSupersedeOutcome(
+  sourceId: string,
+  verdicts: SupersedeVerdict[],
+  timestamp: number
+): { supersedeEdges: GraphEdgeRecord[]; duplicateOf: string[] } {
+  const supersedeEdges: GraphEdgeRecord[] = [];
+  const duplicateOf: string[] = [];
+  const seen = new Set<string>();
+
+  for (const verdict of verdicts) {
+    if (!verdict || verdict.id === sourceId || seen.has(verdict.id)) continue;
+    if (!Number.isFinite(verdict.confidence) || verdict.confidence < SUPERSEDE_CONFIDENCE) continue;
+
+    if (verdict.verdict === 'supersedes') {
+      seen.add(verdict.id);
+      supersedeEdges.push({
+        from_id: sourceId,
+        to_id: verdict.id,
+        relation: 'supersedes',
+        weight: normalizeWeight(Math.max(0, Math.min(1, verdict.confidence))),
+        reason: (verdict.reason || 'New memory supersedes the prior one.').slice(0, 240),
+        source: 'auto',
+        created_at: timestamp,
+        updated_at: timestamp,
+      });
+    } else if (verdict.verdict === 'duplicate') {
+      seen.add(verdict.id);
+      duplicateOf.push(verdict.id);
+    }
+  }
+
+  return { supersedeEdges, duplicateOf };
+}
+
+function parseVerdict(value: unknown): SupersedeVerdict | null {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.id !== 'string') return null;
+  const verdict = record.verdict;
+  if (verdict !== 'supersedes' && verdict !== 'duplicate' && verdict !== 'independent') return null;
+  const confidence = typeof record.confidence === 'number' && Number.isFinite(record.confidence) ? record.confidence : 0;
+  return {
+    id: record.id,
+    verdict,
+    confidence,
+    reason: typeof record.reason === 'string' ? record.reason : undefined,
+  };
+}
+
+/**
+ * Ask the model whether the new memory supersedes, duplicates, or is independent
+ * of each high-similarity existing memory. No model -> empty outcome (safe no-op).
+ */
+async function detectSupersession(
+  source: EntryRecord,
+  highSimilarity: CandidateScore[],
+  timestamp: number
+): Promise<{ supersedeEdges: GraphEdgeRecord[]; duplicateOf: string[] }> {
+  if (!highSimilarity.length) return { supersedeEdges: [], duplicateOf: [] };
+
+  const model = await getModelClient();
+  if (!model) return { supersedeEdges: [], duplicateOf: [] };
+
+  try {
+    const response = await model.createTextResponse({
+      reasoning: { effort: 'low' },
+      instructions: [
+        'You compare a NEW memory against existing memories that are highly similar to it.',
+        'For each existing memory decide if the new memory: "supersedes" it (replaces/contradicts/obsoletes it), is a "duplicate" (restates the same durable fact), or is "independent".',
+        'Return strict JSON only: {"decisions":[{"id":"...","verdict":"supersedes|duplicate|independent","confidence":0.0-1.0,"reason":"short reason"}]}.',
+        'Only mark supersedes when the new memory genuinely replaces or contradicts the old one. Prefer "independent" when unsure.',
+      ].join('\n'),
+      input: JSON.stringify({
+        new_memory: summarizeEntry(source),
+        existing: highSimilarity.map((candidate) => ({ ...summarizeEntry(candidate.entry), cosine: candidate.cosine })),
+      }),
+    });
+    const parsed = JSON.parse(response.outputText.trim()) as { decisions?: unknown };
+    const allowedIds = new Set(highSimilarity.map((candidate) => candidate.entry.id));
+    const verdicts = Array.isArray(parsed.decisions)
+      ? parsed.decisions
+          .map(parseVerdict)
+          .filter((verdict): verdict is SupersedeVerdict => Boolean(verdict && allowedIds.has(verdict.id)))
+      : [];
+    return buildSupersedeOutcome(source.id, verdicts, timestamp);
+  } catch {
+    return { supersedeEdges: [], duplicateOf: [] };
+  }
+}
+
+function dedupeEdges(edges: GraphEdgeRecord[]): GraphEdgeRecord[] {
+  const seen = new Set<string>();
+  const out: GraphEdgeRecord[] = [];
+  for (const edge of edges) {
+    const key = `${edge.to_id}:${edge.relation}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(edge);
+  }
+  return out;
 }
 
 function summarizeEntry(entry: EntryRecord) {
