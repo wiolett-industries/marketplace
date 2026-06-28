@@ -47,6 +47,8 @@ UI flow adds `ui-contract` before planning and during final review. Audit-only f
 - Main thread coordinates, does minimal diff sanity, runs verification commands, and delegates detailed review to agents.
 - If a requested model is unavailable, use the nearest available model that is not weaker for the task class.
 - Before final response, handoff, commit, PR, or approval after non-trivial work, make an Agent Memory MCP decision when Agent Memory MCP is available: save/update durable preferences, repo gotchas, root-cause fixes, verification sequences, or workflow lessons; skip one-off progress and raw session recap. Do not substitute Codex built-in memory for this decision.
+- When saving Agent Memory MCP project memories, use repo-relative paths or logical placeholders only; never store machine-local absolute filesystem paths such as `/Users/name/...`, `/home/name/...`, `/tmp/...`, or Windows user-profile paths.
+- Project `.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, and `.memory/graph/` are shared memory artifacts and should be committed when project memory changes. `.memory/memory.db*` is local cache and should stay ignored.
 
 ## Engineering Rules
 

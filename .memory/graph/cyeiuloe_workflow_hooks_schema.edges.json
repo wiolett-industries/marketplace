@@ -1,0 +1,15 @@
+{
+  "file_name": "cyeiuloe_workflow_hooks_schema",
+  "edges": [
+    {
+      "from_id": "cyeiuloe",
+      "to_id": "ymfejgcj",
+      "relation": "related_to",
+      "weight": 0.3,
+      "reason": "Both items address workflow reliability and memory handling in the same repository; they are thematically related (hooks/schema and portable memory rules) per project conventions.",
+      "source": "auto",
+      "created_at": 1782687402840,
+      "updated_at": 1782687402840
+    }
+  ]
+}

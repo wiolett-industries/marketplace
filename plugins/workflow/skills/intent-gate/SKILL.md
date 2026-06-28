@@ -18,6 +18,7 @@ Trigger for planning, implementation, refactoring, review, architecture/product 
 5. Decide whether `Context Discovery` is needed.
 6. Ask before planning/editing if material ambiguity remains.
 7. Decide whether Workflow MCP state/artifact tools are needed; for `.workflow/` state or artifacts, use them when available.
+8. If the task may save/update Agent Memory MCP project memory, enforce portability: memory content must use repo-relative paths or logical placeholders, never machine-local absolute filesystem paths. Treat `.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, and `.memory/graph/` as commit-worthy shared memory artifacts, not local junk.
 
 ## Subagent
 

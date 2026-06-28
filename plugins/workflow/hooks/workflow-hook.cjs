@@ -135,7 +135,7 @@ function authSummary() {
 
 function projectMemorySummary(root) {
   if (fs.existsSync(path.join(root, ".memory"))) {
-    return "Project Agent Memory `.memory/` exists; after repo boundary, run focused `memory_list`/`memory_query` before answering repo workflow/setup/history questions.";
+    return "Project Agent Memory `.memory/` exists; after repo boundary, run focused `memory_list`/`memory_query` before answering repo workflow/setup/history questions. `.memory/{memories,index,embeddings,graph}` are shared project memory artifacts to commit when changed; `.memory/memory.db*` is local cache.";
   }
   return "No project `.memory/`: reads no-op; writes may init only for durable saves.";
 }
@@ -152,6 +152,7 @@ function agentMemoryContext(root) {
     projectMemorySummary(root),
     "Finalizing durable work: make an Agent Memory MCP decision; save/update reusable preferences, repo gotchas, root-cause fixes, and recurring workflows.",
     "Never save secrets, raw session summaries, obvious code, temp work, or project facts to global.",
+    "Never save machine-local absolute paths in shared memory; use repo-relative paths or logical placeholders.",
   ];
 }
 

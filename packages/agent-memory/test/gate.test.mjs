@@ -41,6 +41,9 @@ describe('memory write gate', () => {
     expect(skill).toMatch(/Planning-stage product decisions are usually workflow context/);
     expect(skill).toMatch(/Prefer `memory_update` over `memory_save`/);
     expect(skill).toMatch(/must not own/);
+    expect(skill).toMatch(/machine-local absolute filesystem paths/);
+    expect(skill).toMatch(/repo-relative paths/);
+    expect(skill).toMatch(/Project `.memory\/memories\/`, `.memory\/index\/`, `.memory\/embeddings\/`, and `.memory\/graph\/` files are shared project memory artifacts/);
   });
 
   test('uses strict structured output schema that is accepted by OpenAI-compatible providers', async () => {
@@ -78,6 +81,7 @@ describe('memory write gate', () => {
       expect(requestBody.instructions).toContain('Reject planning-stage product decisions');
       expect(requestBody.instructions).toContain('Prefer updating an existing memory');
       expect(requestBody.instructions).toContain('preserve meaning exactly, especially negation');
+      expect(requestBody.instructions).toContain('Shared memory must not contain machine-local absolute filesystem paths');
       expect(requestBody.instructions).toContain('raw transcripts');
       expect(requestBody.text.format.schema.required).toEqual([
         'decision',
@@ -116,6 +120,60 @@ describe('memory write gate', () => {
       expect(result.normalized_content).toBeUndefined();
       expect(result.reason).toMatch(/Rewrite discarded/);
       expect(result.confidence).toBeLessThanOrEqual(0.55);
+    });
+  });
+
+  test('rejects gate output that would save machine-local absolute paths', async () => {
+    await withMockedProvider(async () => {
+      globalThis.fetch = async () => new Response(JSON.stringify({
+        output_text: JSON.stringify({
+          decision: 'allow',
+          reason: 'Useful setup workflow.',
+          normalized_content: null,
+          suggested_scope: null,
+          suggested_tags: ['workflow'],
+          confidence: 0.9,
+          importance: 0.8,
+        }),
+      }), { status: 200 });
+
+      const result = await evaluateMemoryWrite({
+        content: 'Run the release from /Users/knownout/Projects/wiolett/agent-marketplace-next with pnpm test.',
+        tags: ['workflow'],
+        scope: 'project',
+        operation: 'save',
+      });
+
+      expect(result.decision).toBe('reject');
+      expect(result.reason).toMatch(/machine-local absolute filesystem paths/);
+      expect(result.reason).toMatch(/repo-relative/);
+      expect(result.confidence).toBeLessThanOrEqual(0.4);
+    });
+  });
+
+  test('accepts rewrites that replace local absolute paths with repo-relative paths', async () => {
+    await withMockedProvider(async () => {
+      globalThis.fetch = async () => new Response(JSON.stringify({
+        output_text: JSON.stringify({
+          decision: 'rewrite',
+          reason: 'Portable project workflow.',
+          normalized_content: 'Run pnpm test from the repo root before publishing; relevant docs live in plugins/workflow/README.md.',
+          suggested_scope: null,
+          suggested_tags: ['workflow'],
+          confidence: 0.9,
+          importance: 0.8,
+        }),
+      }), { status: 200 });
+
+      const result = await evaluateMemoryWrite({
+        content: 'Run pnpm test from /Users/knownout/Projects/wiolett/agent-marketplace-next; see /Users/knownout/Projects/wiolett/agent-marketplace-next/plugins/workflow/README.md.',
+        tags: ['workflow'],
+        scope: 'project',
+        operation: 'save',
+      });
+
+      expect(result.decision).toBe('rewrite');
+      expect(result.normalized_content).toBe('Run pnpm test from the repo root before publishing; relevant docs live in plugins/workflow/README.md.');
     });
   });
 });

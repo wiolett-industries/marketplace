@@ -58,7 +58,7 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_save',
     {
       title: 'Save Memory',
-      description: 'Save durable project or global knowledge after sanity review, especially reusable preferences, workflows, gotchas, root causes, fix patterns, and verification sequences.',
+      description: 'Save durable project or global knowledge after sanity review. Use portable repo-relative paths for shared project memory; never store machine-local absolute filesystem paths.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         content: z.string().min(1),
@@ -77,7 +77,7 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_update',
     {
       title: 'Update Memory',
-      description: 'Update a canonical memory without changing its ID or filename; manual graph links are preserved and automatic links are refreshed.',
+      description: 'Update a canonical memory without changing its ID or filename; manual graph links are preserved and automatic links are refreshed. Use portable repo-relative paths for shared project memory.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         memory_id: z.string().min(1),

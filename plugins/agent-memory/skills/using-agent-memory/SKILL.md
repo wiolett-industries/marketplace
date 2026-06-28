@@ -30,6 +30,12 @@ Layers:
 - `deep`: canonical durable memories with full text, embeddings when configured, and graph links
 - `lite`: cheap index/pointer layer for recall; standalone lite can link, pointer lite cannot
 
+Project storage:
+
+- Project `.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, and `.memory/graph/` files are shared project memory artifacts. They are designed to be committed when project memory should travel with the repo.
+- Do not treat those files as local cache, generated junk, or private machine state.
+- Only `.memory/memory.db*` is local SQLite cache and should normally stay ignored.
+
 Canonical Agent Memory MCP tools: `memory_list`, `memory_query`, `memory_recall`, `memory_save`, `memory_update`, `memory_inspect`, `memory_graph`, `memory_path`, `memory_graph_prune`. Use compatibility aliases only when canonical tools are absent.
 
 ## Reads
@@ -67,6 +73,8 @@ Save to `global` only for durable cross-project facts: communication preferences
 Save to `project` only for durable repo-specific facts: setup/test/build/release/deploy/rollback workflows, non-obvious conventions, architecture decisions, integration gotchas, persistent environment constraints.
 
 Never save raw secrets, API keys, tokens, passwords, private webhook URLs, raw session summaries, speculative plans, obvious code facts, implementation chatter, one-off TODOs, local edits, or transient progress. For secret-related workflows, save only redacted location/process.
+
+Never save machine-local absolute filesystem paths in shared memory, including paths like `/Users/name/...`, `/User/name/...`, `/home/name/...`, `/tmp/...`, `/var/...`, `/private/...`, `/Volumes/...`, or `C:\Users\name\...`. Use repo-relative paths such as `plugins/workflow/README.md`, a stable logical location, or placeholders such as `<repo>` and `<home>`. If a path cannot be made portable, omit it or skip the memory write.
 
 Do not confuse raw session recap, Codex built-in memory, or workflow artifacts with durable Agent Memory MCP entries: save the distilled reusable lesson, root cause, decision, or workflow; leave transcript/progress detail in chat or workflow artifacts.
 

@@ -52,6 +52,7 @@ test('workflow session hook emits recovery context for active plans', () => {
   const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-hook-'));
   const planDir = path.join(workspace, '.workflow/plans/01-01-26-hooks');
   mkdirSync(planDir, { recursive: true });
+  mkdirSync(path.join(workspace, '.memory/memories'), { recursive: true });
   writeFileSync(path.join(workspace, '.workflow/state.json'), JSON.stringify({ active_plan: 'plans/01-01-26-hooks' }), 'utf8');
 
   const output = runHook({ hook_event_name: 'SessionStart', cwd: workspace }, workspace);
@@ -64,6 +65,8 @@ test('workflow session hook emits recovery context for active plans', () => {
   assert.match(output.hookSpecificOutput.additionalContext, /Use Workflow MCP/);
   assert.match(output.hookSpecificOutput.additionalContext, /Agent Memory MCP installed/);
   assert.match(output.hookSpecificOutput.additionalContext, /Do not rely on Codex built-in memory/);
+  assert.match(output.hookSpecificOutput.additionalContext, /shared project memory artifacts to commit/);
+  assert.match(output.hookSpecificOutput.additionalContext, /Never save machine-local absolute paths in shared memory/);
   assert.match(output.hookSpecificOutput.additionalContext, /Merge Request Review installed/);
 });
 

@@ -80,6 +80,10 @@ Project memory:
 
 Canonical markdown memory files, index files, embedding arrays, and graph files are the source of truth. SQLite is used as local cache for fast lookup.
 
+For project memory, commit `.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, and `.memory/graph/` when the memory is meant to be shared with the repository. Do not treat those files as local junk. Keep only `.memory/memory.db*` ignored; it is a rebuildable local SQLite cache.
+
+Shared memory content should be portable. Store repo-relative paths such as `plugins/workflow/README.md` when a file reference matters. Do not store machine-local absolute paths such as `/Users/name/...`, `/home/name/...`, `/tmp/...`, or Windows user-profile paths; rewrite them to repo-relative paths or logical placeholders.
+
 ## Tool Surface
 
 Canonical tools:

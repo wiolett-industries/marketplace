@@ -143,6 +143,8 @@ Do not require full build/test/review after every tiny user-testing correction. 
 
 When Agent Memory MCP is available, make the Agent Memory MCP decision before final output: save/update durable repo workflow, verification sequence, root cause, user preference, or recurring gotcha; skip raw progress, obvious code facts, and one-off edits. Do not substitute Codex built-in memory for this decision.
 
+If project memory changed, include `.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, and `.memory/graph/` files in the commit when they are not ignored; they are shared project memory artifacts. Do not commit `.memory/memory.db*`, which is local cache. Memory content must be portable: repo-relative paths or logical placeholders only, never machine-local absolute filesystem paths.
+
 When exit threshold is met and the plan implementation is complete, call `workflow_plan_complete` before final output, handoff, commit, PR, or approval. This is mandatory: a realized plan must not remain active in workflow status. Do not substitute `workflow_plan_update` with `set_phase: complete` unless `workflow_plan_complete` is unavailable; if forced into fallback, also clear root `active_plan` only when it points to the completed run and state that fallback was used.
 
 After completing the run, report final verdict, review rounds, verification commands/results, accepted `LOW` findings, and plan-run path.

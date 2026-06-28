@@ -69,6 +69,62 @@ npx -y @wiolett/agent-memory@latest view
 npx -y @wiolett/agent-memory@latest view global
 ```
 
+## Project Memory In Git
+
+Project Agent Memory is meant to be shareable when a repo opts into it.
+Commit these files when project memory changes:
+
+- `.memory/memories/*.md`
+- `.memory/index/*.md`
+- `.memory/embeddings/*.embeddings`
+- `.memory/graph/*.edges.json`
+
+Do not commit `.memory/memory.db*`; it is a local SQLite cache.
+
+Memory content should be portable. Use repo-relative paths such as
+`plugins/workflow/README.md` or placeholders like `<repo>`. Do not store
+machine-local absolute paths such as `/Users/name/...`, `/home/name/...`,
+`/tmp/...`, or Windows user-profile paths in shared project memory.
+
+## Recommended Codex Setup
+
+Codex works best with these workflow plugins when subagents are explicitly
+authorized. Add a standing authorization to the project's `AGENTS.md` or to a
+global Codex `AGENTS.md`:
+
+```md
+The user grants standing authorization to launch subagents for non-trivial
+engineering work without asking again. Treat this standing authorization as an
+explicit user request for subagents, delegation, and parallel agent work whenever
+subagents would materially help.
+
+Use subagents proactively for suitable exploration, implementation,
+verification, and review tasks. Keep work local for trivial tasks, tightly
+coupled blocking work, or when the user explicitly asks not to use subagents or
+asks to pause.
+```
+
+For Codex CLI/App installs that support `developer_instructions`, the same
+authorization can live in `~/.codex/config.toml`:
+
+```toml
+developer_instructions = """
+The user grants standing authorization to launch subagents for non-trivial
+engineering work without asking again. Treat this standing authorization as an
+explicit user request for subagents, delegation, and parallel agent work whenever
+subagents would materially help.
+
+Use subagents proactively for suitable exploration, implementation,
+verification, and review tasks. Keep work local for trivial tasks, tightly
+coupled blocking work, or when the user explicitly asks not to use subagents or
+asks to pause.
+"""
+```
+
+Without a standing authorization, give explicit subagent permission in each
+chat before asking Workflow to run agentic exploration, implementation, or
+review. Codex may otherwise instruct the model to avoid subagents by default.
+
 ## Repository Layout
 
 - Codex marketplace: [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json)
