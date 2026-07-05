@@ -240,7 +240,43 @@ test('repository ships both Codex and Claude plugin manifests', () => {
   assert.equal(codexMemory.version, claudeMemory.version);
   assert.equal(codexWorkflow.version, claudeWorkflow.version);
   assert.equal(codexReview.version, claudeReview.version);
+  for (const plugin of [codexMemory, claudeMemory, codexWorkflow, claudeWorkflow, codexReview, claudeReview]) {
+    assert.match(plugin.version, /^\d+\.\d+\.\d+$/);
+  }
+  for (const entry of [...codexMarketplace.plugins, ...claudeMarketplace.plugins]) {
+    assert.equal(entry.version, undefined);
+  }
   assert.equal(claudeHookConfig.hooks.PostToolUse[0].matcher, 'Bash');
+});
+
+test('workflow docs describe source MCP tool and artifact contracts', () => {
+  const packageReadme = readFileSync(path.join(repoRoot, 'packages/workflow/README.md'), 'utf8');
+  const pluginReadme = readFileSync(path.join(repoRoot, 'plugins/workflow/README.md'), 'utf8');
+  const workflowMcp = readFileSync(path.join(skillDir, 'workflow-mcp/SKILL.md'), 'utf8');
+  const expectedTools = [
+    'workflow_status',
+    'workflow_plan_create',
+    'workflow_plan_update',
+    'workflow_plan_complete',
+    'workflow_plan_artifact_write',
+    'workflow_audit_create',
+    'workflow_audit_update',
+    'workflow_audit_complete',
+    'workflow_audit_artifact_write',
+    'workflow_handoff_write',
+    'workflow_findings_normalize',
+  ];
+
+  for (const doc of [packageReadme, pluginReadme, workflowMcp]) {
+    for (const tool of expectedTools) {
+      assert.match(doc, new RegExp(tool));
+    }
+  }
+
+  assert.match(packageReadme, /ui-contract\.md.*handoffs\//s);
+  assert.match(workflowMcp, /ui-contract\.md/);
+  assert.match(workflowMcp, /shared operation handler/);
+  assert.match(workflowMcp, /installed package drift/);
 });
 
 test('workflow and merge request agents stay paired across Codex and Claude', () => {

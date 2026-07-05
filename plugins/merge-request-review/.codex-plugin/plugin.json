@@ -1,6 +1,6 @@
 {
   "name": "merge-request-review",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Careful GitLab merge request review workflow with discussion intake, strict findings, re-review loops, and fixed review note formats.",
   "author": {
     "name": "Wiolett Industries",
@@ -39,6 +39,8 @@
       "Re-review this GitLab merge request after the author pushed fixes"
     ],
     "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
     "screenshots": []
   }
 }

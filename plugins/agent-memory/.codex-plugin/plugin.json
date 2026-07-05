@@ -1,6 +1,6 @@
 {
   "name": "agent-memory",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Persistent, searchable Agent Memory with global/project scopes, compiled recall, graph links, pathfinding, health/prune tools, and a local dashboard.",
   "author": {
     "name": "Wiolett Industries",
@@ -37,6 +37,8 @@
       "Recall what we know about this workflow"
     ],
     "brandColor": "#7C3AED",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
     "screenshots": []
   }
 }

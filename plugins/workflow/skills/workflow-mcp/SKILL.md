@@ -47,6 +47,7 @@ Create vs update guard: new workflow work gets `workflow_plan_create` or `workfl
   context.md
   questions.md
   decisions.md
+  ui-contract.md
   artifacts/
   chunks/
   handoffs/
@@ -57,7 +58,7 @@ Optional: `slug`, `workspace_root`, `plan_markdown`, `context_markdown`, `questi
 
 Plan state includes `active_chunk: string | null`. Keep it inside the plan run, not root workflow state, because chunk activity belongs to one plan.
 
-`workflow_plan_update` operations: `set_phase`, `set_complexity`, `set_review_round`, `set_clean_streak`, `set_open_findings`, `upsert_task`, `complete_task`, `set_active_chunk`, `clear_active_chunk`, `upsert_chunk`, `set_chunk_status`, `complete_chunk`, `cancel_chunk`, `wait_chunk`, `merge`.
+`workflow_plan_update` intended operations: `set_phase`, `set_complexity`, `set_review_round`, `set_clean_streak`, `set_open_findings`, `upsert_task`, `complete_task`, `set_active_chunk`, `clear_active_chunk`, `upsert_chunk`, `set_chunk_status`, `complete_chunk`, `cancel_chunk`, `wait_chunk`, `merge`.
 
 Task status changes use `upsert_task` with a full task object containing `id` and `status`. Task completion can use `complete_task` with `task_id`. Do not invent short operations such as `set_task_status`.
 
@@ -97,7 +98,9 @@ Use `upsert_chunk` only for chunk metadata such as title, path, scope, dependenc
 Required: `title`, `depth: simple | standard | deep | exhaustive`, `target: project | subsystem | diff | plan`.
 Optional: `slug`, `workspace_root`, `audit_markdown`, `scope_markdown`, `planning_input_markdown`, `findings`.
 
-`workflow_audit_update` operations: `set_phase`, `set_depth`, `set_open_findings`, `upsert_reviewer`, `upsert_sanity_check`, `merge`.
+`workflow_audit_update` intended operations: `set_phase`, `set_depth`, `set_open_findings`, `upsert_reviewer`, `upsert_sanity_check`, `merge`.
+
+The runtime uses a shared operation handler for plan and audit update tools. Use the intended subset for the current run type; if an unsupported-operation error appears, follow the nearest-operation hint and retry.
 
 `workflow_audit_complete` required input: none when completing the active audit; optional `workspace_root`, `audit_run` for an explicit run. Use this after the master audit/review output is accepted. It updates `state.json`, syncs `manifest.json`, and clears root `active_audit` if it points to that run.
 
@@ -129,3 +132,5 @@ Read the error text, use the nearest supported operation or hint it provides, an
 Do not switch to manual `.workflow/` edits while the matching MCP tool is available.
 
 Use MCP for creating/status/updating/completing runs, writing artifacts, normalizing findings, and structured handoffs. Do not bypass it with manual `.workflow/` writes when the matching MCP tool is available. Do not use it for plan content generation, audit judgment, review judgment, subagent launch, worktree merges, git operations, or verification commands.
+
+If a live installation launched via `@wiolett/workflow@latest` is missing a tool registered by the source package, such as `workflow_plan_complete` or `workflow_audit_complete`, treat that as installed package drift and verify the published package version before weakening this source contract.

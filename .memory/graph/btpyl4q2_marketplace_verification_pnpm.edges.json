@@ -1,0 +1,25 @@
+{
+  "file_name": "btpyl4q2_marketplace_verification_pnpm",
+  "edges": [
+    {
+      "from_id": "btpyl4q2",
+      "to_id": "cyeiuloe",
+      "relation": "related_to",
+      "weight": 0.6,
+      "reason": "Workflow hooks/schema verification is conceptually related to workflow verification mentioned in source.",
+      "source": "auto",
+      "created_at": 1783287001298,
+      "updated_at": 1783287001298
+    },
+    {
+      "from_id": "btpyl4q2",
+      "to_id": "ymfejgcj",
+      "relation": "related_to",
+      "weight": 0.5,
+      "reason": "Both discuss codex memory portability and durable artifacts in .memory directories.",
+      "source": "auto",
+      "created_at": 1783287001298,
+      "updated_at": 1783287001298
+    }
+  ]
+}

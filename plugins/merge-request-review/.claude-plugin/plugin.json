@@ -1,6 +1,6 @@
 {
   "name": "merge-request-review",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A GitLab merge request review workflow for Claude Code. It loads existing discussions first, checks MR-backed verification state, stores durable .workflow/mr-reviews artifacts through its MCP, dispatches merge_request_* reviewer subagents, drafts fixed-format review notes, and approves only after blocking findings are resolved. Requires an external GitLab MCP for GitLab reads/writes.",
   "author": {
     "name": "Wiolett Industries",

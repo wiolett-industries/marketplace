@@ -9,6 +9,8 @@ import { normalizeFindings } from '../dist/findings.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
 const reviewSkill = path.join(repoRoot, 'plugins/merge-request-review/skills/review-merge-request/SKILL.md');
+const packageReadme = path.join(repoRoot, 'packages/merge-request-review/README.md');
+const pluginReadme = path.join(repoRoot, 'plugins/merge-request-review/README.md');
 
 test('creates and updates a merge request review run', () => {
   const workspace = mkdtempSync(path.join(os.tmpdir(), 'mr-review-workspace-'));
@@ -73,6 +75,33 @@ test('review skill keeps public severity format and caps low-value loops', () =>
   assert.match(skill, /after two failed fix\/re-review cycles escalate/);
   assert.match(skill, /make an Agent Memory MCP decision/);
   assert.match(skill, /no internal triage labels in GitLab comments/);
+});
+
+test('merge request review docs describe MCP tool and artifact contracts', () => {
+  const docs = [
+    readFileSync(reviewSkill, 'utf8'),
+    readFileSync(packageReadme, 'utf8'),
+    readFileSync(pluginReadme, 'utf8'),
+  ];
+  const expectedTools = [
+    'mr_review_status',
+    'mr_review_create',
+    'mr_review_update',
+    'mr_review_artifact_write',
+    'mr_review_findings_normalize',
+    'mr_review_note_draft',
+  ];
+
+  for (const doc of docs) {
+    for (const tool of expectedTools) {
+      assert.match(doc, new RegExp(tool));
+    }
+  }
+
+  const skill = docs[0];
+  assert.doesNotMatch(skill, /posted-notes\.json\n  approval\.md\n/);
+  assert.match(skill, /approval\.md` is an allowed artifact/);
+  assert.match(docs[1], /owns only the review protocol state/);
 });
 
 test('prints help', () => {

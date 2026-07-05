@@ -49,11 +49,12 @@ One run per MR/re-review:
   discussions.json
   diff-summary.md
   posted-notes.json
-  approval.md
   notes-to-post/
   posted-notes/
   artifacts/review-round-N/
 ```
+
+`approval.md` is an allowed artifact for final approval evidence; it is written later with `mr_review_artifact_write`, not created by `mr_review_create`.
 
 Tools:
 

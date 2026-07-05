@@ -8,7 +8,16 @@ On startup it:
 - creates best-effort compatibility links under `~/.agents/agents/`
 - registers filesystem-backed `.workflow/mr-reviews/` state and artifact tools
 
-This package does not talk to GitLab. The model or an external GitLab MCP is responsible for fetching MR metadata, discussions, diffs, CI state, and for posting notes. This MCP owns the review protocol state.
+This package does not talk to GitLab. The model or an external GitLab MCP is responsible for fetching MR metadata, discussions, diffs, CI state, posting notes, and approving merge requests. This MCP owns only the review protocol state, local artifacts, normalized findings, and fixed-format note drafts.
+
+## Tools
+
+- `mr_review_status`: read active review state and latest review runs.
+- `mr_review_create`: create a `.workflow/mr-reviews/<slug>/` run with manifest, state, discussions, notes, and artifact directories.
+- `mr_review_update`: apply structured operations to the active or named review run.
+- `mr_review_artifact_write`: write allowed files inside a review run without path escape.
+- `mr_review_findings_normalize`: normalize MR review findings into Critical/Important/Minor/Notes order.
+- `mr_review_note_draft`: render a fixed-format finding note without posting it.
 
 ## CLI
 

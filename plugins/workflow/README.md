@@ -65,6 +65,8 @@ Unknown state update operations return a nearest supported operation and payload
 
 Plan state tracks `active_chunk` and `chunks[]`. Use chunk lifecycle operations for active/waiting/complete/cancelled state and `upsert_chunk` for metadata.
 
+Plan and audit update tools share one operation handler in the MCP runtime. The skill docs list the intended operation subset for each run type so agents keep state meaningful, but the registered source tool contract is the full shared handler.
+
 - `workflow_status`
 - `workflow_plan_create`
 - `workflow_plan_update`
@@ -76,3 +78,5 @@ Plan state tracks `active_chunk` and `chunks[]`. Use chunk lifecycle operations 
 - `workflow_audit_artifact_write`
 - `workflow_handoff_write`
 - `workflow_findings_normalize`
+
+If a live installation launched via `@wiolett/workflow@latest` is missing a source-registered tool such as a completion helper, check the installed/published package version before treating the docs as stale.
