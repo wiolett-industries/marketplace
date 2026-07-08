@@ -9,6 +9,20 @@ This repository ships Codex and Claude Code plugin metadata together.
 Platform-specific manifests and agent definitions are committed so users can
 install directly without running generators or setup commands.
 
+## Why
+
+Most skill packs are easier for humans to browse than for models to execute:
+rules repeat, workflows get split into too many tiny skills, and context fills
+up with prose that sounds nice but does not change behavior.
+
+This marketplace takes the opposite bias: fewer moving parts, less prompt
+sludge, and more explicit state. `workflow` keeps engineering work in clear
+phases, `agent-memory` makes project knowledge durable and commit-friendly,
+and `merge-request-review` adds stricter review artifacts and note drafts.
+
+The goal is boring infrastructure for agents: workflow, memory, review
+discipline, and shared knowledge future sessions should not have to rediscover.
+
 ## Quick Start
 
 Register the marketplace, install the plugins you want, then configure model
