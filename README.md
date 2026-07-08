@@ -1,6 +1,6 @@
 # Wiolett Industries Agent Plugins
 
-![Wiolett Industries Agent Plugins](https://s3.wiolett.net/static/net/wiolett/gh/marketplace/gh-marketplace-banner-1.png)
+![Wiolett Industries Agent Plugins](https://s3.wiolett.net/static/net/wiolett/gh/marketplace/gh-marketplace-banner-2.png)
 
 Unified marketplace source for [Wiolett Industries](https://wiolett.net)
 agent plugins.
