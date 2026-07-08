@@ -1,7 +1,18 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
 export type MemoryScope = 'project' | 'global';
+
+const projectRootStorage = new AsyncLocalStorage<string>();
+
+function resolveExplicitProjectRoot(projectPath: string): string {
+  if (!path.isAbsolute(projectPath)) {
+    throw new Error('workspace_root must be an absolute path');
+  }
+  return path.resolve(projectPath);
+}
 
 export function getAgentsHome(): string {
   const configured = process.env.PROJECT_MEMORY_AGENTS_HOME?.trim();
@@ -21,8 +32,77 @@ export function getGlobalMemoryRoot(): string {
   return path.join(getAgentsHome(), 'agent-memory');
 }
 
-export function getMemoryRoot(scope: MemoryScope = 'project', projectPath: string = process.cwd()): string {
-  return scope === 'global' ? getGlobalMemoryRoot() : path.join(projectPath, '.memory');
+function hasProjectMemoryLayout(projectPath: string): boolean {
+  const memoryDir = path.join(projectPath, '.memory');
+  return (
+    existsSync(path.join(memoryDir, 'memories')) ||
+    existsSync(path.join(memoryDir, 'index')) ||
+    existsSync(path.join(memoryDir, 'embeddings')) ||
+    existsSync(path.join(memoryDir, 'graph')) ||
+    existsSync(path.join(memoryDir, 'entries')) ||
+    existsSync(path.join(memoryDir, 'memory.db'))
+  );
+}
+
+function nearestProjectBase(startPath: string): string {
+  let current = path.resolve(startPath);
+
+  while (true) {
+    if (hasProjectMemoryLayout(current)) {
+      return current;
+    }
+
+    if (existsSync(path.join(current, '.git'))) {
+      return current;
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return path.resolve(startPath);
+    }
+    current = parent;
+  }
+}
+
+export function getProjectRoot(projectPath?: string): string {
+  const explicit = projectPath?.trim();
+  if (explicit) {
+    return resolveExplicitProjectRoot(explicit);
+  }
+
+  const active = projectRootStorage.getStore();
+  if (active) {
+    return active;
+  }
+
+  const configured = process.env.PROJECT_MEMORY_PROJECT_ROOT?.trim();
+  if (configured) {
+    return path.resolve(configured);
+  }
+
+  return nearestProjectBase(process.cwd());
+}
+
+export function withProjectRoot<T>(projectPath: string | undefined, fn: () => T): T {
+  const explicit = projectPath?.trim();
+  if (!explicit) {
+    return fn();
+  }
+
+  return projectRootStorage.run(resolveExplicitProjectRoot(explicit), fn);
+}
+
+export async function withProjectRootAsync<T>(projectPath: string | undefined, fn: () => Promise<T>): Promise<T> {
+  const explicit = projectPath?.trim();
+  if (!explicit) {
+    return fn();
+  }
+
+  return projectRootStorage.run(resolveExplicitProjectRoot(explicit), fn);
+}
+
+export function getMemoryRoot(scope: MemoryScope = 'project', projectPath?: string): string {
+  return scope === 'global' ? getGlobalMemoryRoot() : path.join(getProjectRoot(projectPath), '.memory');
 }
 
 export function getScopeLabel(scope: MemoryScope): string {

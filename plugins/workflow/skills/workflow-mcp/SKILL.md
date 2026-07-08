@@ -70,7 +70,7 @@ Chunk status changes use the chunk lifecycle operations:
 - cancelled: `{"type":"cancel_chunk","chunk_id":"C1"}`
 - arbitrary status: `{"type":"set_chunk_status","chunk_id":"C1","status":"blocked"}`
 
-Use `upsert_chunk` only for chunk metadata such as title, path, scope, dependencies, owner, model class, or verification. `complete_chunk`, `cancel_chunk`, and `wait_chunk` clear `active_chunk` when they act on the active chunk.
+Use `upsert_chunk` only for chunk metadata such as title, path, scope, dependencies, owner, model class, or verification. Any status other than `active` or `in_progress` clears `active_chunk` when it acts on the active chunk, including `set_chunk_status` with `blocked`.
 
 `workflow_plan_complete` required input: none when completing the active plan; optional `workspace_root`, `plan_run` for an explicit run. Use this after finalization passes. It updates `state.json`, syncs `manifest.json`, and clears root `active_plan` if it points to that run.
 

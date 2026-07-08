@@ -1,6 +1,6 @@
 {
   "name": "agent-memory",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Persistent, searchable Agent Memory with global/project scopes, compiled recall, graph links, pathfinding, health/prune tools, and a local dashboard.",
   "author": {
     "name": "Wiolett Industries",

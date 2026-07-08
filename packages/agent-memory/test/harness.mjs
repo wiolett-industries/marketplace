@@ -454,6 +454,8 @@ async function runMcp() {
       summary: 'Canonical smoke memory',
     },
   });
+  const canonicalList = await client.callTool({ name: 'memory_list', arguments: {} });
+  const canonicalIndexList = await client.callTool({ name: 'memory_list', arguments: { index_only: true } });
   const query = await client.callTool({
     name: 'memory_query',
     arguments: { query: 'Canonical smoke memory', limit: 3 },
@@ -472,9 +474,109 @@ async function runMcp() {
     globalWrite,
     globalLite,
     canonicalWrite,
+    canonicalList,
+    canonicalIndexList,
     query,
     inspect,
   };
+}
+
+async function connectMcp(cwd, env = {}) {
+  const client = new Client({
+    name: 'agent-memory-jest-client',
+    version: '0.1.0',
+  });
+
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [path.resolve('dist/index.js')],
+    cwd,
+    env: {
+      PATH: process.env.PATH ?? '',
+      HOME: process.env.HOME ?? '',
+      PROJECT_MEMORY_AGENTS_HOME: process.env.PROJECT_MEMORY_AGENTS_HOME ?? '',
+      PROJECT_MEMORY_GLOBAL_ROOT: process.env.PROJECT_MEMORY_GLOBAL_ROOT ?? '',
+      WIOLETT_AUTH_CONFIG_PATH: process.env.WIOLETT_AUTH_CONFIG_PATH ?? '',
+      OPENAI_API_KEY: '',
+      ...env,
+    },
+    stderr: 'pipe',
+  });
+
+  await client.connect(transport);
+  return { client, transport };
+}
+
+async function runMcpWorkspaceRoot() {
+  const projectDir = createTempProject('pm-mcp-workspace-root');
+  const childDir = path.join(projectDir, 'packages', 'child');
+  mkdirSync(childDir, { recursive: true });
+
+  const ids = await withProject(projectDir, async () => {
+    ensureMemoryReady('project');
+    const deep = await handleWrite({
+      content: 'Workspace root memory survives MCP launch cwd drift',
+      tags: ['workspace-root', 'mcp'],
+      summary: 'Workspace root memory',
+    });
+    return { deep: deep.id, pointer: deep.pointer_id };
+  });
+
+  const parentProjectDir = createTempProject('pm-mcp-parent-memory');
+  const nestedRepoDir = path.join(parentProjectDir, 'nested-repo');
+  const nestedRepoChildDir = path.join(nestedRepoDir, 'src');
+  mkdirSync(path.join(nestedRepoDir, '.git'), { recursive: true });
+  mkdirSync(nestedRepoChildDir, { recursive: true });
+  await withProject(parentProjectDir, async () => {
+    ensureMemoryReady('project');
+    await handleWrite({
+      content: 'Parent project memory must not leak into nested repos',
+      tags: ['workspace-root', 'nested'],
+      summary: 'Parent memory',
+    });
+  });
+
+  const unrelatedDir = createTempProject('pm-mcp-unrelated-cwd');
+  const unrelated = await connectMcp(unrelatedDir);
+  try {
+    const wrongCwdList = await unrelated.client.callTool({ name: 'memory_list', arguments: {} });
+    const rootedList = await unrelated.client.callTool({ name: 'memory_list', arguments: { workspace_root: projectDir } });
+    const rootedIndexList = await unrelated.client.callTool({ name: 'memory_list', arguments: { workspace_root: projectDir, index_only: true } });
+    const rootedInspect = await unrelated.client.callTool({ name: 'memory_inspect', arguments: { workspace_root: projectDir, view: 'all' } });
+    let relativeRootResult = null;
+    let relativeRootError = null;
+    try {
+      relativeRootResult = await unrelated.client.callTool({ name: 'memory_list', arguments: { workspace_root: '.' } });
+    } catch (error) {
+      relativeRootError = error instanceof Error ? error.message : String(error);
+    }
+
+    const child = await connectMcp(childDir);
+    try {
+      const ancestorList = await child.client.callTool({ name: 'memory_list', arguments: {} });
+      const nested = await connectMcp(nestedRepoChildDir);
+      try {
+        const nestedRepoList = await nested.client.callTool({ name: 'memory_list', arguments: {} });
+        return {
+          ids,
+          wrongCwdList,
+          rootedList,
+          rootedIndexList,
+          rootedInspect,
+          relativeRootResult,
+          relativeRootError,
+          ancestorList,
+          nestedRepoList,
+        };
+      } finally {
+        await nested.transport.close();
+      }
+    } finally {
+      await child.transport.close();
+    }
+  } finally {
+    await unrelated.transport.close();
+  }
 }
 
 async function runMcpReadUninitialized() {
@@ -831,6 +933,7 @@ const runners = {
   'legacy-json': runLegacyJson,
   'legacy-db': runLegacyDb,
   mcp: runMcp,
+  'mcp-workspace-root': runMcpWorkspaceRoot,
   'mcp-read-uninitialized': runMcpReadUninitialized,
 };
 

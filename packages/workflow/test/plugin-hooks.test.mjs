@@ -353,5 +353,7 @@ test('workflow skills preserve memory, audit, and MCP guardrails', () => {
   assert.match(workflowMcp, /workflow_plan_complete/);
   assert.match(workflowMcp, /active_chunk/);
   assert.match(workflowMcp, /complete_chunk/);
+  assert.match(workflowMcp, /Any status other than `active` or `in_progress` clears `active_chunk`/);
+  assert.match(workflowMcp, /set_chunk_status` with `blocked`/);
   assert.match(usingWorkflow, /workflow_plan_complete/);
 });

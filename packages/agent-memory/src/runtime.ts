@@ -4,7 +4,7 @@ import { getDb } from './db.js';
 import { getEmbeddingsDir, getGraphDir, getIndexDir, getMemoriesDir } from './files.js';
 import { rebuildFromFiles } from './rebuild.js';
 import type { MemoryScope } from './scope.js';
-import { getMemoryRoot } from './scope.js';
+import { getMemoryRoot, getProjectRoot } from './scope.js';
 
 export interface MemoryState {
   scope: MemoryScope;
@@ -17,7 +17,7 @@ export interface MemoryState {
 
 const ensuredRoots = new Set<string>();
 
-export function detectMemoryState(scope: MemoryScope = 'project', projectPath: string = process.cwd()): MemoryState {
+export function detectMemoryState(scope: MemoryScope = 'project', projectPath?: string): MemoryState {
   const memoryDir = getMemoryRoot(scope, projectPath);
 
   const currentLayout =
@@ -67,14 +67,15 @@ function updateGitignore(projectPath: string): void {
   appendFileSync(gitignorePath, `${dbIgnoreEntry}\n`);
 }
 
-function bootstrapProjectMemory(projectPath: string = process.cwd()): void {
-  const memoryDir = getMemoryRoot('project', projectPath);
+function bootstrapProjectMemory(projectPath?: string): void {
+  const resolvedProjectPath = getProjectRoot(projectPath);
+  const memoryDir = getMemoryRoot('project', resolvedProjectPath);
   mkdirSync(path.join(memoryDir, 'memories'), { recursive: true });
   mkdirSync(path.join(memoryDir, 'index'), { recursive: true });
   mkdirSync(path.join(memoryDir, 'embeddings'), { recursive: true });
   mkdirSync(path.join(memoryDir, 'graph'), { recursive: true });
   getDb('project');
-  updateGitignore(projectPath);
+  updateGitignore(resolvedProjectPath);
 }
 
 export function ensureMemoryReady(scope: MemoryScope = 'project'): void {
@@ -112,10 +113,10 @@ export function ensureMemoryReadable(scope: MemoryScope = 'project'): boolean {
   return true;
 }
 
-export function markMemoryReady(scope: MemoryScope = 'project', projectPath: string = process.cwd()): void {
+export function markMemoryReady(scope: MemoryScope = 'project', projectPath?: string): void {
   ensuredRoots.add(getMemoryRoot(scope, projectPath));
 }
 
-export function resetMemoryReady(scope: MemoryScope = 'project', projectPath: string = process.cwd()): void {
+export function resetMemoryReady(scope: MemoryScope = 'project', projectPath?: string): void {
   ensuredRoots.delete(getMemoryRoot(scope, projectPath));
 }

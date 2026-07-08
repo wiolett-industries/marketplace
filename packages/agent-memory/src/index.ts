@@ -3,7 +3,7 @@
 import { runInitCommand } from './cli/init.js';
 import { isCliAbortError } from './cli/prompts.js';
 
-const VERSION = '0.4.0';
+const VERSION = '0.4.2';
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
@@ -45,7 +45,7 @@ async function startMcpServer(): Promise<void> {
     },
     {
       instructions:
-        'Agent Memory is this MCP-backed memory system, separate from Codex built-in memory, chat history, and workflow artifacts. Use memory_list or global_memory_read_lite at conversation start for persistent preferences, memory_save to store durable reusable knowledge, memory_update to refresh outdated memories, memory_recall for compiled context by ID, memory_query for topic lookup (graph-expands related memories), memory_graph for relationships, memory_path to trace how two memories connect, and memory_inspect (including view=health for graph metrics) for raw maintenance/debug views; memory_graph_prune removes unhealthy auto edges (dry run by default). Do not substitute Codex built-in memory for Agent Memory MCP reads/writes when these tools are available. Before finalizing non-trivial work, save/update distilled preferences, repo workflows, setup gotchas, root causes, fix patterns, or verification sequences when they are likely to matter again. Read tools never initialize missing project memory; project memory storage is created only by memory_setup or write/mutation tools.',
+        'Agent Memory is this MCP-backed memory system, separate from Codex built-in memory, chat history, and workflow artifacts. Common tools include memory_list, memory_query, memory_recall, memory_save, memory_update, memory_inspect, memory_graph, memory_path, memory_graph_prune, and memory_setup; maintenance tools include memory_delete, memory_link, and memory_unlink. Use memory_list({ scope: "global", index_only: true }) or global_memory_read_lite at conversation start for persistent preferences. After a repo boundary is known, pass an absolute workspace_root for project-scoped reads/writes when the MCP server cwd may differ from the repo. Do not treat an empty project memory_list as proof that no memories exist until scope/root has been checked with memory_inspect or workspace_root. Do not substitute Codex built-in memory for Agent Memory MCP reads/writes when these tools are available. Before finalizing non-trivial work, save/update distilled preferences, repo workflows, setup gotchas, root causes, fix patterns, or verification sequences when they are likely to matter again. Read tools never initialize missing project memory; project memory storage is created only by memory_setup or write/mutation tools.',
     }
   );
 

@@ -42,9 +42,16 @@ describe('MCP launcher smoke test', () => {
     );
     expect(result.toolNames).not.toContain('agent_memory_configure');
     const memorySave = result.toolSchemas.find((tool) => tool.name === 'memory_save');
+    const memoryList = result.toolSchemas.find((tool) => tool.name === 'memory_list');
+    const memoryReadLite = result.toolSchemas.find((tool) => tool.name === 'memory_read_lite');
     const memoryUpdate = result.toolSchemas.find((tool) => tool.name === 'memory_update');
     expect(JSON.stringify(memorySave)).not.toContain('bypass_gate');
     expect(JSON.stringify(memoryUpdate)).not.toContain('bypass_gate');
+    expect(JSON.stringify(memoryList)).toContain('workspace_root');
+    expect(JSON.stringify(memoryReadLite)).toContain('workspace_root');
+    expect(JSON.stringify(memoryList)).toContain('By default this includes deep memories and lite index records');
+    expect(JSON.stringify(memoryList)).toContain('Return only lightweight index/pointer records');
+    expect(JSON.stringify(memoryList)).toContain('Relative paths are rejected');
     expect(result.setup.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.write.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.globalWrite.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
@@ -61,7 +68,45 @@ describe('MCP launcher smoke test', () => {
     expect(result.query.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.inspect.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.lite.content[0].text).toContain('Smoke memory');
+    expect(result.canonicalList.content[0].text).toContain('Canonical smoke memory');
+    expect(result.canonicalList.content[0].text).toContain('Smoke test memory from MCP launcher');
+    expect(result.canonicalIndexList.content[0].text).toContain('Canonical smoke memory');
     expect(result.globalLite.content[0].text).not.toContain('Smoke global preference');
+  }, 30000);
+
+  test('project reads can target a workspace root when MCP cwd differs', async () => {
+    const result = runHarness('mcp-workspace-root');
+    const wrongCwdList = JSON.parse(result.wrongCwdList.content[0].text);
+    const rootedList = JSON.parse(result.rootedList.content[0].text);
+    const rootedIndexList = JSON.parse(result.rootedIndexList.content[0].text);
+    const rootedInspect = JSON.parse(result.rootedInspect.content[0].text);
+    const ancestorList = JSON.parse(result.ancestorList.content[0].text);
+    const nestedRepoList = JSON.parse(result.nestedRepoList.content[0].text);
+
+    expect(wrongCwdList).toEqual([]);
+    expect(nestedRepoList).toEqual([]);
+    expect(JSON.stringify(result.relativeRootResult ?? result.relativeRootError)).toMatch(/workspace_root must be an absolute path/);
+    expect(rootedList).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: result.ids.deep, layer: 'deep' }),
+        expect.objectContaining({ id: result.ids.pointer, layer: 'lite', ref: result.ids.deep }),
+      ])
+    );
+    expect(rootedIndexList).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: result.ids.pointer, layer: 'lite', ref: result.ids.deep }),
+      ])
+    );
+    expect(rootedInspect.memories).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: result.ids.deep }),
+      ])
+    );
+    expect(ancestorList).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: result.ids.deep }),
+      ])
+    );
   }, 30000);
 
   test('read tools do not initialize missing project memory', async () => {

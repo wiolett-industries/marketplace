@@ -38,7 +38,7 @@ Global memory is for information that should follow the user across repositories
 - cross-project requirements for model behavior
 - reusable personal workflows
 
-Global memory is always available through `global_memory_*` tools.
+Global memory is available through canonical tools with `scope: "global"`. Some compatibility helpers and graph maintenance helpers also use `global_memory_*` names.
 
 ### Project Memory
 
@@ -78,7 +78,7 @@ Project memory:
   memory.db-wal
 ```
 
-Canonical markdown memory files, index files, embedding arrays, and graph files are the source of truth. SQLite is used as local cache for fast lookup.
+Canonical markdown memory files, index files, embedding arrays, and graph files are the source of truth and should be committed for project/team memory. SQLite is used as local cache for fast lookup, so only `.memory/memory.db*` belongs in `.gitignore`.
 
 ## Tool Surface
 
@@ -98,7 +98,7 @@ Canonical tools:
 - `memory_graph_prune`
 - `memory_setup`
 
-Every canonical tool except `memory_setup` accepts an optional `scope` of `project` or `global`; project is the default. `memory_setup` initializes or repairs project memory for the current repo.
+Every canonical tool except `memory_setup` accepts an optional `scope` of `project` or `global`; project is the default. Project-scoped canonical tools and project compatibility aliases also accept an absolute `workspace_root` so callers can target a repo when the MCP server cwd differs from the workspace. `memory_setup` initializes or repairs project memory for the current repo or supplied `workspace_root`.
 
 Graph tools:
 
@@ -116,6 +116,9 @@ Compatibility aliases remain available until the bundled skills move to the new 
 - `memory_search` / `global_memory_search`
 - `memory_read_lite` / `global_memory_read_lite`
 - `memory_read_all` / `global_memory_read_all`
+- `global_memory_delete`
+- `global_memory_link`
+- `global_memory_unlink`
 - `memory_neighbors` / `global_memory_neighbors`
 - `memory_subgraph` / `global_memory_subgraph`
 
@@ -123,7 +126,7 @@ Normal reads should use:
 
 - `memory_recall` for one compiled memory context
 - `memory_query` for a compiled answer from search results
-- `memory_list` for lightweight index browsing
+- `memory_list({ index_only: true })` for lightweight index browsing; omit `index_only` to include deep memories as well
 
 `memory_inspect` is intentionally raw and meant for maintenance/debugging.
 
@@ -167,13 +170,13 @@ Without an API key, model-gated writes and semantic search are disabled. Memory 
 
 ## Usage
 
-At conversation start, the bundled skill tells the agent to read global lite memory first:
+At conversation start, the bundled skill tells the agent to read global lite memory first with the canonical list tool:
 
 ```text
-global_memory_read_lite()
+memory_list({ scope: "global", index_only: true })
 ```
 
-When a repository should use project memory, save or mutate project memory normally. The first write/mutation call initializes the local `.memory/` store automatically. Read calls against a repo with no project memory return empty results and leave the repo untouched.
+When a repository should use project memory, save or mutate project memory normally. The first write/mutation call initializes the local `.memory/` store automatically. Read calls against a repo with no project memory return empty results and leave the repo untouched. After a repo root is known, pass an absolute `workspace_root` on project-scoped reads/writes if the MCP server may have launched from another directory.
 
 From there, use memory tools to store and retrieve reusable knowledge as needed.
 
@@ -182,6 +185,7 @@ Example canonical calls:
 ```text
 memory_save(content="Project releases use pnpm build before publish.", tags=["release", "pnpm"])
 memory_query(query="How do releases work?")
+memory_list(scope="project", workspace_root="/path/to/repo", index_only=true)
 memory_recall(memory_id="abc123xy")
 memory_inspect(view="all")
 ```

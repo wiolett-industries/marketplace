@@ -9,7 +9,7 @@ Use for ready GitLab merge requests, re-reviews, and approval readiness. Not for
 
 External GitLab MCP handles GitLab reads/writes. This plugin MCP only owns `.workflow/mr-reviews/` protocol state, findings, note drafts, and approval artifacts.
 
-Every pass ends in one state: `blocked`, `findings`, or `clean`.
+Every review pass ends in one state: `blocked`, `findings`, or `clean`. After the final clean note and approval, `mark_approved` moves the run to `approved`.
 
 ## Workflow
 
@@ -64,6 +64,20 @@ Tools:
 - `mr_review_artifact_write`: discussion summaries, diff summaries, reviewer outputs, notes, approval evidence
 - `mr_review_findings_normalize`: before state findings
 - `mr_review_note_draft`: render fixed-format note text before GitLab posting
+
+`mr_review_update` supported operations: `set_phase`, `set_review_mode`, `set_ci_status`, `set_discussions`, `set_findings`, `set_blockers`, `set_review_round`, `set_clean_rounds`, `upsert_posted_note`, `mark_approved`, and `merge`.
+
+Use exact operation payloads:
+
+- phase: `{"type":"set_phase","phase":"reviewing|blocked|findings|clean"}`
+- discussions: `{"type":"set_discussions","discussions":[...]}`
+- findings: `{"type":"set_findings","findings":[...]}`
+- blockers: `{"type":"set_blockers","blockers":[...]}`
+- review round: `{"type":"set_review_round","review_round":1}`
+- clean rounds: `{"type":"set_clean_rounds","clean_rounds":1}`
+- posted note: `{"type":"upsert_posted_note","note":{"id":"N1",...}}`
+- approval: `{"type":"mark_approved"}`
+- patch escape hatch: `{"type":"merge","patch":{...}}`
 
 ## Severity
 

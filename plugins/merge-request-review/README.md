@@ -19,7 +19,7 @@ The workflow is intentionally strict:
 - local checks and GitLab CI state are checked before deep review
 - non-trivial changes require full-file inspection, not diff-only review
 - blocking findings are posted as inline threads by default
-- blocked, findings, and clean states are explicit
+- blocked, findings, and clean states are explicit; approved is the post-clean approval state
 - final clean note and approval happen together
 - approval is allowed only when plugin-created blocking findings are resolved
 
@@ -37,3 +37,5 @@ The bundled MCP owns review protocol state only. It does not read GitLab, post n
 - `mr_review_artifact_write`
 - `mr_review_findings_normalize`
 - `mr_review_note_draft`
+
+Supported `mr_review_update` operations: `set_phase`, `set_review_mode`, `set_ci_status`, `set_discussions`, `set_findings`, `set_blockers`, `set_review_round`, `set_clean_rounds`, `upsert_posted_note`, `mark_approved`, and `merge`.

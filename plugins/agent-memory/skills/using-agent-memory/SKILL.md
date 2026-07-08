@@ -12,7 +12,7 @@ Use at conversation start, after compaction/context reset, and whenever durable 
 Agent Memory is this plugin's MCP-backed memory system. It is separate from Codex built-in memory, chat history, workflow artifacts, and ad hoc notes.
 
 When this skill says "memory", it means Agent Memory MCP tools:
-`memory_list`, `memory_query`, `memory_recall`, `memory_save`, `memory_update`, `memory_inspect`, and graph tools.
+`memory_list`, `memory_query`, `memory_recall`, `memory_save`, `memory_update`, `memory_inspect`, graph tools, and maintenance tools.
 
 Do not substitute Codex built-in memory for Agent Memory reads or writes when Agent Memory MCP tools are available. Use Codex built-in memory only as background context; verify durable repo facts and reusable workflows through Agent Memory MCP.
 
@@ -30,7 +30,9 @@ Layers:
 - `deep`: canonical durable memories with full text, embeddings when configured, and graph links
 - `lite`: cheap index/pointer layer for recall; standalone lite can link, pointer lite cannot
 
-Canonical Agent Memory MCP tools: `memory_list`, `memory_query`, `memory_recall`, `memory_save`, `memory_update`, `memory_inspect`, `memory_graph`, `memory_path`, `memory_graph_prune`. Use compatibility aliases only when canonical tools are absent.
+Project `.memory/` files are team knowledge artifacts, not local noise. Commit canonical memory files under `.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, and `.memory/graph/` when they are created or updated. Only `.memory/memory.db*` is ignored because SQLite files are generated cache files; do not treat untracked markdown, embeddings, or graph files in `.memory/` as accidental build output.
+
+Canonical Agent Memory MCP tools: `memory_setup`, `memory_list`, `memory_query`, `memory_recall`, `memory_save`, `memory_update`, `memory_inspect`, `memory_delete`, `memory_link`, `memory_unlink`, `memory_graph`, `memory_path`, `memory_graph_prune`. Use compatibility aliases only when canonical tools are absent.
 
 ## Reads
 
@@ -38,10 +40,14 @@ At conversation start or after compaction, perform a focused Agent Memory MCP re
 
 1. `memory_list({ scope: "global", index_only: true })`
 2. `memory_recall` relevant global entries only
-3. after repo boundary is known, `memory_list({ scope: "project", index_only: true })`
-4. use `memory_query({ scope: "project", query: "..." })` for repo conventions/gotchas
+3. after repo boundary is known, `memory_list({ scope: "project", workspace_root: "<absolute-repo-root>", index_only: true })`
+4. use `memory_query({ scope: "project", workspace_root: "<absolute-repo-root>", query: "..." })` for repo conventions/gotchas
 
 For repo workflow/setup/history questions, run a focused project query before answering when `.memory/` exists or when the user asks to use prior context. For ambiguous non-trivial repo work, query Agent Memory MCP before broad code discovery if a stored workflow or gotcha could change the approach.
+
+Project memory reads use the MCP server's current working directory unless `workspace_root` is supplied. After the repo boundary is known, pass the absolute repo root for project-scoped reads/writes when there is any chance the server cwd differs from the workspace. If a project `memory_list` returns `[]` but `.memory/` exists or prior context suggests stored memories, do not conclude that memories are absent until you retry with `workspace_root` or inspect `memory_inspect({ scope: "project", workspace_root: "<absolute-repo-root>", view: "all" })`.
+
+`memory_list({ index_only: true })` returns only the lightweight index/pointer layer. Omit `index_only` when debugging whether deep memories exist but the index is empty or stale.
 
 Keep reads focused. Do not dump all memory unless the user asks for maintenance/audit.
 
@@ -86,6 +92,8 @@ Do not bypass the memory gate; the tool surface intentionally has no bypass para
 - `memory_path`: a path between two memories (`strategy: shortest | strongest`)
 - `memory_inspect`: raw maintenance/debug; `view: "health"` returns graph metrics
 - `memory_graph_prune`: remove unhealthy auto edges (dry run by default; never touches manual edges)
+- `memory_setup`: initialize or repair project memory for a known repo root
+- `memory_delete`, `memory_link`, `memory_unlink`: maintenance/mutation tools; use only for explicit maintenance or corrective operations
 
 ## Compaction Recovery
 

@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import path from 'node:path';
 import { isSemanticSearchEnabled } from './model-provider.js';
 import { resetMemoryReady } from './runtime.js';
-import { getGlobalMemoryRoot } from './scope.js';
+import { getGlobalMemoryRoot, getProjectRoot } from './scope.js';
 import { getDb } from './db.js';
 
 export interface SetupResult {
@@ -42,9 +42,9 @@ function updateGitignore(projectPath: string): { gitignorePath: string; updated:
   return { gitignorePath, updated: true };
 }
 
-export function setupProjectMemory(): SetupResult {
-  const projectPath = process.cwd();
-  const memoryDir = path.join(projectPath, '.memory');
+export function setupProjectMemory(projectPath?: string): SetupResult {
+  const resolvedProjectPath = getProjectRoot(projectPath);
+  const memoryDir = path.join(resolvedProjectPath, '.memory');
   const memoriesDir = path.join(memoryDir, 'memories');
   const indexDir = path.join(memoryDir, 'index');
   const embeddingsDir = path.join(memoryDir, 'embeddings');
@@ -57,12 +57,12 @@ export function setupProjectMemory(): SetupResult {
   mkdirSync(graphDir, { recursive: true });
   getDb('project');
 
-  const { gitignorePath, updated } = updateGitignore(projectPath);
-  resetMemoryReady('project', projectPath);
+  const { gitignorePath, updated } = updateGitignore(resolvedProjectPath);
+  resetMemoryReady('project', resolvedProjectPath);
 
   return {
     scope: 'project',
-    project_path: projectPath,
+    project_path: resolvedProjectPath,
     memory_dir: memoryDir,
     memories_dir: memoriesDir,
     index_dir: indexDir,

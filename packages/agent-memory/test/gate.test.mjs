@@ -41,6 +41,15 @@ describe('memory write gate', () => {
     expect(skill).toMatch(/Planning-stage product decisions are usually workflow context/);
     expect(skill).toMatch(/Prefer `memory_update` over `memory_save`/);
     expect(skill).toMatch(/must not own/);
+    expect(skill).toMatch(/memory_setup/);
+    expect(skill).toMatch(/memory_delete/);
+    expect(skill).toMatch(/memory_link/);
+    expect(skill).toMatch(/memory_unlink/);
+    expect(skill).toMatch(/workspace_root/);
+    expect(skill).toMatch(/Omit `index_only` when debugging/);
+    expect(skill).toMatch(/Project `\.memory\/` files are team knowledge artifacts/);
+    expect(skill).toMatch(/Commit canonical memory files under `\.memory\/memories\/`, `\.memory\/index\/`, `\.memory\/embeddings\/`, and `\.memory\/graph\/`/);
+    expect(skill).toMatch(/Only `\.memory\/memory\.db\*` is ignored/);
   });
 
   test('uses strict structured output schema that is accepted by OpenAI-compatible providers', async () => {

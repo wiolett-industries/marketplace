@@ -1,0 +1,25 @@
+{
+  "file_name": "e87wrzeg_agent_memory_mcp",
+  "edges": [
+    {
+      "from_id": "e87wrzeg",
+      "to_id": "cyeiuloe",
+      "relation": "related_to",
+      "weight": 0.3065,
+      "reason": "The memories are similar enough to be useful related context.",
+      "source": "auto",
+      "created_at": 1783546495554,
+      "updated_at": 1783546495554
+    },
+    {
+      "from_id": "e87wrzeg",
+      "to_id": "btpyl4q2",
+      "relation": "related_to",
+      "weight": 0.3061,
+      "reason": "The memories are similar enough to be useful related context.",
+      "source": "auto",
+      "created_at": 1783546495554,
+      "updated_at": 1783546495554
+    }
+  ]
+}

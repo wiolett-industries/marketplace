@@ -1,0 +1,35 @@
+{
+  "file_name": "0eqwbcjr_mcp_surface_alignment",
+  "edges": [
+    {
+      "from_id": "0eqwbcjr",
+      "to_id": "e87wrzeg",
+      "relation": "same_workflow",
+      "weight": 0.65,
+      "reason": "Both discuss MCP memory patterns and workflow integration within agent-marketplace-next.",
+      "source": "auto",
+      "created_at": 1783548919193,
+      "updated_at": 1783548919193
+    },
+    {
+      "from_id": "0eqwbcjr",
+      "to_id": "cyeiuloe",
+      "relation": "same_workflow",
+      "weight": 0.6,
+      "reason": "Both address workflow hooks/schema validation and output structure for the project workflow.",
+      "source": "auto",
+      "created_at": 1783548919193,
+      "updated_at": 1783548919193
+    },
+    {
+      "from_id": "0eqwbcjr",
+      "to_id": "btpyl4q2",
+      "relation": "same_workflow",
+      "weight": 0.5,
+      "reason": "Both cover verification tooling and environment setup within the workflow of agent-marketplace-next.",
+      "source": "auto",
+      "created_at": 1783548919193,
+      "updated_at": 1783548919193
+    }
+  ]
+}

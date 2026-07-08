@@ -14,9 +14,10 @@ import { handleReadLite } from './read-lite.js';
 import { handleSave } from './save.js';
 import { handleSearch } from './search.js';
 import { handleUpdate } from './update.js';
-import { asTextResult, detailSchema, directionEnum, relationEnum, scopeSchema } from './registry-helpers.js';
+import { asTextResult, detailSchema, directionEnum, relationEnum, scopeSchema, workspaceRootSchema } from './registry-helpers.js';
 import { registerGraphTools } from './register-graph.js';
 import type { MemoryScope } from '../scope.js';
+import { withProjectRoot, withProjectRootAsync } from '../scope.js';
 
 function emptyQueryResult() {
   return {
@@ -49,9 +50,9 @@ function registerCanonicalTools(server: McpServer): void {
     {
       title: 'Setup Memory',
       description: 'Initialize or repair project-local memory storage for the current repo.',
-      inputSchema: z.object({}),
+      inputSchema: z.object({ workspace_root: workspaceRootSchema }),
     },
-    async () => asTextResult(setupProjectMemory())
+    async ({ workspace_root }) => withProjectRoot(workspace_root, () => asTextResult(setupProjectMemory()))
   );
 
   server.registerTool(
@@ -61,16 +62,17 @@ function registerCanonicalTools(server: McpServer): void {
       description: 'Save durable project or global knowledge after sanity review, especially reusable preferences, workflows, gotchas, root causes, fix patterns, and verification sequences.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
+        workspace_root: workspaceRootSchema,
         content: z.string().min(1),
         tags: z.array(z.string()).optional(),
         summary: z.string().optional(),
       }),
     },
-    async ({ scope, content, tags, summary }) => {
+    async ({ scope, workspace_root, content, tags, summary }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
       ensureMemoryReady(resolvedScope);
       return asTextResult(await handleSave({ scope: resolvedScope, content, tags, summary }));
-    }
+    })
   );
 
   server.registerTool(
@@ -80,17 +82,18 @@ function registerCanonicalTools(server: McpServer): void {
       description: 'Update a canonical memory without changing its ID or filename; manual graph links are preserved and automatic links are refreshed.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
+        workspace_root: workspaceRootSchema,
         memory_id: z.string().min(1),
         content: z.string().min(1),
         tags: z.array(z.string()).optional(),
         summary: z.string().optional(),
       }),
     },
-    async ({ scope, memory_id, content, tags, summary }) => {
+    async ({ scope, workspace_root, memory_id, content, tags, summary }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
       ensureMemoryReady(resolvedScope);
       return asTextResult(await handleUpdate({ scope: resolvedScope, memory_id, content, tags, summary }));
-    }
+    })
   );
 
   server.registerTool(
@@ -100,19 +103,20 @@ function registerCanonicalTools(server: McpServer): void {
       description: 'Return compiled context for one memory and its valuable relations.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
+        workspace_root: workspaceRootSchema,
         memory_id: z.string().min(1),
         detail: detailSchema,
         max_depth: z.number().int().min(1).max(4).optional(),
         include_sources: z.boolean().optional(),
       }),
     },
-    async ({ scope, memory_id, detail, max_depth, include_sources }) => {
+    async ({ scope, workspace_root, memory_id, detail, max_depth, include_sources }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
       if (!ensureMemoryReadable(resolvedScope)) {
         return asTextResult(null);
       }
       return asTextResult(await handleRecall({ scope: resolvedScope, memory_id, detail, max_depth, include_sources }));
-    }
+    })
   );
 
   server.registerTool(
@@ -122,6 +126,7 @@ function registerCanonicalTools(server: McpServer): void {
       description: 'Search memory and return a compiled answer with source references.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
+        workspace_root: workspaceRootSchema,
         query: z.string().min(1),
         limit: z.number().int().min(1).max(50).optional(),
         detail: detailSchema,
@@ -129,35 +134,36 @@ function registerCanonicalTools(server: McpServer): void {
         expand_hops: z.number().int().min(1).max(2).optional(),
       }),
     },
-    async ({ scope, query, limit, detail, expand, expand_hops }) => {
+    async ({ scope, workspace_root, query, limit, detail, expand, expand_hops }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
       if (!ensureMemoryReadable(resolvedScope)) {
         return asTextResult(emptyQueryResult());
       }
       return asTextResult(await handleQuery({ scope: resolvedScope, query, limit, detail, expand, expand_hops }));
-    }
+    })
   );
 
   server.registerTool(
     'memory_list',
     {
-      title: 'List Memory Index',
-      description: 'List lightweight memory index records.',
+      title: 'List Memories',
+      description: 'List memory records. By default this includes deep memories and lite index records; set index_only to true for lightweight index browsing.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
+        workspace_root: workspaceRootSchema,
         query: z.string().optional(),
         tags: z.array(z.string()).optional(),
         limit: z.number().int().min(1).max(200).optional(),
-        index_only: z.boolean().optional(),
+        index_only: z.boolean().optional().describe('Return only lightweight index/pointer records. Defaults to false.'),
       }),
     },
-    async ({ scope, query, tags, limit, index_only }) => {
+    async ({ scope, workspace_root, query, tags, limit, index_only }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
       if (!ensureMemoryReadable(resolvedScope)) {
         return asTextResult([]);
       }
       return asTextResult(handleList({ scope: resolvedScope, query, tags, limit, index_only }));
-    }
+    })
   );
 
   server.registerTool(
@@ -167,18 +173,19 @@ function registerCanonicalTools(server: McpServer): void {
       description: 'Raw maintenance/debug view of memory, index, and graph records, or graph health metrics.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
+        workspace_root: workspaceRootSchema,
         view: z.enum(['memory', 'index', 'graph', 'health', 'all']).optional(),
         memory_id: z.string().optional(),
         include_embedding: z.boolean().optional(),
       }),
     },
-    async ({ scope, view, memory_id, include_embedding }) => {
+    async ({ scope, workspace_root, view, memory_id, include_embedding }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
       if (!ensureMemoryReadable(resolvedScope)) {
         return asTextResult(emptyInspectResult(view));
       }
       return asTextResult(handleInspect({ scope: resolvedScope, view, memory_id, include_embedding }));
-    }
+    })
   );
 
   server.registerTool(
@@ -188,11 +195,12 @@ function registerCanonicalTools(server: McpServer): void {
       description: 'Delete one memory or index record by ID.',
       inputSchema: z.object({
         scope: scopeSchema,
+        workspace_root: workspaceRootSchema,
         memory_id: z.string().min(1).optional(),
         id: z.string().min(1).optional(),
       }),
     },
-    async ({ scope, memory_id, id }) => {
+    async ({ scope, workspace_root, memory_id, id }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
       const resolvedId = memory_id ?? id;
       if (!resolvedId) {
@@ -200,7 +208,7 @@ function registerCanonicalTools(server: McpServer): void {
       }
       ensureMemoryReady(resolvedScope);
       return asTextResult(handleDelete({ id: resolvedId, scope: resolvedScope }));
-    }
+    })
   );
 
   server.registerTool(
@@ -210,6 +218,7 @@ function registerCanonicalTools(server: McpServer): void {
       description: 'Create a weighted manual graph edge between two graph-capable memories.',
       inputSchema: z.object({
         scope: scopeSchema,
+        workspace_root: workspaceRootSchema,
         from_id: z.string().min(1),
         to_id: z.string().min(1),
         relation: relationEnum,
@@ -217,11 +226,11 @@ function registerCanonicalTools(server: McpServer): void {
         reason: z.string().optional(),
       }),
     },
-    async ({ scope, from_id, to_id, relation, weight, reason }) => {
+    async ({ scope, workspace_root, from_id, to_id, relation, weight, reason }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
       ensureMemoryReady(resolvedScope);
       return asTextResult(handleLink({ scope: resolvedScope, from_id, to_id, relation, weight, reason }));
-    }
+    })
   );
 
   server.registerTool(
@@ -231,16 +240,17 @@ function registerCanonicalTools(server: McpServer): void {
       description: 'Remove a graph edge between two graph-capable memories.',
       inputSchema: z.object({
         scope: scopeSchema,
+        workspace_root: workspaceRootSchema,
         from_id: z.string().min(1),
         to_id: z.string().min(1),
         relation: relationEnum,
       }),
     },
-    async ({ scope, from_id, to_id, relation }) => {
+    async ({ scope, workspace_root, from_id, to_id, relation }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
       ensureMemoryReady(resolvedScope);
       return asTextResult(handleUnlink({ scope: resolvedScope, from_id, to_id, relation }));
-    }
+    })
   );
 
   server.registerTool(
@@ -250,6 +260,7 @@ function registerCanonicalTools(server: McpServer): void {
       description: 'Read graph neighbors or a bounded subgraph for a graph-capable memory.',
       inputSchema: z.object({
         scope: scopeSchema,
+        workspace_root: workspaceRootSchema,
         memory_id: z.string().min(1),
         view: z.enum(['neighbors', 'subgraph']),
         depth: z.number().int().min(1).max(4).optional(),
@@ -260,13 +271,13 @@ function registerCanonicalTools(server: McpServer): void {
         max_nodes: z.number().int().min(1).max(200).optional(),
       }),
     },
-    async ({ scope, memory_id, view, depth, direction, relations, min_weight, limit, max_nodes }) => {
+    async ({ scope, workspace_root, memory_id, view, depth, direction, relations, min_weight, limit, max_nodes }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
       if (!ensureMemoryReadable(resolvedScope)) {
         throw missingMemoryError(memory_id);
       }
       return asTextResult(handleGraphView({ scope: resolvedScope, memory_id, view, depth, direction, relations, min_weight, limit, max_nodes }));
-    }
+    })
   );
 }
 
@@ -278,15 +289,16 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
       description: 'Compatibility alias for memory_save.',
       inputSchema: z.object({
         content: z.string().min(1),
+        workspace_root: workspaceRootSchema,
         tags: z.array(z.string()).optional(),
         summary: z.string().optional(),
         layer: z.enum(['lite', 'deep']).optional(),
       }),
     },
-    async ({ content, tags, summary, layer }) => {
+    async ({ content, workspace_root, tags, summary, layer }) => withProjectRootAsync(workspace_root, async () => {
       ensureMemoryReady(scope);
       return asTextResult(await handleSave({ content, tags, summary, layer, scope }));
-    }
+    })
   );
 
   server.registerTool(
@@ -294,29 +306,29 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
     {
       title: scope === 'global' ? 'Recall Global Memory' : 'Recall Memory',
       description: 'Compatibility alias for memory_recall.',
-      inputSchema: z.object({ id: z.string().min(1) }),
+      inputSchema: z.object({ id: z.string().min(1), workspace_root: workspaceRootSchema }),
     },
-    async ({ id }) => {
+    async ({ id, workspace_root }) => withProjectRootAsync(workspace_root, async () => {
       if (!ensureMemoryReadable(scope)) {
         return asTextResult(null);
       }
       return asTextResult(handleGet({ id, scope }));
-    }
+    })
   );
 
   server.registerTool(
     `${prefix}memory_read_lite`,
     {
       title: scope === 'global' ? 'List Global Memory Index' : 'List Memory Index',
-      description: 'Compatibility alias for memory_list.',
-      inputSchema: z.object({}),
+      description: 'Compatibility alias for memory_list with index_only=true.',
+      inputSchema: z.object({ workspace_root: workspaceRootSchema }),
     },
-    async () => {
+    async ({ workspace_root }) => withProjectRootAsync(workspace_root, async () => {
       if (!ensureMemoryReadable(scope)) {
         return asTextResult([]);
       }
       return asTextResult(handleReadLite(scope));
-    }
+    })
   );
 
   server.registerTool(
@@ -326,15 +338,16 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
       description: 'Compatibility alias for memory_query.',
       inputSchema: z.object({
         query: z.string().min(1),
+        workspace_root: workspaceRootSchema,
         limit: z.number().int().min(1).max(50).optional(),
       }),
     },
-    async ({ query, limit }) => {
+    async ({ query, workspace_root, limit }) => withProjectRootAsync(workspace_root, async () => {
       if (!ensureMemoryReadable(scope)) {
         return asTextResult([]);
       }
       return asTextResult(await handleSearch({ query, limit, scope }));
-    }
+    })
   );
 
   if (prefix) {
@@ -343,12 +356,12 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
       {
         title: 'Delete Global Memory',
         description: 'Compatibility alias for memory_delete.',
-        inputSchema: z.object({ id: z.string().min(1) }),
+        inputSchema: z.object({ id: z.string().min(1), workspace_root: workspaceRootSchema }),
       },
-      async ({ id }) => {
+      async ({ id, workspace_root }) => withProjectRootAsync(workspace_root, async () => {
         ensureMemoryReady(scope);
         return asTextResult(handleDelete({ id, scope }));
-      }
+      })
     );
 
     server.registerTool(
@@ -359,15 +372,16 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
         inputSchema: z.object({
           from_id: z.string().min(1),
           to_id: z.string().min(1),
+          workspace_root: workspaceRootSchema,
           relation: relationEnum,
           weight: z.number().min(0).max(1),
           reason: z.string().optional(),
         }),
       },
-      async ({ from_id, to_id, relation, weight, reason }) => {
+      async ({ from_id, to_id, workspace_root, relation, weight, reason }) => withProjectRootAsync(workspace_root, async () => {
         ensureMemoryReady(scope);
         return asTextResult(handleLink({ from_id, to_id, relation, weight, reason, scope }));
-      }
+      })
     );
 
     server.registerTool(
@@ -378,13 +392,14 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
         inputSchema: z.object({
           from_id: z.string().min(1),
           to_id: z.string().min(1),
+          workspace_root: workspaceRootSchema,
           relation: relationEnum,
         }),
       },
-      async ({ from_id, to_id, relation }) => {
+      async ({ from_id, to_id, workspace_root, relation }) => withProjectRootAsync(workspace_root, async () => {
         ensureMemoryReady(scope);
         return asTextResult(handleUnlink({ from_id, to_id, relation, scope }));
-      }
+      })
     );
   }
 
@@ -395,18 +410,19 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
       description: 'Compatibility alias for memory_graph view=neighbors.',
       inputSchema: z.object({
         id: z.string().min(1),
+        workspace_root: workspaceRootSchema,
         direction: directionEnum.optional(),
         relations: z.array(relationEnum).optional(),
         min_weight: z.number().min(0).max(1).optional(),
         limit: z.number().int().min(1).max(100).optional(),
       }),
     },
-    async ({ id, direction, relations, min_weight, limit }) => {
+    async ({ id, workspace_root, direction, relations, min_weight, limit }) => withProjectRootAsync(workspace_root, async () => {
       if (!ensureMemoryReadable(scope)) {
         throw missingMemoryError(id);
       }
       return asTextResult(handleGraphView({ memory_id: id, view: 'neighbors', direction, relations, min_weight, limit, scope }));
-    }
+    })
   );
 
   server.registerTool(
@@ -416,6 +432,7 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
       description: 'Compatibility alias for memory_graph view=subgraph.',
       inputSchema: z.object({
         id: z.string().min(1),
+        workspace_root: workspaceRootSchema,
         depth: z.number().int().min(1).max(4).optional(),
         direction: directionEnum.optional(),
         relations: z.array(relationEnum).optional(),
@@ -423,12 +440,12 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
         max_nodes: z.number().int().min(1).max(200).optional(),
       }),
     },
-    async ({ id, depth, direction, relations, min_weight, max_nodes }) => {
+    async ({ id, workspace_root, depth, direction, relations, min_weight, max_nodes }) => withProjectRootAsync(workspace_root, async () => {
       if (!ensureMemoryReadable(scope)) {
         throw missingMemoryError(id);
       }
       return asTextResult(handleGraphView({ memory_id: id, view: 'subgraph', depth, direction, relations, min_weight, max_nodes, scope }));
-    }
+    })
   );
 
   server.registerTool(
@@ -436,13 +453,13 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
     {
       title: scope === 'global' ? 'Inspect Global Memory' : 'Inspect Memory',
       description: 'Compatibility alias for memory_inspect view=all.',
-      inputSchema: z.object({}),
+      inputSchema: z.object({ workspace_root: workspaceRootSchema }),
     },
-    async () => {
+    async ({ workspace_root }) => withProjectRootAsync(workspace_root, async () => {
       if (!ensureMemoryReadable(scope)) {
         return asTextResult(emptyInspectResult('all'));
       }
       return asTextResult(handleInspect({ scope, view: 'all' }));
-    }
+    })
   );
 }

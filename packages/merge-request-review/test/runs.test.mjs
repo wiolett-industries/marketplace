@@ -99,8 +99,29 @@ test('merge request review docs describe MCP tool and artifact contracts', () =>
   }
 
   const skill = docs[0];
+  const expectedUpdateOperations = [
+    'set_phase',
+    'set_review_mode',
+    'set_ci_status',
+    'set_discussions',
+    'set_findings',
+    'set_blockers',
+    'set_review_round',
+    'set_clean_rounds',
+    'upsert_posted_note',
+    'mark_approved',
+    'merge',
+  ];
+
+  for (const operation of expectedUpdateOperations) {
+    assert.match(skill, new RegExp(operation));
+  }
+
   assert.doesNotMatch(skill, /posted-notes\.json\n  approval\.md\n/);
   assert.match(skill, /approval\.md` is an allowed artifact/);
+  assert.match(skill, /approved/);
+  assert.match(docs[1], /Supported `mr_review_update` operations/);
+  assert.match(docs[2], /Supported `mr_review_update` operations/);
   assert.match(docs[1], /owns only the review protocol state/);
 });
 
