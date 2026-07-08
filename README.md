@@ -23,6 +23,20 @@ and `merge-request-review` adds stricter review artifacts and note drafts.
 The goal is boring infrastructure for agents: workflow, memory, review
 discipline, and shared knowledge future sessions should not have to rediscover.
 
+## Ask Your Agent
+
+Documentation is useful, but you do not have to read it first. Ask your agent
+to inspect the marketplace for you:
+
+```text
+Read https://raw.githubusercontent.com/wiolett-industries/marketplace/main/llms.txt
+and tell me which Wiolett plugin I should install for my workflow.
+```
+
+[`llms.txt`](./llms.txt) is the compact agent-facing guide: what this
+marketplace is, what each plugin does, how to install it, and what model/auth
+setup is required.
+
 ## Quick Start
 
 Register the marketplace, install the plugins you want, then configure model

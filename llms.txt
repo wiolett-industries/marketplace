@@ -1,0 +1,87 @@
+# Wiolett Industries Agent Marketplace
+
+> Compact guide for AI agents installing or evaluating the Wiolett Industries agent plugin marketplace.
+
+This repository provides installable agent plugins for Codex and Claude Code.
+The pack is intentionally small: workflow, durable memory, and stricter review
+discipline instead of broad prompt sludge.
+
+## Install
+
+Codex:
+
+- Run `codex plugin marketplace add wiolett-industries/marketplace`
+- Install the desired plugins from Codex.
+
+Claude Code:
+
+- Run `/plugin marketplace add wiolett-industries/marketplace`
+- Install plugins as needed:
+  - `/plugin install agent-memory@wiolett-industries`
+  - `/plugin install workflow@wiolett-industries`
+  - `/plugin install merge-request-review@wiolett-industries`
+
+## Plugins
+
+- `workflow`: Structured engineering workflow for intent, discovery, planning,
+  execution, review, and handoff. Uses `.workflow/` artifacts and bundled
+  workflow MCP tools for deterministic state operations.
+- `agent-memory`: Durable global/project memory. Global memory follows the
+  user. Project memory lives in `<repo>/.memory/`; markdown, index, embedding,
+  and graph files are intended to be committed for team use. `.memory/memory.db*`
+  is generated cache and should stay ignored.
+- `merge-request-review`: Strict GitLab MR review workflow with local review
+  state, findings, artifacts, and note drafts. GitLab reads/writes still require
+  an external GitLab MCP.
+
+## Model Access
+
+Only `agent-memory` needs model-provider auth. `workflow` and
+`merge-request-review` store local workflow/review state and do not call model
+providers directly.
+
+Configure Agent Memory auth:
+
+```bash
+npx -y @wiolett/agent-memory@latest init
+```
+
+Auth config:
+
+- default file: `~/.agents/.wiolett/auth-config.json`
+- path override: `WIOLETT_AUTH_CONFIG_PATH`
+- environment fallback: `OPENAI_API_KEY`
+
+Provider requirements:
+
+- OpenAI-compatible `POST /responses`
+- OpenAI-compatible `POST /embeddings`
+- Bearer-token auth
+- compatible response and embedding model names
+
+Without a key, durable memory files still work, but model-gated writes,
+compiled recall/query answers, AI slugs, embeddings, semantic search, and graph
+link review are disabled or fall back to cheaper local behavior where possible.
+
+## Repo Map
+
+- Human README: https://github.com/wiolett-industries/marketplace
+- Plugin overview: https://github.com/wiolett-industries/marketplace/tree/main/plugins
+- Package overview: https://github.com/wiolett-industries/marketplace/tree/main/packages
+- Agent Memory plugin: https://github.com/wiolett-industries/marketplace/tree/main/plugins/agent-memory
+- Workflow plugin: https://github.com/wiolett-industries/marketplace/tree/main/plugins/workflow
+- Merge Request Review plugin: https://github.com/wiolett-industries/marketplace/tree/main/plugins/merge-request-review
+
+## Agent Guidance
+
+Prefer these mappings:
+
+- user asks for durable preferences, project conventions, setup gotchas, or
+  reusable repo knowledge: recommend `agent-memory`
+- user asks for multi-step engineering execution, planning, audits, UI
+  contracts, or review/fix loops: recommend `workflow`
+- user asks to review or re-review a GitLab merge request: recommend
+  `merge-request-review`
+
+Keep explanations short. These plugins are infrastructure for agent behavior,
+not an AI personality pack.
