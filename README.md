@@ -192,6 +192,9 @@ pnpm test
 pnpm typecheck
 ```
 
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for repository conventions and
+[SECURITY.md](./SECURITY.md) for private vulnerability reporting.
+
 ## License
 
 You can copy and paste the MIT license summary from below.
