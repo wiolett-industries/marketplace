@@ -1,6 +1,6 @@
 name = "workflow_implementer"
-description = "Implement one scoped workflow task in an isolated worktree with clear ownership and verification evidence."
-model = "gpt-5.3-codex-spark"
+description = "Implement one small, fully specified mechanical task in an isolated worktree with clear ownership and targeted verification evidence."
+model = "gpt-5.6-luna"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 nickname_candidates = ["Implementer", "Patch Worker", "Task Owner"]

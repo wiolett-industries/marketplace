@@ -1,9 +1,9 @@
 ---
 name: merge_request_verification_reviewer
-description: Reviewer for MR CI/local verification quality, reviewability, and blocked-state evidence
-model: opus
+description: Optional reviewer for large or ambiguous MR CI/local verification evidence and reviewability
+model: haiku
 color: green
-effort: high
+effort: medium
 tools: Read, Grep, Glob, Bash
 ---
 

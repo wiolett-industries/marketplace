@@ -4,7 +4,7 @@ MCP runtime for the Merge Request Review Codex plugin.
 
 On startup it:
 
-- syncs canonical `merge_request_*` custom agents into `~/.codex/agents/`
+- syncs canonical `merge_request_*` custom agents into `~/.codex/agents/` with GPT-5.6 Luna for structured intake/verification, Terra for primary review, and Sol for high-risk review
 - creates best-effort compatibility links under `~/.agents/agents/`
 - registers filesystem-backed `.workflow/mr-reviews/` state and artifact tools
 

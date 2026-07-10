@@ -1,134 +1,56 @@
 ---
-name: Writing Plans
-description: Use when an approved or sufficiently clear direction must become a durable decision-complete implementation plan under .workflow/plans/
+name: writing-plans
+description: Use when an authorized, sufficiently clear change needs a durable decision-complete plan under .workflow because execution is multi-step, risky, resumable, or explicitly requested. Do not create a plan for fast local work or read-only discussion.
 ---
 
 # Writing Plans
 
-Write a durable plan-run that another agent can execute without product or architecture guesswork. Plans live in `.workflow/`, not chat. Inherit `Using Workflow` shared rules.
+Create a durable plan only when it materially improves execution or recovery. Plans are source-of-truth artifacts, not mandatory ceremony.
 
-Use MCP when available: `workflow_plan_create`, `workflow_plan_update`, `workflow_plan_artifact_write`, `workflow_handoff_write`. Manual `.workflow/` writes are fallback only.
+## Plan Threshold
 
-If planning from audit, use `planning-input.md`, `master-audit.md`, confirmed `findings.json`, and any audit handoff as primary inputs.
+Use this module when at least one is true:
 
-## Layout
+- the user explicitly requests a durable implementation plan;
+- execution has several dependent steps or independent subsystems;
+- risk, migration, coordination, or compaction recovery requires locked decisions;
+- another agent must execute without product or architecture guesswork.
 
-Create `.workflow/plans/MM-DD-YY-slug/` with:
+Fast localized work and chat-only planning skip `.workflow/`. An explicit no-edits/read-only boundary blocks plan artifacts unless the user separately authorizes a durable plan.
 
-```text
-plan.md
-manifest.json
-state.json
-context.md
-questions.md
-decisions.md
-ui-contract.md
-artifacts/
-chunks/
-handoffs/
-```
+## Create Or Resume
 
-Use current local date and a short stable slug.
+Use `workflow_plan_create`, `workflow_plan_update`, `workflow_plan_artifact_write`, and `workflow_handoff_write` when available. Manual `.workflow/` writes are fallback only. Resume an unfinished matching run; do not reopen completed work by default.
 
-`manifest.json`: `slug`, `phase`, `complexity`, `plan`, `state`, `created_at`, `updated_at`.
-`state.json`: `phase`, `complexity`, `tasks`, `review_round`, `clean_streak`, `open_findings`, `handoffs`.
-`context.md`: repo facts/constraints. `questions.md`: questions/answers. `decisions.md`: locked decisions/defaults. `plan.md`: executable plan. `ui-contract.md`: required for substantial UI; omit or write "no UI contract applies" otherwise.
-
-## Chunking
-
-Chunk when single-pass execution would be unreliable. Required when complexity is `complex`/`very_complex`, tasks > 7, work spans independent subsystems, agents can own disjoint scopes, compaction recovery would be hard, or one `state.json` would become noisy. Optional for `medium`; skip for true `simple`.
-
-For `medium` and larger work, prefer chunks that separate analysis/decision tasks from small implementation tasks. A chunk or task intended for `gpt-5.3-codex-spark` must already contain the relevant analysis, exact allowed scope, expected edits, non-goals, and verification commands; do not make Spark infer architecture or discover broad context.
-
-One level only:
-
-```text
-.workflow/plans/root/
-  plan.md
-  manifest.json
-  state.json
-  context.md
-  decisions.md
-  artifacts/
-  chunks/<chunk-slug>/
-    plan.md
-    manifest.json
-    state.json
-    context.md
-    questions.md
-    decisions.md
-    ui-contract.md
-    artifacts/
-```
-
-Root owns goal, shared decisions, cross-chunk constraints, order/dependencies, integration, finalization. Chunks own bounded scope, allowed files/modules, task state, local verification, local artifacts.
-
-Root manifest indexes chunks with `id`, `path`, `status`, `depends_on`, `scope`. Chunk manifest includes `type: "chunk"`, `parent`, `chunk_id`.
-
-Chunk scopes must be disjoint unless root defines a shared integration point. Cross-chunk scope changes require root `decisions.md` and `state.json` updates.
+Read [references/plan-schema.md](references/plan-schema.md) when creating a run, defining chunks/tasks, or writing a plan handoff. Do not load it for a chat-only plan.
 
 ## Plan Contract
 
-The plan must be decision-complete. Include:
+The plan must lock decisions that execution cannot safely infer:
 
-- exact goal, success criteria, scope, non-goals
-- audit findings addressed, if any
-- implementation approach
-- tasks with ownership/allowed scope
-- chunks and dependencies, when used
-- expected artifacts/files
-- subagent delegation guidance; delegated write tasks require worktrees, review/audit tasks are read-only
-- model routing guidance: each delegated task/chunk includes `model_class` and `delegation_reason`; analysis tasks go to strong reasoning agents; small bounded code tasks may go to Spark; broad implementation or analysis-heavy code tasks use `gpt-5.4`
-- verification commands/acceptance checks
-- lint command/config when present
-- UI contract/visible criteria when UI is in scope
-- file-boundary risks, especially files near 500 lines
-- interactive user-testing note when heavy mid-work checks should be avoided
-- finalization complexity and review requirements
+- exact goal, success criteria, scope, and non-goals;
+- repository facts, constraints, and accepted decisions;
+- implementation approach and dependency order;
+- tasks with allowed scope, ownership, and expected files/artifacts;
+- verification commands and acceptance checks;
+- UI contract reference when substantial production UI is in scope;
+- assurance profile, one task-wide agent budget, and finalization requirements.
 
-Never write `TBD`, `TODO`, `later`, `choose appropriate`, vague placeholders, fake staging, or unwired "basic version" language unless explicitly approved.
+For delegated work, record semantic `work_class`, `agent_role`, and `delegation_reason`; exact models and reasoning effort belong only in canonical agent TOMLs. A mechanical or structured worker receives the chosen approach, exact scope, non-goals, and checks instead of rediscovering architecture.
 
-Code plans must preserve lint rules, focused responsibilities, the 500-line file limit, approved scope, and real wiring.
+Never use `TBD`, `TODO`, vague placeholders, fake staging, silent scope shrink, or unwired "basic version" language unless explicitly accepted.
 
-Delegated task objects should include:
+## Chunk Only When Useful
 
-```json
-{
-  "id": "T1",
-  "title": "Short title",
-  "status": "pending",
-  "owner": "agent:workflow_implementer",
-  "model_class": "spark_tiny | spark_mechanical | gpt54_implementation | gpt54_analysis | gpt54_risk_review",
-  "delegation_reason": "Why this model class is safe for this task",
-  "allowed_scope": ["path/or/module"],
-  "verification": ["command"]
-}
-```
+Chunk when a single pass would be unreliable: complex/very-complex work, more than seven meaningful tasks, independent subsystems, disjoint agent ownership, or difficult recovery. Keep one chunk level. Root owns shared decisions, dependencies, integration, and finalization; chunks own bounded disjoint scopes and local checks.
 
-## UI Plans
+For medium and larger work, separate analysis/decision tasks from small implementation tasks. Do not split by file count or create chunks whose coordination costs exceed their execution.
 
-For substantial UI, run `UI Contract` in `define` mode first. Plan must include `ui-contract.md`, UI acceptance criteria, affected surfaces/states, desktop/mobile expectations, loading/error/empty/disabled/hover/focus/success states, browser/screenshot verification expectations, and user-testing loop note when applicable.
+## Plan Review
 
-Execution must treat `ui-contract.md` as an acceptance source. Any drift requires `decisions.md` update.
+- `standard`: local self-check; no plan reviewer unless a specific ambiguity or integration risk would materially benefit from independence.
+- `assurance`: use at most one plan reviewer for the dominant unresolved risk. Add a second only for a distinct high-impact risk and within the existing task-wide budget.
 
-## Complexity
+Fix only blocking plan gaps. `LOW` polish never delays execution readiness.
 
-- `simple`: narrow, low-risk, small surface
-- `medium`: several files or moderate reasoning
-- `complex`: multiple subsystems, migrations, broad behavior, coordination
-- `very_complex`: high blast radius, sensitive domains, many dependent tasks
-
-Later modules may adjust complexity; later decisions have higher weight.
-
-## Plan Review And Handoff
-
-After writing, run agent review when available and subagents are authorized:
-
-- `simple`: `workflow_combined_reviewer`
-- `medium`/`complex`/`very_complex`: `workflow_plan_sanity_reviewer` + `workflow_plan_overall_reviewer`
-
-Agents are read-only. Parent writes findings to `artifacts/plan-review-*.md`. If a named agent is unavailable, stop. Fix blocking plan findings before readiness.
-
-If subagents are not authorized, do local self-review and record the gap in `decisions.md`.
-
-Handoff report: plan path, complexity, review result, readiness for `Executing Plans`. With MCP, write handoff `kind: "plan"`, `from_module: "writing-plans"`, `to_module: "executing-plans"`.
+Stop when another capable agent can execute the plan without new product or architecture decisions. Record readiness and hand off to `executing-plans`; do not start a separate review budget.

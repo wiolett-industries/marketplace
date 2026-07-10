@@ -69,10 +69,12 @@ npx -y @wiolett/agent-memory@latest init
 - [`agent-memory`](./plugins/agent-memory) - persistent scoped memory with
   compiled recall, automatic graph links, graph pathfinding, health/prune
   maintenance, and a local read-only dashboard
-- [`workflow`](./plugins/workflow) - modular agentic workflow framework for
-  intent, planning, execution, audits, UI contracts, and review/fix loops
+- [`workflow`](./plugins/workflow) - one-path risk-budgeted workflow with a
+  zero-agent fast path, chat-only quick audits, production UI contracts,
+  selective execution, single-pass verification, and explicit stop gates
 - [`merge-request-review`](./plugins/merge-request-review) - discussion-aware
-  GitLab merge request review with strict gates and approval discipline
+  ready GitLab MR review with CI-first evidence, zero-agent normal review by
+  default, bounded high-risk agents, and one clean-pass approval
 
 ## Install In Codex
 
@@ -110,6 +112,12 @@ Then install the plugins you want:
 
 Only `agent-memory` needs a model key. `workflow` and `merge-request-review`
 store local workflow state and do not call a model provider directly.
+
+Their Codex custom agents route bounded work to GPT-5.6 Luna, everyday
+implementation/review to Terra, and complex/high-risk work to Sol. Skills use
+semantic work classes rather than model names, and parent Max/Ultra never
+increases the task-wide agent budget. These are Codex session model selections,
+not MCP provider credentials.
 
 Agent Memory uses an OpenAI-compatible key for:
 

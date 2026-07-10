@@ -1,7 +1,7 @@
 ---
 name: merge_request_primary_reviewer
 description: Primary GitLab merge request reviewer for task fit, correctness, regression risk, scope compliance, and verification quality
-model: opus
+model: sonnet
 color: green
 effort: high
 tools: Read, Grep, Glob, Bash

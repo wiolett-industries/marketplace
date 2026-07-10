@@ -1,106 +1,44 @@
 ---
-name: Using Agent Memory
-description: ALWAYS use at conversation start, after compaction, and when durable user or project knowledge should be read or saved through Agent Memory MCP tools
+name: using-agent-memory
+description: Use at conversation start, after compaction or context recovery, and before Agent Memory reads or writes to decide whether durable global or project knowledge can materially change the task. Keep startup reads focused, and do not mutate memory during read-only or no-edits work unless the user explicitly asks to remember something.
 ---
 
 # Using Agent Memory
 
-Use at conversation start, after compaction/context reset, and whenever durable user or project knowledge could matter.
+Agent Memory is the MCP-backed durable memory system. It is separate from Codex built-in memory, chat history, and `.workflow/` artifacts. Use Codex built-in memory only as background; use Agent Memory MCP for durable repo facts and reusable workflows when its tools are available.
 
-## Agent Memory MCP vs Codex Built-In Memory
+## Startup Gate
 
-Agent Memory is this plugin's MCP-backed memory system. It is separate from Codex built-in memory, chat history, workflow artifacts, and ad hoc notes.
+At conversation start or after compaction, decide whether durable knowledge can change the answer or execution path.
 
-When this skill says "memory", it means Agent Memory MCP tools:
-`memory_list`, `memory_query`, `memory_recall`, `memory_save`, `memory_update`, `memory_inspect`, graph tools, and maintenance tools.
+- For repo workflow, setup, architecture, recurring failures, prior decisions, or ambiguous non-trivial work, run one focused `memory_query` after the repo root is known.
+- Query `global` only when a cross-project user preference or stable work habit could matter.
+- Skip the MCP read for self-contained facts, trivial formatting, translation, or work whose outcome cannot depend on prior context.
+- Escalate to `memory_recall`, `memory_list`, or `memory_inspect` only when the focused query identifies a relevant entry, the index appears stale, or memory health itself is under investigation.
 
-Do not substitute Codex built-in memory for Agent Memory reads or writes when Agent Memory MCP tools are available. Use Codex built-in memory only as background context; verify durable repo facts and reusable workflows through Agent Memory MCP.
+Pass the absolute `workspace_root` for project reads and writes whenever server cwd may differ from the repo. An empty project result is not proof that memory is absent until the root and index/deep view have been checked.
 
-Do not save repo facts to Codex built-in memory. Repo-specific facts belong in Agent Memory `scope: "project"`. Cross-project user preferences and stable work habits belong in Agent Memory `scope: "global"`.
+## Action Boundary
 
-## Model
+Memory reads are read-only. Memory writes are durable state changes.
 
-Scopes:
+- If the user says read-only, no edits, without changes, or equivalent, do not call `memory_save`, `memory_update`, or other mutation tools unless the same request explicitly asks to remember or correct memory.
+- Before the final response for completed non-trivial work, make one local memory decision. Call a write tool only when a durable reusable lesson actually exists.
+- Planning discussion, speculative direction, raw progress, and one-off edits normally produce no memory write.
+- Other skills may point to this decision but must not restate or expand it.
 
-- `global`: durable user preferences, cross-project workflow habits, stable model-behavior requirements, reusable personal environment notes
-- `project`: durable repo-specific conventions, setup/build/release/deploy workflows, integration gotchas, architecture decisions
+## What To Save
 
-Layers:
+Use `global` only for durable cross-project preferences, communication habits, tool choices, and model-behavior requirements. Use `project` only for durable repo-specific setup, build, release, architecture, integration, root-cause, or verification knowledge.
 
-- `deep`: canonical durable memories with full text, embeddings when configured, and graph links
-- `lite`: cheap index/pointer layer for recall; standalone lite can link, pointer lite cannot
+Never save secrets, credentials, private webhook values, raw session summaries, obvious code facts, temporary progress, speculative plans, or project facts in global memory. Preserve negation and ownership exactly when updating constraints.
 
-Project `.memory/` files are team knowledge artifacts, not local noise. Commit canonical memory files under `.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, and `.memory/graph/` when they are created or updated. Only `.memory/memory.db*` is ignored because SQLite files are generated cache files; do not treat untracked markdown, embeddings, or graph files in `.memory/` as accidental build output.
+Prefer `memory_update` when an existing canonical memory covers the same decision or workflow. Use `memory_save` only for a genuinely new durable fact. The memory gate remains authoritative; do not bypass it.
 
-Canonical Agent Memory MCP tools: `memory_setup`, `memory_list`, `memory_query`, `memory_recall`, `memory_save`, `memory_update`, `memory_inspect`, `memory_delete`, `memory_link`, `memory_unlink`, `memory_graph`, `memory_path`, `memory_graph_prune`. Use compatibility aliases only when canonical tools are absent.
+## Recovery And Completion
 
-## Reads
+After compaction, recover durable preferences from Agent Memory and active execution state from `.workflow/`; do not reconstruct either from chat when authoritative artifacts exist.
 
-At conversation start or after compaction, perform a focused Agent Memory MCP read even if Codex already supplied built-in memory context:
+Stop after the focused read or single justified write. Do not perform graph maintenance, broad listing, or repeated recall as routine finalization.
 
-1. `memory_list({ scope: "global", index_only: true })`
-2. `memory_recall` relevant global entries only
-3. after repo boundary is known, `memory_list({ scope: "project", workspace_root: "<absolute-repo-root>", index_only: true })`
-4. use `memory_query({ scope: "project", workspace_root: "<absolute-repo-root>", query: "..." })` for repo conventions/gotchas
-
-For repo workflow/setup/history questions, run a focused project query before answering when `.memory/` exists or when the user asks to use prior context. For ambiguous non-trivial repo work, query Agent Memory MCP before broad code discovery if a stored workflow or gotcha could change the approach.
-
-Project memory reads use the MCP server's current working directory unless `workspace_root` is supplied. After the repo boundary is known, pass the absolute repo root for project-scoped reads/writes when there is any chance the server cwd differs from the workspace. If a project `memory_list` returns `[]` but `.memory/` exists or prior context suggests stored memories, do not conclude that memories are absent until you retry with `workspace_root` or inspect `memory_inspect({ scope: "project", workspace_root: "<absolute-repo-root>", view: "all" })`.
-
-`memory_list({ index_only: true })` returns only the lightweight index/pointer layer. Omit `index_only` when debugging whether deep memories exist but the index is empty or stale.
-
-Keep reads focused. Do not dump all memory unless the user asks for maintenance/audit.
-
-## Write Triggers
-
-Agent Memory MCP writes are expected for durable lessons, not only when the user explicitly asks.
-
-Before the final response for non-trivial work, make one Agent Memory MCP decision:
-
-- save or update a durable fact if the work revealed a reusable preference, workflow, setup command, verification sequence, environment blocker, integration gotcha, root cause, fix pattern, or architecture decision
-- skip silently when the result is only local progress, obvious code, or a one-off edit with no future reuse
-
-Save to `global` when the user corrects stable behavior, says "always/never/remember/запомни", or establishes a cross-project workflow or communication preference.
-
-Save to `project` when repo work reveals non-obvious setup/test/build/release commands, persistent environment constraints, recurring failure modes, integration contracts, accepted review/release patterns, or completed root-cause/fix/verification lessons likely to matter later in the same repo.
-
-Planning-stage product decisions are usually workflow context, not memory. Do not create a new memory for every new product choice, brainstormed direction, or speculative planning decision. Save product decisions only when they are stable, accepted, likely to be reused across future sessions, and not already captured in an existing memory or workflow artifact.
-
-## Writes
-
-Save to `global` only for durable cross-project facts: communication preferences, stable coding/tool preferences, reusable workflows, model-behavior requirements. Never put project-specific facts in global memory.
-
-Save to `project` only for durable repo-specific facts: setup/test/build/release/deploy/rollback workflows, non-obvious conventions, architecture decisions, integration gotchas, persistent environment constraints.
-
-Never save raw secrets, API keys, tokens, passwords, private webhook URLs, raw session summaries, speculative plans, obvious code facts, implementation chatter, one-off TODOs, local edits, or transient progress. For secret-related workflows, save only redacted location/process.
-
-Do not confuse raw session recap, Codex built-in memory, or workflow artifacts with durable Agent Memory MCP entries: save the distilled reusable lesson, root cause, decision, or workflow; leave transcript/progress detail in chat or workflow artifacts.
-
-Prefer `memory_update` over `memory_save` when a lesson refines the same product direction, repo workflow, user preference, or architectural decision. Before saving a new product or workflow memory, check whether an existing canonical memory should be updated instead; avoid memory fragmentation.
-
-Use `memory_save` for genuinely new durable facts. Use `memory_update` when an existing canonical memory is outdated or incomplete; IDs and graph links are preserved. Automatic graph links are suggested for graph-capable saves/updates; manual `memory_link` remains useful for important relations.
-
-When updating or rewriting memory, preserve semantics exactly. Pay special attention to negation and ownership: `must not own`, `should not`, `never`, `cannot`, and similar constraints must not become positive ownership or permission. If exact preservation is uncertain, keep the original wording or skip the write.
-
-Do not bypass the memory gate; the tool surface intentionally has no bypass parameter.
-
-## Query, Recall, Inspect, Graph
-
-- `memory_query`: compiled answer from search results; also graph-expands related memories into candidates
-- `memory_recall`: compiled context for a known memory ID plus valuable relations
-- `memory_graph`: neighbors or a bounded subgraph for one memory
-- `memory_path`: a path between two memories (`strategy: shortest | strongest`)
-- `memory_inspect`: raw maintenance/debug; `view: "health"` returns graph metrics
-- `memory_graph_prune`: remove unhealthy auto edges (dry run by default; never touches manual edges)
-- `memory_setup`: initialize or repair project memory for a known repo root
-- `memory_delete`, `memory_link`, `memory_unlink`: maintenance/mutation tools; use only for explicit maintenance or corrective operations
-
-## Compaction Recovery
-
-Recover durable behavior from Agent Memory MCP and active workflow artifacts:
-
-- global preferences from Agent Memory `scope: "global"`
-- repo-specific workflow from Agent Memory `scope: "project"`
-- plan/audit state from `.workflow/` when Workflow is installed
-
-Do not reconstruct state from chat when filesystem artifacts or memory are available.
+Read [references/operations.md](references/operations.md) only when diagnosing empty/stale memory, choosing lower-level tools, performing graph/maintenance work, or handling project `.memory/` files.

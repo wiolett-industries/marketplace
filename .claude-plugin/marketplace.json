@@ -8,19 +8,19 @@
     {
       "name": "agent-memory",
       "source": "./plugins/agent-memory",
-      "description": "Persistent scoped agent memory with compiled recall, graph tools, and a local dashboard.",
+      "description": "Persistent scoped agent memory with focused recall, explicit write boundaries, graph tools, and a local dashboard.",
       "category": "productivity"
     },
     {
       "name": "workflow",
       "source": "./plugins/workflow",
-      "description": "Modular agentic workflow framework for intent, planning, execution, and review/fix loops.",
+      "description": "One-path risk-budgeted workflow with selective agents, single-pass verification, and explicit completion gates.",
       "category": "development"
     },
     {
       "name": "merge-request-review",
       "source": "./plugins/merge-request-review",
-      "description": "Discussion-aware GitLab merge request review with strict gates and approval discipline.",
+      "description": "Ready GitLab MR review with discussions first, CI-first evidence, bounded agents, and one clean-pass approval.",
       "category": "development"
     }
   ]

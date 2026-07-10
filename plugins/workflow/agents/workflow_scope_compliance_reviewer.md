@@ -1,9 +1,9 @@
 ---
 name: workflow_scope_compliance_reviewer
-description: Check whether a completed change exactly matches the approved scope, requirements, constraints, and non-goals.
-model: opus
+description: Optional single primary reviewer when exact requirements, constraints, contracts, or non-goals create a concrete scope-compliance risk.
+model: sonnet
 color: green
-effort: xhigh
+effort: medium
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Scope Compliance Reviewer

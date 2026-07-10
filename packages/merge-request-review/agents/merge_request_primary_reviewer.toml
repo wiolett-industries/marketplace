@@ -1,7 +1,7 @@
 name = "merge_request_primary_reviewer"
 description = "Primary GitLab merge request reviewer for task fit, correctness, regression risk, scope compliance, and verification quality"
-model = "gpt-5.4"
-model_reasoning_effort = "xhigh"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
 
 developer_instructions = """
 # Merge Request Primary Reviewer

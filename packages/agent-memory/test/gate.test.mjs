@@ -7,6 +7,7 @@ import { resetModelProvider } from '../dist/model-provider.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const memorySkill = path.join(repoRoot, 'plugins/agent-memory/skills/using-agent-memory/SKILL.md');
+const memoryOperations = path.join(repoRoot, 'plugins/agent-memory/skills/using-agent-memory/references/operations.md');
 
 async function withMockedProvider(fn) {
   const previousFetch = globalThis.fetch;
@@ -29,27 +30,30 @@ async function withMockedProvider(fn) {
 }
 
 describe('memory write gate', () => {
-  test('memory skill contains positive write triggers', () => {
+  test('memory skill keeps a focused startup and durable write contract', () => {
     const skill = readFileSync(memorySkill, 'utf8');
+    const operations = readFileSync(memoryOperations, 'utf8');
 
-    expect(skill).toMatch(/Agent Memory MCP writes are expected for durable lessons/);
-    expect(skill).toMatch(/Agent Memory MCP vs Codex Built-In Memory/);
-    expect(skill).toMatch(/Do not substitute Codex built-in memory/);
-    expect(skill).toMatch(/Before the final response for non-trivial work/);
-    expect(skill).toMatch(/root cause, fix pattern, or architecture decision/);
-    expect(skill).toMatch(/raw session recap/);
-    expect(skill).toMatch(/Planning-stage product decisions are usually workflow context/);
-    expect(skill).toMatch(/Prefer `memory_update` over `memory_save`/);
-    expect(skill).toMatch(/must not own/);
-    expect(skill).toMatch(/memory_setup/);
-    expect(skill).toMatch(/memory_delete/);
-    expect(skill).toMatch(/memory_link/);
-    expect(skill).toMatch(/memory_unlink/);
+    expect(skill).toMatch(/^name: using-agent-memory$/m);
+    expect(skill).toMatch(/run one focused `memory_query`/);
+    expect(skill).toMatch(/Skip the MCP read for self-contained facts/);
+    expect(skill).toMatch(/read-only, no edits, without changes/);
+    expect(skill).toMatch(/make one local memory decision/);
+    expect(skill).toMatch(/Planning discussion, speculative direction, raw progress/);
+    expect(skill).toMatch(/raw session summaries/);
+    expect(skill).toMatch(/Prefer `memory_update` when an existing canonical memory/);
+    expect(skill).toMatch(/Use `memory_save` only for a genuinely new durable fact/);
+    expect(skill).toMatch(/Preserve negation and ownership exactly/);
     expect(skill).toMatch(/workspace_root/);
-    expect(skill).toMatch(/Omit `index_only` when debugging/);
-    expect(skill).toMatch(/Project `\.memory\/` files are team knowledge artifacts/);
-    expect(skill).toMatch(/Commit canonical memory files under `\.memory\/memories\/`, `\.memory\/index\/`, `\.memory\/embeddings\/`, and `\.memory\/graph\/`/);
-    expect(skill).toMatch(/Only `\.memory\/memory\.db\*` is ignored/);
+    expect(skill).toMatch(/references\/operations\.md/);
+    expect(operations).toMatch(/memory_setup/);
+    expect(operations).toMatch(/memory_delete/);
+    expect(operations).toMatch(/memory_link/);
+    expect(operations).toMatch(/memory_unlink/);
+    expect(operations).toMatch(/Omit `index_only` when debugging/);
+    expect(operations).toMatch(/Project `\.memory\/` files are team knowledge artifacts/);
+    expect(operations).toMatch(/Commit canonical files under `\.memory\/memories\/`, `\.memory\/index\/`, `\.memory\/embeddings\/`, and `\.memory\/graph\/`/);
+    expect(operations).toMatch(/Only `\.memory\/memory\.db\*` is generated cache/);
   });
 
   test('uses strict structured output schema that is accepted by OpenAI-compatible providers', async () => {

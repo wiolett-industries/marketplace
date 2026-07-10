@@ -1,7 +1,7 @@
 name = "workflow_scope_compliance_reviewer"
-description = "Check whether a completed change exactly matches the approved scope, requirements, constraints, and non-goals."
-model = "gpt-5.4"
-model_reasoning_effort = "xhigh"
+description = "Optional single primary reviewer when exact requirements, constraints, contracts, or non-goals create a concrete scope-compliance risk."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 nickname_candidates = ["Scope Review", "Compliance Check", "Requirements Check"]
 

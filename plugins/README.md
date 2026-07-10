@@ -11,10 +11,12 @@ committed on purpose so installs stay turnkey.
 
 - [`agent-memory`](./agent-memory) - persistent scoped memory with global and
   project stores, graph-aware recall, semantic search, and a local dashboard
-- [`workflow`](./workflow) - modular workflow router for intent, discovery,
-  audits, UI contracts, plans, execution, and review/fix loops
-- [`merge-request-review`](./merge-request-review) - GitLab merge request
-  review protocol with discussion intake, strict findings, and approval gates
+- [`workflow`](./workflow) - one-path risk-budgeted workflow router with a
+  zero-agent fast path, chat-only quick audits, production UI contracts,
+  selective execution, and single-pass completion gates
+- [`merge-request-review`](./merge-request-review) - ready GitLab MR review
+  protocol with discussion intake, CI-first evidence, bounded agents, strict
+  findings, and one clean-pass approval
 
 ## Layout
 

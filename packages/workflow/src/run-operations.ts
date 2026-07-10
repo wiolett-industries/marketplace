@@ -141,7 +141,7 @@ function operationHint(operation: string): string {
   if (operation === 'upsert_sanity_check') {
     return 'To set sanity-check status, use {"type":"upsert_sanity_check","sanity_check":{"id":"S1","status":"done"}}.';
   }
-  return `Use {"type":"${operation}", ...} with the fields documented by the Workflow MCP skill.`;
+  return `Use {"type":"${operation}", ...} with the fields documented by the workflow-mcp skill.`;
 }
 
 function levenshtein(left: string, right: string): number {

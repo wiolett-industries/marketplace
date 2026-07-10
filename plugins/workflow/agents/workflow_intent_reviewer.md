@@ -1,9 +1,9 @@
 ---
 name: workflow_intent_reviewer
-description: Read-only intent reviewer that checks likely user intent, hidden goals, dangerous misreads, and the best workflow path.
+description: Rare read-only intent reviewer for unresolved high-assurance ambiguity where an independent interpretation can prevent a high-impact misread.
 model: opus
 color: yellow
-effort: xhigh
+effort: high
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Intent Reviewer

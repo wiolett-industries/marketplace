@@ -23,22 +23,30 @@ Claude Code:
 
 ## Plugins
 
-- `workflow`: Structured engineering workflow for intent, discovery, planning,
-  execution, review, and handoff. Uses `.workflow/` artifacts and bundled
-  workflow MCP tools for deterministic state operations.
+- `workflow`: One-path risk-budgeted engineering workflow for intent,
+  discovery, planning, execution, review, and handoff. A skill trigger does not
+  imply an agent or artifact. Fast work uses zero subagents and one verification
+  pass; standard work uses at most one total; assurance work declares a bounded
+  task-wide budget. Durable work uses `.workflow/` MCP state operations.
 - `agent-memory`: Durable global/project memory. Global memory follows the
   user. Project memory lives in `<repo>/.memory/`; markdown, index, embedding,
   and graph files are intended to be committed for team use. `.memory/memory.db*`
   is generated cache and should stay ignored.
-- `merge-request-review`: Strict GitLab MR review workflow with local review
-  state, findings, artifacts, and note drafts. GitLab reads/writes still require
-  an external GitLab MCP.
+- `merge-request-review`: Strict ready GitLab MR review workflow with current
+  discussions, CI-first evidence, local review state, findings, note drafts,
+  zero-agent normal review by default, and at most two agents for high-risk
+  review. GitLab reads/writes still require an external GitLab MCP.
 
 ## Model Access
 
 Only `agent-memory` needs model-provider auth. `workflow` and
 `merge-request-review` store local workflow/review state and do not call model
 providers directly.
+
+Their Codex custom agents use GPT-5.6 Luna for bounded repeatable work, Terra
+for everyday implementation/review, and Sol for complex or high-risk work.
+Skills route by semantic role; parent Max/Ultra does not expand agent budgets.
+These are Codex session model selections, not MCP provider credentials.
 
 Configure Agent Memory auth:
 

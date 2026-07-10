@@ -1,7 +1,7 @@
 name = "workflow_plan_sanity_reviewer"
-description = "Review a workflow plan for missing context, unsafe assumptions, ambiguity, and execution blockers."
-model = "gpt-5.4"
-model_reasoning_effort = "xhigh"
+description = "Optional assurance plan reviewer for missing context, unsafe assumptions, ambiguity, and execution blockers; choose instead of stacking routine plan reviewers."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 nickname_candidates = ["Plan Sanity", "Plan Critic", "Execution Guard"]
 

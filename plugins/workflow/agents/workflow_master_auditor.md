@@ -1,7 +1,7 @@
 ---
 name: workflow_master_auditor
-description: Compile sanity-checked audit reviews into master-audit.md, findings.json, and planning-input.md.
-model: opus
+description: Compile substantial deep/exhaustive multi-review audits into master-audit.md, findings.json, and planning-input.md when synthesis justifies another agent.
+model: sonnet
 color: orange
 effort: high
 tools: Read, Grep, Glob, Bash
@@ -34,4 +34,4 @@ Rules:
 - Mark which findings need an implementation plan.
 - Do not invent fixes beyond concrete recommendations.
 
-`planning-input.md` should be concise and directly usable by `Writing Plans`.
+`planning-input.md` should be concise and directly usable by `writing-plans`.

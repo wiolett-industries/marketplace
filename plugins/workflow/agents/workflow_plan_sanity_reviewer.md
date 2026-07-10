@@ -1,6 +1,6 @@
 ---
 name: workflow_plan_sanity_reviewer
-description: Review a workflow plan for missing context, unsafe assumptions, ambiguity, and execution blockers.
+description: Optional assurance plan reviewer for missing context, unsafe assumptions, ambiguity, and execution blockers; choose instead of stacking routine plan reviewers.
 model: sonnet
 color: green
 effort: high

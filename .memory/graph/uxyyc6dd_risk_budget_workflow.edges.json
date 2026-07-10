@@ -1,0 +1,45 @@
+{
+  "file_name": "uxyyc6dd_risk_budget_workflow",
+  "edges": [
+    {
+      "from_id": "uxyyc6dd",
+      "to_id": "0eqwbcjr",
+      "relation": "same_workflow",
+      "weight": 0.85,
+      "reason": "MCP surface alignment and workflow components share the same workflow scope and tools.",
+      "source": "auto",
+      "created_at": 1783709489774,
+      "updated_at": 1783709489774
+    },
+    {
+      "from_id": "uxyyc6dd",
+      "to_id": "cyeiuloe",
+      "relation": "same_workflow",
+      "weight": 0.75,
+      "reason": "Workflow hooks schema adjustments are within the same project workflow context.",
+      "source": "auto",
+      "created_at": 1783709489774,
+      "updated_at": 1783709489774
+    },
+    {
+      "from_id": "uxyyc6dd",
+      "to_id": "btpyl4q2",
+      "relation": "related_to",
+      "weight": 0.6,
+      "reason": "Marketplace verification and pnpm setup workflow intersect with verification routines in this project.",
+      "source": "auto",
+      "created_at": 1783709489774,
+      "updated_at": 1783709489774
+    },
+    {
+      "from_id": "uxyyc6dd",
+      "to_id": "e87wrzeg",
+      "relation": "related_to",
+      "weight": 0.6,
+      "reason": "Agent memory MCP patterns relate to memory handling and verification in the same ecosystem.",
+      "source": "auto",
+      "created_at": 1783709489774,
+      "updated_at": 1783709489774
+    }
+  ]
+}

@@ -1,150 +1,70 @@
 ---
-name: Finalizing Plan
-description: Use to complete a plan or review current changes through an agentic review/fix loop with complexity-based exit thresholds
+name: finalizing-plan
+description: Use for standard or assurance completion, explicit independent review, risky handoff, or finalization of an active plan. Run one profile-appropriate verification/review path and stop at the completion latch. Fast work completes directly without this skill unless review is explicitly requested.
 ---
 
 # Finalizing Plan
 
-Use before declaring complete, committing, opening a PR, merging subagent worktrees, or handing off. This is a review/fix loop, not a one-time check. Inherit `Using Workflow` shared rules.
+Prove the scoped result once, resolve material blockers, close the active plan, and stop. Inherit the existing task-wide assurance, agent, and verification budgets; finalization never creates fresh budgets.
 
-Use MCP when available: `workflow_status`, `workflow_findings_normalize`, `workflow_plan_update`, `workflow_plan_complete`, `workflow_plan_artifact_write`. Manual findings/state/artifact writes are fallback only.
+## Completion Latch
 
-## Inputs
+Completion requires all of the following:
 
-Read available plan artifacts: `manifest.json`, `state.json`, `plan.md`, `ui-contract.md`, latest review/fix/UI artifacts, chunk manifests/states, and `git status --short`.
+1. scoped acceptance criteria are satisfied;
+2. required fresh verification is green;
+3. diff/scope sanity finds no silent shrink, unrelated change, or unwired artifact;
+4. no unresolved `BLOCKING` or `HIGH` finding remains;
+5. substantial production UI has its scoped `ui-contract` review;
+6. the active plan is closed with `workflow_plan_complete`.
 
-If no plan-run exists, use `Intent Gate` first and finalize against the current diff or requested review scope.
+Once the latch passes, stop. Do not add another review, rerun unchanged checks, or pursue optional polish.
 
-For chunked plans: finalize each chunk by its own complexity, update root state, then run root integration review for cross-chunk wiring, dependency order, shared decisions, and scope.
+## Inputs And Verification
 
-## Severity, Verdicts, Hard Findings
+Read active state, the plan's acceptance criteria, current diff, latest relevant evidence, and only the artifacts needed by the changed paths. For chunked work, finalize local chunk evidence and run one root integration pass; do not create a reviewer matrix per chunk.
 
-Severities: `BLOCKING`, `HIGH`, `MEDIUM`, `LOW`; `CLEAN` means no findings.
-Round verdicts: `CLEAN`, `LOW_ONLY`, `FINDINGS`, `BLOCKED`.
+Use the verification budget from `using-workflow`:
 
-Treat as at least `HIGH`:
+- run the strongest relevant targeted bundle once after the final change set;
+- add integration evidence only for actual crossed boundaries;
+- trust a fresh unchanged worker result for its scoped command;
+- repeat a check only after relevant edits, inconclusive evidence, or changed external state.
 
-- lint/test rule disable, suppression, ignore, or config downgrade
-- unresolved lint errors/warnings when a linter exists
-- changed code files at or above 500 lines without approved split
-- unrelated responsibility added to a large/mixed file
-- unwired artifacts or placeholder behavior
-- silent scope shrink
+## Independent Review Trigger
 
-## Review Matrix
+Review agents are optional controls, not a completion tax. Use one only for a concrete signal:
 
-Run review agents only with explicit subagent authorization. Review agents are read-only; any change they recommend becomes a scoped fix task. If authorization is denied, do local verification and state unavailable guarantees.
+- high-consequence auth/security/permission/payment/data/migration/infra/concurrency/public-contract risk;
+- broad cross-subsystem integration or genuinely uncertain blast radius;
+- missing, contradictory, or flaky verification that local inspection cannot resolve;
+- explicit user request for independent review.
 
-`simple`:
+Profiles:
 
-- `workflow_combined_reviewer`, `gpt-5.4-mini medium`
-- scope: overall + sanity + code quality
-- exit: one `CLEAN` or `LOW_ONLY`
+- `standard`: local review by default; at most one reviewer for the dominant concrete signal.
+- `assurance`: one primary reviewer for the dominant risk plus `workflow_risk_reviewer` when independent high-consequence judgment is required; a second general reviewer is allowed only for a distinct risk and within the existing total budget.
 
-`medium`/`complex`:
+Visible UI does not add a reviewer automatically. Missing named agents fall back to local review unless independence was explicitly required.
 
-- `workflow_sanity_reviewer`, `gpt-5.4 xhigh`
-- `workflow_overall_reviewer`, `gpt-5.4 medium`
-- add `workflow_scope_compliance_reviewer`, `gpt-5.4 xhigh`, when requirements/contract/acceptance criteria are specific
-- exit: one `CLEAN`
+## Findings And Fix Loop
 
-`very_complex`:
+Severities are `BLOCKING`, `HIGH`, `MEDIUM`, and `LOW`; `CLEAN` means no findings. Lint/test suppression, unresolved lint warnings, unapproved 500-line touched code, unrelated responsibility growth, unwired behavior, and silent scope shrink are at least `HIGH`.
 
-- `workflow_scope_compliance_reviewer`, `gpt-5.4 xhigh`
-- `workflow_sanity_reviewer`, `gpt-5.4 xhigh`
-- `workflow_overall_reviewer`, `gpt-5.4 medium`
-- exit: two acceptable rounds; acceptable is `CLEAN`, or `LOW_ONLY` only immediately after `CLEAN`; `FINDINGS`/`BLOCKED` reset streak
+Normalize reviewer output before acting. Remove duplicates, unsupported claims, speculative polish, and out-of-scope requests. Fix `BLOCKING`/`HIGH` findings or failed required verification. `MEDIUM` is fixed when it affects accepted quality or risk; `LOW` is reported and accepted unless polish was requested.
 
-If a named review agent is unavailable, stop the affected step.
+After a material fix set, rerun the strongest affected verification once and re-review only the changed delta plus affected integration paths, preferably with the same reviewer. One focused re-review is the default maximum. A second is allowed only for a concrete remaining blocker with a narrow fix; otherwise escalate the tradeoff instead of expanding the loop.
 
-## Artifacts
+Do not chase perfection indefinitely.
 
-Write reviews under:
+Read [references/review-protocol.md](references/review-protocol.md) only when storing structured findings/review artifacts or coordinating a material fix round.
 
-```text
-artifacts/review-round-N/
-  scope-compliance.md
-  sanity.md
-  overall-code-quality.md
-  ui-review.md
-  findings.json
-```
+## UI, Memory, And Close
 
-`findings.json`:
+For substantial production UI, invoke `ui-contract` review mode once. Bounded mockups use their one local visual pass and do not enter a production UI gate.
 
-```json
-{
-  "round": 1,
-  "verdict": "FINDINGS",
-  "findings": [
-    {
-      "id": "F1",
-      "severity": "HIGH",
-      "source": "sanity",
-      "summary": "Short issue",
-      "allowed_scope": ["path/or/module"],
-      "expected_fix": "Concrete correction"
-    }
-  ]
-}
-```
+Before final output, follow the single write decision in `using-agent-memory`; do not duplicate its trigger list here.
 
-## Fix Loop
+Use `workflow_findings_normalize`, `workflow_plan_update`, `workflow_plan_artifact_write`, and `workflow_plan_complete` when available. Manual findings/state/artifact writes are fallback only. `workflow_plan_complete` is mandatory for a realized active plan because phase-only updates do not clear root active state.
 
-When findings remain:
-
-1. Run `workflow_fix_triage`, `gpt-5.3-codex-spark medium`.
-2. Remove duplicates/false positives.
-3. Produce 1-4 scoped fix tasks.
-4. Assign tiny mechanical fixes to `gpt-5.3-codex-spark low`, small/medium mechanical fixes to `gpt-5.3-codex-spark medium`, analysis-heavy fixes to `gpt-5.4 high/xhigh`, and broad implementation fixes to `gpt-5.4` at the needed effort.
-5. Fix agents use worktrees.
-6. Merge only after review gate.
-7. Reset clean streak when code changes.
-8. Start next review round.
-
-If fix agents are not authorized, fix in main thread and rerun strongest local verification before review. If `workflow_fix_triage` or `workflow_implementer` is unavailable, stop.
-
-Do not chase perfection indefinitely. Use review/fix loops to remove blockers, regressions, scope drift, broken verification, and material quality issues. Time-box additional rounds once the remaining findings are `LOW`, cosmetic, speculative, or outside the requested scope. For `simple`/`medium`, normally stop after one clean or low-only round unless a concrete blocker remains. For `complex`/`very_complex`, run the required validation, but after two unsuccessful fix-review cycles escalate to the parent/user with remaining tradeoffs instead of burning more tokens on marginal polish.
-
-Review budget: `simple` and `medium` normally get at most 1 fix-review round unless `BLOCKING`/`HIGH` remains; `complex` gets at most 2; `very_complex` gets 2 and only rarely 3 when there is a concrete blocker and a narrow fix path. When the budget is exhausted, report accepted lows and unresolved tradeoffs instead of starting another broad round.
-
-Fix artifacts:
-
-```text
-artifacts/fix-round-N/
-  triage.md
-  tasks.json
-  agents/
-```
-
-## UI Gate
-
-If visible UI changed, run `UI Contract` in `review` mode before completion. If substantial UI lacks a contract, treat that as a finding unless clearly tiny/mechanical.
-
-UI artifacts:
-
-```text
-artifacts/ui-review/
-  contract-check.md
-  browser-check.md
-  screenshots.md
-  findings.md
-```
-
-Check contract/fundamentals, hierarchy, copy, typography, spacing, color/emphasis, icons, affordances, loading/error/empty/disabled/hover/focus/partial/success states, desktop/mobile, text overflow/clipping/overlap/layout stability, and browser/screenshot evidence when runnable.
-
-UI verdicts: `UI_PASS` or `UI_REVISE`. UI findings feed the normal fix loop and do not replace code verification.
-
-## Main Thread And Output
-
-Main thread coordinates agents, normalizes findings, runs verification commands, updates state, and performs minimal diff sanity. It does not replace detailed review agents with large in-context review.
-
-Do not require full build/test/review after every tiny user-testing correction. At finalization, use fresh verification evidence.
-
-When Agent Memory MCP is available, make the Agent Memory MCP decision before final output: save/update durable repo workflow, verification sequence, root cause, user preference, or recurring gotcha; skip raw progress, obvious code facts, and one-off edits. Do not substitute Codex built-in memory for this decision.
-
-When exit threshold is met and the plan implementation is complete, call `workflow_plan_complete` before final output, handoff, commit, PR, or approval. This is mandatory: a realized plan must not remain active in workflow status. Do not substitute `workflow_plan_update` with `set_phase: complete` unless `workflow_plan_complete` is unavailable; if forced into fallback, also clear root `active_plan` only when it points to the completed run and state that fallback was used.
-
-After completing the run, report final verdict, review rounds, verification commands/results, accepted `LOW` findings, and plan-run path.
-
-If creating a PR/MR, first inspect recent project PRs/MRs or templates when available, then match their title/description structure and tone.
+Report the verdict, material verification evidence, accepted non-blocking findings, and completed plan path. If creating a PR/MR, first match repository templates or recent examples.

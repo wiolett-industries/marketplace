@@ -1,9 +1,9 @@
 ---
 name: merge_request_discussion_auditor
-description: Read-only reviewer for existing GitLab MR discussions, unresolved blocker state, and re-review context
-model: opus
+description: Optional read-only intake agent for large, stale, or contradictory GitLab MR discussions and unresolved blocker state
+model: haiku
 color: orange
-effort: high
+effort: medium
 tools: Read, Grep, Glob, Bash
 ---
 

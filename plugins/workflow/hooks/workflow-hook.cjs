@@ -135,7 +135,7 @@ function authSummary() {
 
 function projectMemorySummary(root) {
   if (fs.existsSync(path.join(root, ".memory"))) {
-    return "Project Agent Memory `.memory/` exists; after repo boundary, run focused `memory_list`/`memory_query` before answering repo workflow/setup/history questions.";
+    return "Project Agent Memory `.memory/` exists; use one focused project `memory_query` when prior repo knowledge can change the task.";
   }
   return "No project `.memory/`: reads no-op; writes may init only for durable saves.";
 }
@@ -146,12 +146,11 @@ function agentMemoryContext(root) {
   }
 
   return [
-    "Agent Memory MCP installed: read `using-agent-memory`, then use Agent Memory MCP tools for durable memory.",
-    "Do not rely on Codex built-in memory for repo facts when Agent Memory MCP is available.",
+    "Agent Memory MCP installed: read `using-agent-memory`; use one focused read only when durable context can change the task.",
+    "Agent Memory writes are state changes; read-only/no-edits work does not write memory unless remembering is explicitly requested.",
     authSummary(),
     projectMemorySummary(root),
-    "Finalizing durable work: make an Agent Memory MCP decision; save/update reusable preferences, repo gotchas, root-cause fixes, and recurring workflows.",
-    "Never save secrets, raw session summaries, obvious code, temp work, or project facts to global.",
+    "Completed non-trivial work makes one memory decision; save only a real durable lesson and never raw progress or secrets.",
   ];
 }
 
@@ -161,7 +160,7 @@ function mergeRequestReviewContext() {
   }
 
   return [
-    "Merge Request Review installed: use `review-merge-request` for GitLab MR protocol review.",
+    "Merge Request Review installed: use `review-merge-request` only for an actual ready GitLab MR; do not also use `finalizing-plan` for that review.",
     "External GitLab MCP owns GitLab reads/writes; MR review MCP owns only `.workflow/mr-reviews/` artifacts.",
   ];
 }
@@ -169,13 +168,17 @@ function mergeRequestReviewContext() {
 function sessionContext(input) {
   const root = repoRoot(input.cwd || process.cwd());
   const lines = [
-    "Workflow: read `using-workflow` for non-trivial work or context recovery.",
-    "Intent Gate is the default first module for non-trivial work; skip only for clearly mechanical low-risk requests.",
-    "Flow: intent-gate -> context-discovery -> writing-plans -> executing-plans -> finalizing-plan; partial flows OK.",
-    "Use Workflow MCP for `.workflow/` status/create/update/artifact/findings/handoff operations when tools are available.",
+    "Workflow: read `using-workflow`, choose one primary path (direct, plan-execute, audit, or GitLab review), and load only the current module.",
+    "A triggered skill does not imply an artifact, subagent, plan, review loop, or fresh budget.",
+    "Run `intent-gate` locally for non-trivial work and keep it silent when intent is clear.",
+    "Task-wide ceilings: fast (0 agents), standard (at most 1 total), assurance (declared total, default 3; at most 2 reviewers per round), or an explicit audit budget.",
+    "Authorization is permission, not activation. Parent Max/Ultra and multiple skills do not expand the budget.",
+    "Run each verification once per unchanged diff and stop when acceptance, required evidence, and material-risk gates pass.",
+    "Use `workflow-mcp` only for authorized `.workflow/` operations; manual state/artifact writes are fallback only.",
     ...activeWorkflowSummary(root),
     ...agentMemoryContext(root),
     ...mergeRequestReviewContext(),
+    "Read-only/no-edits work does not write code, `.workflow/`, memory, or external state unless the same request explicitly authorizes it.",
     "Keep `.workflow/` ignored unless explicitly versioned.",
   ];
   writeContext(input.hook_event_name || "SessionStart", lines);
@@ -194,7 +197,7 @@ function subagentStart(input) {
   ];
 
   if (agentType === "workflow_implementer") {
-    lines.push("Spark implementer is for bounded code patches only: no open-ended analysis, architecture discovery, or broad refactors.");
+    lines.push("Lightweight implementer is for bounded code patches only: no open-ended analysis, architecture discovery, or broad refactors.");
     lines.push("Output: `Status: DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT`, `Changed files:`, `Verification:`, `Concerns:`.");
   } else if (agentType === "workflow_fix_triage") {
     lines.push("Output starts with `Verdict: FIX_TASKS | NO_ACTION`.");

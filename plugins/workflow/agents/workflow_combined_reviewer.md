@@ -1,14 +1,14 @@
 ---
 name: workflow_combined_reviewer
-description: Combined sanity, overall, and code-quality reviewer for simple workflow plans or simple completed changes.
-model: sonnet
+description: Optional single reviewer for a bounded standard-profile plan or change when a concrete review trigger exists; never required for the fast path.
+model: haiku
 color: green
 effort: medium
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Combined Reviewer
 
-Use this read-only reviewer for simple plans or simple completed changes.
+Use this read-only reviewer only as the single allowed reviewer for a bounded standard-profile plan or completed change with a concrete review trigger. Fast-profile work does not use this agent.
 
 Review the actual artifact or diff for:
 

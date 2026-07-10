@@ -1,7 +1,7 @@
 {
   "name": "agent-memory",
-  "version": "0.4.2",
-  "description": "Persistent, searchable Agent Memory with global/project scopes, compiled recall, graph links, pathfinding, health/prune tools, and a local dashboard.",
+  "version": "0.4.3",
+  "description": "Persistent scoped Agent Memory with focused startup recall, explicit write boundaries, graph tools, and a local dashboard.",
   "author": {
     "name": "Wiolett Industries",
     "url": "https://wiolett.net"
@@ -20,8 +20,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Agent Memory",
-    "shortDescription": "Persistent scoped memory with recall, graph tools, and a dashboard",
-    "longDescription": "A persistent memory plugin for Codex. It stores durable global preferences and project-specific workflows, supports deep memories, lite indexes, automatic/manual graph links, graph-expanded query, memory pathfinding, graph health/prune maintenance, semantic search when embeddings are configured, lazy no-op reads for uninitialized projects, model-gated writes, an interactive init flow for OpenAI API credentials, and a local read-only dashboard via agent-memory view.",
+    "shortDescription": "Focused durable memory with explicit read/write boundaries",
+    "longDescription": "A persistent memory plugin for Codex. Its using-agent-memory skill performs focused context reads only when prior knowledge can change the task, treats memory writes as explicit state changes, and stores durable global preferences or project workflows. The MCP also supports deep/lite memory, graph-expanded query, pathfinding, health/prune maintenance, semantic search, model-gated writes, credential setup, and a local read-only dashboard.",
     "developerName": "Wiolett Industries",
     "category": "Productivity",
     "capabilities": [
@@ -32,9 +32,9 @@
     "privacyPolicyURL": "https://wiolett.net",
     "termsOfServiceURL": "https://wiolett.net",
     "defaultPrompt": [
-      "Read relevant memory for this repo",
-      "Save this durable project convention",
-      "Recall what we know about this workflow"
+      "Use $using-agent-memory to read relevant repo memory",
+      "Use $using-agent-memory to save this durable project convention",
+      "Use $using-agent-memory to recall this workflow"
     ],
     "brandColor": "#7C3AED",
     "composerIcon": "./assets/icon.svg",

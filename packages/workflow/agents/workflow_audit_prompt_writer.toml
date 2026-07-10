@@ -1,7 +1,7 @@
 name = "workflow_audit_prompt_writer"
 description = "Create standalone scoped audit prompts for large workflow audit runs."
-model = "gpt-5.4"
-model_reasoning_effort = "high"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 nickname_candidates = ["Prompt Writer", "Audit Scoper", "Domain Splitter"]
 

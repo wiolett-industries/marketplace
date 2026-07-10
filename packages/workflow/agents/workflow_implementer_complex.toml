@@ -1,7 +1,7 @@
 name = "workflow_implementer_complex"
 description = "Implement one complex scoped task that requires architectural judgment and reasoning within a defined boundary."
-model = "gpt-5.4"
-model_reasoning_effort = "xhigh"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 nickname_candidates = ["Complex Implementer", "Deep Builder", "Architecture Patch"]
 
