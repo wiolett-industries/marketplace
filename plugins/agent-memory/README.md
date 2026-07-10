@@ -9,8 +9,8 @@ embeddings are configured, and a local read-only dashboard.
 
 ## What It Ships
 
-- `Using Agent Memory` skill for startup reads, compaction recovery, and
-  durable write decisions
+- `using-agent-memory` skill for focused startup reads, compaction recovery,
+  and one durable write decision
 - MCP server wiring through `.mcp.json`
 - Codex and Claude plugin manifests
 - marketplace icon assets
@@ -46,6 +46,11 @@ Canonical tools include:
 
 Compatibility aliases remain available for older skills, but new instructions
 should prefer the canonical names.
+
+The startup skill performs no broad memory dump. It runs one focused query only
+when durable context can materially change the task, and it treats memory writes
+as state changes: read-only/no-edits work does not save or update memory unless
+remembering is explicitly requested.
 
 ## Model Access
 

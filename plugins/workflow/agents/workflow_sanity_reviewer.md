@@ -1,6 +1,6 @@
 ---
 name: workflow_sanity_reviewer
-description: Review a completed change for obvious breakage, unsafe assumptions, integration gaps, and high-level correctness risks.
+description: Optional primary reviewer for completed changes when integration breakage, unsafe assumptions, or contradictory verification creates a concrete review trigger.
 model: sonnet
 color: green
 effort: high

@@ -1,66 +1,42 @@
 ---
-name: UI Contract
-description: Use for substantial frontend or UI work to define a buildable UI contract before implementation and review the delivered interface before completion
+name: ui-contract
+description: Use as a supporting skill for substantial production UI intended to ship when hierarchy, interaction, responsive behavior, accessibility, or visible states need an explicit build/review contract. Do not trigger for tiny copy/style changes, invisible frontend plumbing, or bounded mockups and throwaway prototypes.
 ---
 
 # UI Contract
 
-Workflow support skill for substantial visible UI work. It plugs into `Context Discovery`, `Writing Plans`, `Executing Plans`, and `Finalizing Plan`; it is not a standalone workflow.
+Support substantial production UI without creating an independent workflow or agent budget. The active primary path owns planning, execution, and completion.
 
-Use for new screens/routes/panels/flows/games/dashboards/tools, meaningful layout/hierarchy/interaction changes, product polish, visible state changes, or structured UI review. Skip tiny copy/style fixes and invisible frontend plumbing.
+## Mockup And Prototype Fast Path
 
-## Define Mode
+If this skill is explicitly invoked for a bounded mockup, landing-page concept, or throwaway prototype:
 
-Use before implementation when UI direction is not locked. Create/update:
+- do not create a durable contract unless requested;
+- inspect the requested viewport and primary visual objective once;
+- check only obvious clipping, overlap, unreadable copy, broken assets, and major hierarchy failures;
+- use no UI review agent under `fast`;
+- stop after material issues are fixed and the single visual pass succeeds.
 
-```text
-.workflow/plans/<run>/ui-contract.md
-```
+Do not invent production state matrices, extra breakpoints, accessibility programs, or reusable behavior for a bounded concept.
 
-Contract must be buildable. Include:
+## Production Define Mode
 
-- objective and user job
-- surfaces: routes, screens, panels, components, states
-- primary hierarchy and main/secondary actions
-- density, spacing, typography, responsive expectations
-- copy tone and labels that must not drift
-- color, emphasis, icon, affordance rules
-- loading/error/empty/disabled/partial/hover/focus/success states
-- desktop/mobile expectations
-- accessibility and text-overflow constraints
-- non-goals/out-of-scope
-- review acceptance criteria
+Before substantial undecided production UI implementation, create or update the active plan's `ui-contract.md`. Include only acceptance-relevant details:
 
-Avoid brand manifestos and vague taste words.
+- objective and user job;
+- surfaces and primary hierarchy/actions;
+- typography, spacing, density, color/emphasis, icons, and copy constraints;
+- accepted responsive targets;
+- relevant loading, error, empty, disabled, partial, hover, focus, and success states;
+- accessibility, overflow, and layout-stability constraints;
+- non-goals and review acceptance criteria.
 
-## Review Mode
+Do not include vague taste language or states outside accepted scope. Execution must treat the contract as an acceptance source; update `decisions.md` before intentional drift.
 
-Use after implementation and before completion. Write:
+## Production Review Mode
 
-```text
-.workflow/plans/<run>/artifacts/ui-review/
-  contract-check.md
-  browser-check.md
-  screenshots.md
-  findings.md
-```
+Before completing substantial production UI, review once against the contract and runnable browser evidence. Check only accepted viewports and states. Record `UI_PASS` or `UI_REVISE` plus concrete `Important`, `Minor`, or `Polish` findings under `artifacts/ui-review/` when a plan exists; otherwise report in chat.
 
-Review against `ui-contract.md`; if missing, review against strong frontend fundamentals and record the missing contract.
+An independent UI reviewer is optional, consumes the existing task-wide budget, and requires the same benefit gate as any other agent. Screenshots do not replace relevant code verification, and code checks do not replace the scoped visual pass.
 
-Verdict: `UI_PASS` or `UI_REVISE`.
-Finding severities: `Important`, `Minor`, `Polish`.
-Each finding: what is off, why it matters, what should change.
-
-## Visual Verification
-
-When locally runnable, inspect in browser before signoff. Check desktop/mobile, overflow/clipping/wrapping/button labels, loading/error/empty/disabled/hover/focus/success states, layout stability, overlap/occlusion, primary content framing, and asset rendering.
-
-Record evidence in `browser-check.md` and screenshots/notes in `screenshots.md`. If browser verification is blocked, record why and review static code/state coverage.
-
-## Integration Rules
-
-- Writing: substantial UI plans need `ui-contract.md` and must list it as an acceptance source. Root contract owns global visual rules; chunks may add local UI notes.
-- Executing: re-read `ui-contract.md`; do not reinterpret hierarchy/copy/interaction without `decisions.md` update. Keep active user-testing fixes fast.
-- Finalizing: if UI changed, run review mode before completion. For `medium`+ UI work, use a specialized UI review agent when authorized/available. UI review complements typecheck/tests/build; it does not replace them.
-
-Hard rules: do not start substantial undecided UI work without a contract, do not call substantial UI work done without structured UI review, do not leave acceptance criteria only in chat, and do not let screenshots replace code verification or code verification replace visual review.
+Stop on `UI_PASS`. `Polish` does not extend the loop unless requested.

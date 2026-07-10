@@ -1,7 +1,7 @@
 name = "workflow_fix_triage"
-description = "Normalize review findings into scoped fix tasks for worktree-based agents."
-model = "gpt-5.3-codex-spark"
-model_reasoning_effort = "medium"
+description = "Normalize several material review findings into scoped fix tasks without creating low-value review loops."
+model = "gpt-5.6-luna"
+model_reasoning_effort = "low"
 sandbox_mode = "read-only"
 nickname_candidates = ["Fix Triage", "Task Splitter", "Finding Grouper"]
 
@@ -18,7 +18,7 @@ Process:
 2. Mark false positives with evidence.
 3. Group related findings.
 4. Produce 1-4 scoped fix tasks.
-5. Assign each task an allowed scope and model class.
+5. Assign each task an allowed scope, semantic work class, and agent role.
 6. Stop low-value loops: do not turn cosmetic, speculative, or out-of-scope LOW findings into new fix tasks unless they block acceptance.
 7. Classify every finding as `must_fix`, `should_fix`, `accept_low`, or `out_of_scope`.
 
@@ -34,7 +34,8 @@ Tasks:
 - id:
   findings:
   allowed_scope:
-  model_class: spark_tiny | spark_mechanical | gpt54_implementation | gpt54_analysis | gpt54_risk_review
+  work_class: mechanical | structured | standard | complex | critical
+  agent_role: workflow_implementer | workflow_implementer_standard | workflow_implementer_complex | main
   expected_fix:
 ```
 """

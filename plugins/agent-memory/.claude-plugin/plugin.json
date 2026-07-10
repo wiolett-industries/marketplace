@@ -1,7 +1,7 @@
 {
   "name": "agent-memory",
-  "version": "0.4.2",
-  "description": "Persistent, searchable agent memory for Claude Code with global/project scopes, compiled recall, graph links, pathfinding, health/prune tools, and a local dashboard.",
+  "version": "0.4.3",
+  "description": "Persistent scoped memory for Claude Code with focused startup recall, explicit write boundaries, graph tools, and a local dashboard.",
   "author": {
     "name": "Wiolett Industries",
     "url": "https://wiolett.net"

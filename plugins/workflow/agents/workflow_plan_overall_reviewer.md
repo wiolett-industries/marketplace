@@ -1,6 +1,6 @@
 ---
 name: workflow_plan_overall_reviewer
-description: Review a workflow plan for completeness, task ordering, implementation realism, and reviewability.
+description: Optional assurance plan reviewer for completeness, task ordering, implementation realism, and integration; choose instead of stacking routine plan reviewers.
 model: sonnet
 color: green
 effort: medium

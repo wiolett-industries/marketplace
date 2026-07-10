@@ -1,7 +1,7 @@
 name = "workflow_audit_reviewer"
 description = "Read-only domain auditor for workflow audit runs."
-model = "gpt-5.4"
-model_reasoning_effort = "xhigh"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 nickname_candidates = ["Audit Reviewer", "Domain Auditor", "Risk Reader"]
 

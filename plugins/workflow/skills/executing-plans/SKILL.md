@@ -1,117 +1,63 @@
 ---
-name: Executing Plans
-description: Use to execute a durable .workflow plan with todo tracking, compaction recovery, worktree-isolated subagents, and review-gated merges
+name: executing-plans
+description: Use to execute an approved active .workflow plan with milestone state updates, scoped task ownership, compaction recovery, selective worktree delegation, and one integration path. Do not use for direct fast-path work without a durable plan.
 ---
 
 # Executing Plans
 
-Execute an approved `.workflow/plans/<run>/plan.md`. Artifacts are authoritative; chat is not. Inherit `Using Workflow` shared rules. Use `workflow_status`, `workflow_plan_update`, `workflow_plan_complete`, and `workflow_plan_artifact_write` when available; manual state/artifact writes are fallback only.
+Execute the active plan as written. Plan artifacts are authoritative; chat is not. Inherit the primary path, assurance profile, task-wide agent budget, and verification budget from `using-workflow`.
 
 ## Start Or Resume
 
-Read:
+1. Call `workflow_status` once when active state is unknown or context was recovered.
+2. Read `manifest.json`, `state.json`, `plan.md`, and the current task's referenced context/decisions.
+3. Read `ui-contract.md`, chunk state, or older artifacts only when the current task depends on them.
+4. Inspect `git status --short` and preserve unrelated user changes.
+5. Continue from the first non-complete task; do not replay completed work.
 
-1. active run from `workflow_status` or `.workflow/state.json`
-2. `manifest.json`, `state.json`, `plan.md`
-3. `context.md`, `decisions.md`, `ui-contract.md` when present
-4. latest relevant artifacts and `handoffs/*.json`
-5. chunk index when `chunks/` exists
-6. `git status --short`
+Use `workflow_plan_update`, `workflow_plan_artifact_write`, and `workflow_plan_complete` when available; manual state/artifact writes are fallback only.
 
-Rebuild todo from `state.json` and `plan.md`; continue from `state.phase` and the first non-complete task. After compaction, repeat this process.
+Read [references/execution-state.md](references/execution-state.md) only when updating task/chunk state, delegating a write task, or recovering a complex run.
 
-## Chunks
+## Execution Cadence
 
-If root plan has chunks, root orchestrates and chunks execute.
+- Update state at meaningful milestones: task start, material block, review handoff, and task completion.
+- Do not write workflow state after every tool call or tiny edit.
+- Execute tasks within their allowed scope and record any approved scope change before editing outside it.
+- For chunks, root owns dependency order and integration. Never create nested chunks.
 
-For each chunk: read chunk manifest/state/plan/context/decisions, verify dependencies in root state, mark it active in root plan state, execute like a normal plan-run, keep artifacts inside the chunk, update chunk and root state, finalize chunk before marking it complete.
+## Semantic Work Routing
 
-Do not create nested chunks. Do not edit outside chunk scope unless root `decisions.md` and `state.json` are updated. After all chunks complete, run root integration and `Finalizing Plan`.
+Exact model and reasoning effort live only in canonical custom-agent TOML files.
 
-## State
+- `mechanical`: tiny fully specified transformation; `workflow_implementer`.
+- `structured`: bounded implementation with locked approach; `workflow_implementer`.
+- `standard`: moderate scoped reasoning; `workflow_implementer_standard`.
+- `complex`: architecture or broad implementation inside a defined boundary; `workflow_implementer_complex`.
+- `critical`: parent retains final decisions; use an independent risk role only within assurance budget.
 
-Represent every task in `state.json`:
+Do not launch analysis to restate a decision-complete plan.
 
-```json
-{
-  "id": "T1",
-  "title": "Short title",
-  "status": "pending | in_progress | blocked | review | complete",
-  "owner": "main | agent:<id>",
-  "model_class": "spark_tiny | spark_mechanical | gpt54_implementation | gpt54_analysis | gpt54_risk_review",
-  "delegation_reason": "Why this model class is safe",
-  "worktree": null,
-  "allowed_scope": ["paths or modules"],
-  "verification": []
-}
-```
+## Delegation Gate
 
-For chunks, root state also tracks `active_chunk: string | null` and `chunks[]` with `id`, `path`, `status`, `depends_on`, and `scope`.
+Authorization is permission, not activation. Delegate only when independent execution can materially reduce wall time, isolate noisy context, or provide necessary high-risk independence. Never fan out by file count, checklist length, number of chunks, or number of applicable skills.
 
-Use `workflow_plan_update` for state changes. Task status changes use `upsert_task` with `task.id` and `task.status`; task completion uses `complete_task` with `task_id`. Chunk lifecycle uses `set_active_chunk`, `clear_active_chunk`, `complete_chunk`, `cancel_chunk`, and `wait_chunk`; use `upsert_chunk` only for metadata. If a state update call fails because the operation is unsupported or the payload shape is wrong, read the nearest suggestion in the error, correct the payload, and retry the MCP call.
+All delegated write work uses a worktree. The worker receives goal, chosen approach, allowed scope, exact edits, non-goals, verification, stop-if-unclear behavior, and report format. If a required named role is unavailable, execute locally unless that independent role was explicitly required.
 
-## Delegation
+The agent budget is global across planning, execution, and finalization. Reuse a running agent for focused follow-up. A launch used for exploration cannot be replaced by a fresh implementation or review quota.
 
-Use subagents aggressively only when work is independent and authorization is explicit. Explicit authorization may come from the current user request, AGENTS.md, developer instructions, or session settings. If standing authorization is present, do not ask again.
+## Evidence Ownership
 
-## Model Routing
+The worker runs scoped checks for its assigned change. The parent verifies output exists, performs minimal diff/scope sanity, and runs only integration or acceptance evidence not already proven by an unchanged worker result. Do not rerun the same command solely because ownership returned to the parent.
 
-For `complex`/`very_complex` work, start with read-only analysis by `gpt-5.4 high` or `gpt-5.4 xhigh` when scope, architecture, risk, or decomposition is not already clear. Then split the work into the smallest safe implementation chunks.
-
-For `medium` work, still try to split independent code changes into bounded chunks when that reduces wall-clock time and does not create integration risk.
-
-Model defaults:
-
-- tiny mechanical implementation: `gpt-5.3-codex-spark low`
-- small/medium mechanical implementation: `gpt-5.3-codex-spark medium`
-- broad implementation, larger code generation, or code that still needs local reasoning: `gpt-5.4 low | medium | high` by complexity
-- additional analysis, architecture, decomposition, or risk review: `gpt-5.4 high` or `gpt-5.4 xhigh`
-
-Spark has a smaller context budget. Treat it as a patch worker, not an analyst: give it a detailed prompt, exact files/modules, the chosen approach, expected edits, non-goals, and verification commands. Do not give Spark open-ended discovery, architecture, cross-repo analysis, broad refactors, or large code-generation tasks. If a task needs analysis before coding, run a `gpt-5.4 high/xhigh` analysis agent first or keep the task local; if it needs both analysis and substantial coding, consider `gpt-5.4`.
-
-Spark prompt template:
-
-```text
-Goal:
-Allowed files/modules:
-Chosen approach:
-Exact edits:
-Non-goals:
-Context budget: use only the supplied context plus assigned files; do not analyze the wider project.
-Stop if unclear: report NEEDS_CONTEXT instead of guessing.
-Verification:
-Report format:
-```
-
-Delegate independent implementation slices, mechanical edits with clear ownership, parallel verification, and focused investigations. Keep analysis and coding separate unless using a model appropriate for both.
-
-Keep local: critical-path blockers, tightly coupled integration decisions, final coordination, and merge decisions.
-
-Parallelism cap: normally run at most 2 write agents at once for `medium`, 3 for `complex`, and 4 for `very_complex`. Lower the cap when tasks touch adjacent files, share integration points, or review/merge overhead would exceed the speedup. Read-only analysis/review agents can be wider when independent.
-
-Preferred write agent: `workflow_implementer`. If unavailable, stop delegated implementation. If authorization is missing, ask once; if denied, execute locally and record that delegation was unavailable.
-
-## Worktrees And Merge Gate
-
-All non-read-only subagent edits happen in worktrees. Each write agent receives task id, allowed scope, non-goals, lint/file-boundary constraints, verification commands, no-revert instruction, and required report shape.
-
-Main thread:
-
-1. verifies agent output exists
-2. performs minimal diff sanity
-3. runs review agents via `Finalizing Plan`
-4. merges only after review gate passes
-
-Detailed correctness/scope/code-quality review belongs to agents, not the main thread.
-
-## User Testing And UI
-
-During active user-testing loops, make small fixes quickly and avoid full build/test/review after every tiny correction. Keep state updated; run `Finalizing Plan` before handoff/completion/commit/PR.
-
-For UI work, treat `ui-contract.md` as acceptance source. Update `decisions.md` before deviating. Put browser/screenshot evidence under `artifacts/ui-review/` or chunk artifacts.
+After relevant edits, rerun the strongest affected check once. Merge delegated work only after the applicable gate passes.
 
 ## Completion
 
-When tasks are complete, set `state.phase` to `finalizing` and invoke `Finalizing Plan`.
+During active user testing, batch small corrections and avoid full verification after each one. When implementation tasks are complete, set phase to `finalizing`.
 
-After final verification/review passes, the plan must be closed with `workflow_plan_complete`. Do not leave implemented work as an active plan, and do not rely on `set_phase: complete` alone because that does not clear root active status.
+- `fast` work should not be in this module.
+- `standard` and `assurance` continue to `finalizing-plan` with the remaining task-wide budget.
+- After final verification/review succeeds, close the run with `workflow_plan_complete`; `set_phase: complete` alone is insufficient.
+
+Stop execution when all planned tasks are complete or a material unresolved decision requires the user. Do not add polish or new scope during handoff.

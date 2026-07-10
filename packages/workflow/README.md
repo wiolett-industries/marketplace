@@ -2,7 +2,7 @@
 
 MCP runtime for the Workflow Codex plugin.
 
-On server startup it validates the packaged `workflow_*.toml` custom-agent definitions and syncs them globally into `~/.codex/agents/`.
+On server startup it validates the packaged `workflow_*.toml` custom-agent definitions and syncs them globally into `~/.codex/agents/`. Canonical agents route clear mechanical work to GPT-5.6 Luna, everyday implementation/review to GPT-5.6 Terra, and complex/high-assurance work to GPT-5.6 Sol; skills reference semantic work classes rather than model-version strings.
 
 It also creates best-effort compatibility links in `~/.agents/agents/` that point to the synced Codex agent files. If symlinks are unavailable, it falls back to managed copies. Locally modified or unmanaged compatibility files are not overwritten.
 

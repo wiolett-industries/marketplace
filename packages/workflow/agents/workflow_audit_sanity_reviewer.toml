@@ -1,7 +1,7 @@
 name = "workflow_audit_sanity_reviewer"
-description = "Sanity-check audit reviews for hallucinations, unsupported claims, duplicates, and severity inflation."
-model = "gpt-5.4"
-model_reasoning_effort = "high"
+description = "Optional single grouped sanity reviewer for deep/exhaustive audits with conflicting evidence, unsupported claims, duplicates, or severity inflation."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 nickname_candidates = ["Audit Sanity", "Finding Checker", "Evidence Check"]
 

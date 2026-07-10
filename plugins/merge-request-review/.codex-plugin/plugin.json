@@ -1,7 +1,7 @@
 {
   "name": "merge-request-review",
-  "version": "0.3.2",
-  "description": "Careful GitLab merge request review workflow with discussion intake, strict findings, re-review loops, and fixed review note formats.",
+  "version": "0.3.4",
+  "description": "Ready GitLab MR review with discussion intake, applicable gates, CI-first evidence, bounded agents, focused re-review, and one clean-pass approval.",
   "author": {
     "name": "Wiolett Industries",
     "url": "https://wiolett.net"
@@ -21,8 +21,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Merge Request Review",
-    "shortDescription": "Discussion-aware GitLab merge request review with strict gates and approval discipline",
-    "longDescription": "A GitLab merge request review workflow for Codex. It loads existing discussions first, checks MR-backed verification state, stores durable .workflow/mr-reviews artifacts through its MCP, syncs merge_request_* custom reviewers, drafts fixed-format review notes, and approves only after blocking findings are resolved. Requires an external GitLab MCP for GitLab reads/writes.",
+    "shortDescription": "CI-first GitLab review with bounded agents and one clean pass",
+    "longDescription": "A risk-budgeted GitLab merge request review workflow for Codex. It applies only to ready non-draft MRs, loads discussions and current SHA first, treats clear green CI as primary evidence, reviews applicable risk gates, uses zero agents by default for normal MRs and at most two for high-risk MRs, re-reviews only changed deltas, and approves after one clean pass with all blockers resolved. Requires an external GitLab MCP for GitLab reads/writes.",
     "developerName": "Wiolett Industries",
     "category": "Developer Tools",
     "capabilities": [
@@ -33,10 +33,10 @@
     "privacyPolicyURL": "https://wiolett.net",
     "termsOfServiceURL": "https://wiolett.net",
     "defaultPrompt": [
-      "Review this GitLab merge request carefully before approval",
-      "Load the existing discussions first and then review the current MR state",
-      "Run a high-risk merge request review for this GitLab MR",
-      "Re-review this GitLab merge request after the author pushed fixes"
+      "Use $review-merge-request before approving this ready GitLab MR",
+      "Use $review-merge-request and load current discussions first",
+      "Use $review-merge-request in high-risk mode for this GitLab MR",
+      "Use $review-merge-request on the author's changed delta"
     ],
     "brandColor": "#2563EB",
     "composerIcon": "./assets/icon.svg",

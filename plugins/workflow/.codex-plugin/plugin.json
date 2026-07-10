@@ -1,7 +1,7 @@
 {
   "name": "workflow",
-  "version": "0.4.2",
-  "description": "Modular agentic workflows for Codex: intent gating, context discovery, audits, UI contracts, durable plans, workflow MCP artifacts, subagent execution, and review/fix loops.",
+  "version": "0.4.4",
+  "description": "Lean, risk-budgeted workflows for Codex with one primary path, focused context, selective subagents, single-pass verification, and explicit completion gates.",
   "author": {
     "name": "Wiolett Industries",
     "url": "https://wiolett.net"
@@ -27,8 +27,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Workflow",
-    "shortDescription": "Intent, audits, plans, UI contracts, execution, and review loops",
-    "longDescription": "A modular agentic workflow plugin for Codex. It routes work through intent gating, context discovery, frontend UI contracts, filesystem-backed audits, durable .workflow plan artifacts, workflow MCP artifact helpers, stateful execution, worktree-isolated subagents, and complexity-based final review/fix loops.",
+    "shortDescription": "One-path engineering workflow with bounded agents and verification",
+    "longDescription": "A lean, risk-budgeted workflow plugin for Codex. It selects one primary path per task, keeps intent and context discovery local, reserves durable .workflow artifacts for work that needs them, supports production UI contracts and quick chat-only audits, dispatches agents only for concrete benefit, and stops after one profile-appropriate verification/review path passes.",
     "developerName": "Wiolett Industries",
     "category": "Developer Tools",
     "capabilities": [
@@ -39,13 +39,13 @@
     "privacyPolicyURL": "https://wiolett.net",
     "termsOfServiceURL": "https://wiolett.net",
     "defaultPrompt": [
-      "Run intent gate for this task",
-      "Run an audit flow for this project",
-      "Define the UI contract for this frontend change",
-      "Discover the requirements before planning",
-      "Write a .workflow plan for this change",
-      "Execute this workflow plan",
-      "Finalize this plan with the review loop"
+      "Use $intent-gate to route this task",
+      "Use $audit-flow for a quick project audit",
+      "Use $ui-contract for this production frontend change",
+      "Use $context-discovery before planning",
+      "Use $writing-plans for this durable change",
+      "Use $executing-plans on the active workflow plan",
+      "Use $finalizing-plan for one bounded completion pass"
     ],
     "brandColor": "#0F9D58",
     "composerIcon": "./assets/icon.svg",

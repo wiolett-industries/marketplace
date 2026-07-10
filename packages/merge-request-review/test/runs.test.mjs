@@ -9,6 +9,7 @@ import { normalizeFindings } from '../dist/findings.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
 const reviewSkill = path.join(repoRoot, 'plugins/merge-request-review/skills/review-merge-request/SKILL.md');
+const reviewProtocol = path.join(repoRoot, 'plugins/merge-request-review/skills/review-merge-request/references/protocol.md');
 const packageReadme = path.join(repoRoot, 'packages/merge-request-review/README.md');
 const pluginReadme = path.join(repoRoot, 'plugins/merge-request-review/README.md');
 
@@ -65,21 +66,32 @@ test('normalizes findings and drafts fixed-format notes', () => {
   assert.match(note.markdown, /Expected fix:/);
 });
 
-test('review skill keeps public severity format and caps low-value loops', () => {
+test('review skill keeps a lean trigger, public severity contract, and bounded loops', () => {
   const skill = readFileSync(reviewSkill, 'utf8');
+  const protocol = readFileSync(reviewProtocol, 'utf8');
+  const contract = `${skill}\n${protocol}`;
 
-  assert.match(skill, /Do not expose internal triage labels/);
-  assert.match(skill, /Critical.*Important.*Minor.*Notes/s);
-  assert.match(skill, /Minor` does not block unless it materially affects acceptance/);
-  assert.match(skill, /Notes` never block approval/);
-  assert.match(skill, /after two failed fix\/re-review cycles escalate/);
-  assert.match(skill, /make an Agent Memory MCP decision/);
-  assert.match(skill, /no internal triage labels in GitLab comments/);
+  assert.match(skill, /^name: review-merge-request$/m);
+  assert.match(skill, /Do not trigger for casual MR discussion, draft\/WIP work, GitHub PRs, or local code review/);
+  assert.match(skill, /mutually exclusive with Workflow `finalizing-plan`/);
+  assert.match(skill, /Use current CI as primary verification/);
+  assert.match(skill, /Apply only relevant review gates/);
+  assert.match(contract, /Do not expose internal triage labels/);
+  assert.match(contract, /Critical.*Important.*Minor.*Notes/s);
+  assert.match(skill, /`Minor` does not block unless it materially affects acceptance/);
+  assert.match(skill, /`Notes` never block approval/);
+  assert.match(skill, /After two failed fix\/re-review cycles, escalate/);
+  assert.match(skill, /`normal`: 0 agents by default; at most 1 total/);
+  assert.match(skill, /`high-risk`.*at most 2 agents total/s);
+  assert.match(skill, /do not restart every support agent/);
+  assert.match(skill, /follow `using-agent-memory` for its single durable-memory decision/);
+  assert.match(skill, /One clean pass at the current SHA is sufficient/);
 });
 
 test('merge request review docs describe MCP tool and artifact contracts', () => {
+  const skillContract = `${readFileSync(reviewSkill, 'utf8')}\n${readFileSync(reviewProtocol, 'utf8')}`;
   const docs = [
-    readFileSync(reviewSkill, 'utf8'),
+    skillContract,
     readFileSync(packageReadme, 'utf8'),
     readFileSync(pluginReadme, 'utf8'),
   ];
@@ -118,7 +130,7 @@ test('merge request review docs describe MCP tool and artifact contracts', () =>
   }
 
   assert.doesNotMatch(skill, /posted-notes\.json\n  approval\.md\n/);
-  assert.match(skill, /approval\.md` is an allowed artifact/);
+  assert.match(skill, /`approval\.md` is an allowed artifact/);
   assert.match(skill, /approved/);
   assert.match(docs[1], /Supported `mr_review_update` operations/);
   assert.match(docs[2], /Supported `mr_review_update` operations/);

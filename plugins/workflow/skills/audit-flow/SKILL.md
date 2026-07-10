@@ -1,117 +1,49 @@
 ---
-name: Audit Flow
-description: Use to run filesystem-backed project, subsystem, diff, or plan audits with scoped prompts, read-only agents, sanity review, and master audit output
+name: audit-flow
+description: Use for an explicit project, subsystem, diff, plan, quality, risk, security, architecture, maintainability, or readiness audit. Default to a quick local chat-only audit unless durable artifacts, several independent risk domains, or deep/exhaustive coverage are explicitly needed. The audit is read-only and does not imply fixes.
 ---
 
 # Audit Flow
 
-Read-only workflow for understanding quality, risk, architecture, security, maintainability, or readiness before planning fixes. It produces findings and planning input; it does not edit code.
+Produce evidence-backed findings without editing the audited code. An audit is one primary path; do not add `finalizing-plan` or implementation unless the user separately requests fixes.
 
-Inherit `Using Workflow` shared rules. Use workflow MCP when available; manual audit state/artifact writes are fallback only:
+## Select Depth And Output
 
-- create/update: `workflow_audit_create`, `workflow_audit_update`
-- artifacts: `workflow_audit_artifact_write`
-- findings: `workflow_findings_normalize`
-- handoff: `workflow_handoff_write`
+- `quick`: bounded question, small diff, or ordinary analysis; parent works locally, writes no `.workflow` artifacts, launches 0 agents, and reports in chat.
+- `standard`: one coherent subsystem or review question; local by default, at most 1 reviewer when independence materially improves evidence. Create a durable run only when requested or needed for later planning/recovery.
+- `deep`: several genuinely independent risk domains; create a durable run and use at most 2 scoped reviewers when the benefit gate passes.
+- `exhaustive`: explicit broad/high-risk request only; create a durable run and declare a task-wide budget, default maximum 4. Exceed it only with explicit approval.
 
-## Layout
+Repository size, file count, checklist length, or number of possible lenses does not raise depth. Read-only/no-edits requests use `quick` chat output unless the same request explicitly authorizes audit artifacts.
 
-Create `.workflow/audits/MM-DD-YY-slug/` with:
+## Scope And Evidence
 
-```text
-audit.md
-manifest.json
-state.json
-scope.md
-prompts/
-reviews/
-sanity/
-master-audit.md
-findings.json
-planning-input.md
-handoffs/
-```
+Define the target, included/excluded paths, audit questions, non-goals, depth, and evidence standard. Inspect the real source of truth. Every material finding needs a file/line, command/output, runtime observation, or other reproducible evidence.
 
-`manifest.json`: `slug`, `phase`, `depth`, `target`, `created_at`, `updated_at`.
-`state.json`: `phase`, `depth`, `reviewers`, `sanity_checks`, `open_findings`, `handoffs`.
-`scope.md`: target, included/excluded paths, audit questions, depth, non-goals, evidence standard.
+Agents are read-only and consume the declared audit budget. Group overlapping domains. Use `workflow_audit_reviewer` only for independent evidence that changes confidence or coverage; do not assign one agent per file, prompt, or gate.
 
-Depth:
+## Durable Audit Path
 
-- `simple`: one bounded area or small diff
-- `standard`: ordinary project/subsystem audit
-- `deep`: large project or several domains
-- `exhaustive`: high-risk or broad audit needing many domain prompts
+When a durable run is authorized, use `workflow_audit_create`, `workflow_audit_update`, `workflow_audit_artifact_write`, `workflow_findings_normalize`, `workflow_handoff_write`, and `workflow_audit_complete`. Manual state/artifact writes are fallback only.
 
-## Prompts
+Read [references/audit-artifacts.md](references/audit-artifacts.md) before creating prompts, findings, or handoff artifacts. Do not load it for a quick chat-only audit.
 
-`simple`: one prompt is enough.
-`standard`/`deep`/`exhaustive`: write standalone prompts under `prompts/`.
+## Prompt, Sanity, And Synthesis
 
-Each prompt needs: scope, domain question, included/excluded paths, severity model, output format, evidence requirements, non-goals.
+The parent writes the audit prompt directly unless several standalone prompts require non-trivial decomposition. Use `workflow_audit_prompt_writer` only for that deep/exhaustive case and within budget.
 
-For `deep`/`exhaustive`, run prompt sanity before audit reviewers when subagents are authorized.
+After evidence collection:
 
-Preferred prompt agent: `workflow_audit_prompt_writer`. If unavailable, stop that delegated step.
+- `quick`/`standard`: parent performs one grouped sanity pass and synthesizes directly.
+- `deep`/`exhaustive`: use at most one `workflow_audit_sanity_reviewer` only when reviews conflict, severity inflation is plausible, or evidence is hard to validate locally.
+- Use `workflow_master_auditor` only when multi-review synthesis is itself substantial and the remaining budget justifies a separate context.
 
-## Agents
+Sanity removes unsupported claims, hallucinated behavior, duplicates, severity inflation, and findings contradicted by stronger evidence.
 
-Run audit agents only with explicit subagent authorization.
+## Stop And Handoff
 
-Defaults:
+Stop when the scoped questions are answered with sufficient evidence and all findings are normalized. Do not continue into optional domains or fixes.
 
-- `simple`: one `workflow_audit_reviewer`, `gpt-5.4 high`
-- `standard`: 2-4 scoped `workflow_audit_reviewer`, `gpt-5.4 xhigh`
-- `deep`/`exhaustive`: domain prompt per `workflow_audit_reviewer`, `gpt-5.4 xhigh`
+If the user requests remediation, hand confirmed findings to `writing-plans`; do not silently mutate the audit into implementation. A durable audit closes with `workflow_audit_complete`.
 
-Reviewer budget: use one reviewer per independent risk domain, not per file or folder. For `deep`/`exhaustive`, 3-6 reviewers is the normal range; exceed that only when domains are truly independent and the added review changes planning decisions. Group adjacent domains when overlap would create duplicate findings.
-
-Audit agents are read-only. Parent writes outputs to `reviews/`. If `workflow_audit_reviewer` is unavailable, stop.
-
-## Sanity And Master Audit
-
-After reviews, run `workflow_audit_sanity_reviewer`:
-
-- `simple`: one sanity review, `gpt-5.4 high`
-- `standard`: grouped sanity, `gpt-5.4 high`
-- `deep`/`exhaustive`: per review or domain group, `gpt-5.4 high`
-
-Sanity checks unsupported claims, hallucinated files/behavior, duplicates, severity inflation, missing evidence, and counter-evidence. Parent writes outputs under `sanity/`. If unavailable, stop.
-
-Then run `workflow_master_auditor`. If unavailable, stop. It returns:
-
-- `master-audit.md`
-- `findings.json`
-- `planning-input.md`
-
-`findings.json` shape:
-
-```json
-{
-  "findings": [
-    {
-      "id": "A-001",
-      "severity": "BLOCKING | HIGH | MEDIUM | LOW | INFO",
-      "confidence": "high | medium | low",
-      "domain": "architecture",
-      "summary": "Short finding",
-      "evidence": ["path:line or command/output"],
-      "recommendation": "Concrete next action",
-      "needs_plan": true
-    }
-  ]
-}
-```
-
-## Handoff
-
-If findings should become implementation work, invoke `Writing Plans`. Use `planning-input.md`, `master-audit.md`, and confirmed `findings.json` as planning inputs.
-
-With MCP, write audit-to-plan handoff:
-
-- `kind: "audit"`
-- `from_module: "audit-flow"`
-- `to_module: "writing-plans"`
-- `artifacts`: `planning-input.md`, `master-audit.md`, `findings.json`
-
-Final report: audit path, depth, reviewer count, sanity result, master audit path, findings by severity, planning readiness.
+Final output reports depth, evidence limits, findings by severity, reviewer count, and planning readiness. Quick audits report directly in chat without an artifact path.

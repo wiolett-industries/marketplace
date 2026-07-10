@@ -1,31 +1,24 @@
 ---
-name: Context Discovery
-description: Use when requirements, product intent, architecture, constraints, or tradeoffs need to be discovered before planning or execution
+name: context-discovery
+description: Use after intent routing only when unresolved requirements, product intent, architecture, constraints, or tradeoffs can materially change scope, risk, acceptance criteria, or user-visible behavior. Inspect discoverable facts first and avoid exhaustive questioning.
 ---
 
 # Context Discovery
 
-Gather enough context for a decision-complete plan or confident execution decision. Do not optimize for fewer questions; optimize for not building the wrong thing.
+Gather only enough context for a confident execution decision or decision-complete durable plan. Ask only questions whose answers can change scope, architecture, risk, acceptance criteria, or user-visible behavior.
 
-Use after `Intent Gate` when goal, scope, audience/operator, architecture, data/API/CLI/UI contracts, quality bar, risk, review depth, or next module remains unclear. Skip only for narrow mechanical tasks where repo inspection and user request already determine the safe action.
+## Question Budget
 
-## Process
+1. Inspect manifests, docs, related code, tests, and recent local patterns first.
+2. Ask one grouped question batch for the remaining material branches.
+3. Use a second batch only if the first answer reveals a new costly or irreversible branch.
+4. For reversible fast/standard decisions, proceed with an explicit reasonable assumption when clarification would cost more than correction.
+5. Stop when another answer would not change the implementation, primary path, or assurance profile.
 
-1. Inspect discoverable repo facts first: manifests, docs, related files, tests, recent patterns.
-2. Ask every material remaining question; prefer interactive questions when supported.
-3. Ask questions that choose real branches: scope, user-visible behavior, compatibility/migration, ownership/persistence, verification rigor, split strategy, design tradeoff.
-4. Do not ask for discoverable facts; look them up.
-5. For high-impact ambiguity, keep asking until answers would no longer change the plan.
+Do not ask for discoverable facts, preferences that do not affect the result, or exhaustive edge cases outside the requested scope.
 
-## Spike Mode
+## Bounded Spike
 
-If feasibility is uncertain, run a bounded spike:
+When feasibility is genuinely uncertain, state the uncertainty and run one disposable experiment or read-only investigation. Use up to three only for distinct unknowns. Record evidence in an active plan when one exists; otherwise summarize in chat. A spike must not drift into production implementation.
 
-1. State the uncertainty.
-2. Run 1-3 disposable experiments or read-only investigations.
-3. Record evidence/recommendation in plan artifacts when a plan-run exists; otherwise summarize in chat.
-4. Do not turn a spike into production implementation.
-
-## Output
-
-Before planning/execution, produce or confirm: approved goal, success criteria, scope, non-goals, constraints, risks, complexity (`simple`/`medium`/`complex`/`very_complex`), and recommended next module. If enough detail already exists, state captured context and continue.
+Before continuing, capture only the decisions needed by the next step: goal, success criteria, scope/non-goals, constraints, material risks, and unresolved questions. Do not create workflow artifacts unless a durable path is authorized.

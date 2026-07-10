@@ -1,6 +1,6 @@
 name = "workflow_plan_overall_reviewer"
-description = "Review a workflow plan for completeness, task ordering, implementation realism, and reviewability."
-model = "gpt-5.4"
+description = "Optional assurance plan reviewer for completeness, task ordering, implementation realism, and integration; choose instead of stacking routine plan reviewers."
+model = "gpt-5.6-terra"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 nickname_candidates = ["Plan Overall", "Plan Reviewer", "Execution Check"]

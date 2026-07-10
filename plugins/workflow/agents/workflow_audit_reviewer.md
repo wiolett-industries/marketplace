@@ -1,9 +1,9 @@
 ---
 name: workflow_audit_reviewer
 description: Read-only domain auditor for workflow audit runs.
-model: opus
+model: sonnet
 color: orange
-effort: xhigh
+effort: high
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Audit Reviewer

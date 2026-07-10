@@ -1,7 +1,7 @@
 name = "merge_request_discussion_auditor"
-description = "Read-only reviewer for existing GitLab MR discussions, unresolved blocker state, and re-review context"
-model = "gpt-5.3-codex-spark"
-model_reasoning_effort = "high"
+description = "Optional read-only intake agent for large, stale, or contradictory GitLab MR discussions and unresolved blocker state"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "medium"
 
 developer_instructions = """
 # Merge Request Discussion Auditor
