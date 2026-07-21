@@ -34,8 +34,8 @@ This plugin ships these lowercase skill entrypoints:
 - `executing-plans` executes active plan tasks with milestone state updates and selective delegation
 - `finalizing-plan` runs one bounded standard/assurance completion path
 - `workflow-mcp` documents deterministic state operations without authorizing artifacts
-- consolidated platform hooks for workflow startup/subagent contracts plus installed companion plugin hints/checks
-- a bundled workflow MCP server that syncs `workflow_*` custom agents globally at startup and exposes deterministic `.workflow/` plan/audit artifact tools
+- consolidated platform hooks for workflow startup/subagent contracts, Codex commitment enforcement, and installed companion plugin hints/checks
+- a bundled workflow MCP server that syncs `workflow_*` custom agents globally at startup and exposes deterministic `.workflow/` plan/audit and commitment tools
 
 Workflow artifacts are filesystem-first. Use Workflow MCP to create, update, complete, inspect, and normalize an authorized plan/audit run whenever tools are available; manual `.workflow/` writes are fallback only. Fast work and read-only discussion do not create artifacts. This version does not use a workflow RAG layer.
 
@@ -47,6 +47,8 @@ Workflow is the only Wiolett plugin that registers platform hooks. Its hook dete
 - with `merge-request-review`, merge_request_* subagents get MR review prompts and output validation
 
 Companion plugins keep their skills and MCP servers, but they do not register separate hooks.
+
+Material plans use a portable same-model commitment reflection before execution: compare the original request with the expected change class and surfaces, try to remove unsupported abstractions/contracts, then record `KEEP`, `SHRINK`, `ASK`, or `REPLAN`. Codex has a Stop hook that blocks a missing reflection once and respects `stop_hook_active`; Claude Code intentionally has no matching Stop hook in this version. The shared skills and MCP contract are complete without either hook, so clients must never search for or wait on one.
 
 Subagent authorization is permission, not a launch trigger. Agents run only when independent parallel work, noisy-context isolation, independent high-risk judgment, or an explicit requested split provides concrete benefit. The selected task-wide profile caps launches across every module: `fast` uses 0 agents, `standard` at most 1 total, and `assurance` a declared total (default 3) with at most 2 reviewers per round. Parent Max/Ultra does not increase these budgets. Verification also has one task-wide budget: unchanged checks are not rerun, and completion stops once scoped acceptance, evidence, and material-risk gates pass.
 
@@ -84,6 +86,8 @@ Plan and audit update tools share one operation handler in the MCP runtime. The 
 - `workflow_status`
 - `workflow_plan_create`
 - `workflow_plan_update`
+- `workflow_plan_commitment_propose`
+- `workflow_plan_commitment_confirm`
 - `workflow_plan_complete`
 - `workflow_plan_artifact_write`
 - `workflow_audit_create`

@@ -123,7 +123,7 @@ Agent Memory uses an OpenAI-compatible key for:
 
 - model-gated memory writes
 - AI-generated memory slugs and summaries
-- compiled recall/query answers
+- compiled recall/query answers and broad memory recaps
 - automatic graph-link review
 - embeddings and semantic search
 
@@ -139,6 +139,7 @@ Or configure it non-interactively:
 npx -y @wiolett/agent-memory@latest init \
   --key "$OPENAI_API_KEY" \
   --endpoint "https://api.openai.com/v1" \
+  --response-model "gpt-5-mini" \
   --embedding-model "text-embedding-3-small"
 ```
 
@@ -158,6 +159,7 @@ The config accepts OpenAI-compatible values:
 {
   "openAIKey": "sk-proj-...",
   "endpoint": "https://api.openai.com/v1",
+  "responseModel": "gpt-5-mini",
   "embeddingModel": "text-embedding-3-small",
   "headers": {
     "X-Custom-Header": "value"
@@ -175,7 +177,7 @@ Memory calls:
 - `POST /responses` with Bearer-token auth and OpenAI Responses-style output
 - `POST /embeddings` returning numeric embedding vectors
 - the configured embedding model, or the default `text-embedding-3-small`
-- the default response model used by Agent Memory, `gpt-5-nano`, or a provider
+- the configured response model, or Agent Memory's default `gpt-5-mini`, or a provider
   alias that accepts that model name
 
 Without a key, durable memory files still work, but model-gated writes,

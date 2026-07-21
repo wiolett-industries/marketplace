@@ -16,6 +16,8 @@ test('registers the expected Workflow MCP tools', () => {
     'workflow_status',
     'workflow_plan_create',
     'workflow_plan_update',
+    'workflow_plan_commitment_propose',
+    'workflow_plan_commitment_confirm',
     'workflow_plan_complete',
     'workflow_plan_artifact_write',
     'workflow_audit_create',

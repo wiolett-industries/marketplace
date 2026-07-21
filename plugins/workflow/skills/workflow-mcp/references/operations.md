@@ -14,6 +14,8 @@ Plan create accepts title, complexity, optional slug/content/tasks/chunks, and w
 
 Plan update operations include `set_phase`, `set_complexity`, `set_review_round`, `set_clean_streak`, `set_open_findings`, `upsert_task`, `complete_task`, `set_active_chunk`, `clear_active_chunk`, `upsert_chunk`, `set_chunk_status`, `complete_chunk`, `cancel_chunk`, `wait_chunk`, and `merge`.
 
+Material plan creation initializes `commitment_reflection` as pending. `workflow_plan_commitment_propose` records the request, expected and candidate change classes/surfaces, constraints, new abstractions/contracts, detected scope pressure, and a bounded reflection prompt. `workflow_plan_commitment_confirm` records `KEEP`, `SHRINK`, `ASK`, or `REPLAN`. Only a reviewed commitment can enter execution or complete; simple and legacy plans remain compatible.
+
 Use `upsert_chunk` for metadata. Use lifecycle operations for status:
 
 ```json

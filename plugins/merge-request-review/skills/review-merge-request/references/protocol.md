@@ -20,7 +20,7 @@ One run per MR/re-review:
 
 `approval.md` is an allowed artifact written later with `mr_review_artifact_write`; it is not created by `mr_review_create`.
 
-Tools: `mr_review_status`, `mr_review_create`, `mr_review_update`, `mr_review_artifact_write`, `mr_review_findings_normalize`, and `mr_review_note_draft`.
+Tools: `mr_review_status`, `mr_review_create`, `mr_review_update`, `mr_review_complete`, `mr_review_artifact_write`, `mr_review_findings_normalize`, and `mr_review_note_draft`.
 
 Supported `mr_review_update` operations: `set_phase`, `set_review_mode`, `set_ci_status`, `set_discussions`, `set_findings`, `set_blockers`, `set_review_round`, `set_clean_rounds`, `upsert_posted_note`, `mark_approved`, and `merge`.
 
@@ -35,6 +35,8 @@ Use the exact live tool schema. Typical operation shapes:
 {"type":"upsert_posted_note","note":{"id":"N1"}}
 {"type":"mark_approved"}
 ```
+
+`mark_approved` remains a compatibility terminal update and clears the matching active pointer. Prefer the dedicated `mr_review_complete` tool after the external clean note and GitLab approval succeed. Do not finish the task with only `set_phase: "approved"`.
 
 ## Severity
 
@@ -56,7 +58,12 @@ Why it matters:
 
 Expected fix:
 <concrete resolution direction>
+
+Evidence basis:
+<canonical source or owning contract plus current proof of violation>
 ```
+
+For generated, mirrored, cached, synchronized, vendored, or runtime-produced artifacts, `Evidence basis` must name the upstream source and update boundary. The derived file alone is not evidence of a defect.
 
 Use GitLab suggestions only for tiny mechanical one-to-three-line non-logic edits.
 

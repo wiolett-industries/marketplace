@@ -20,10 +20,14 @@ export type OpenAIProviderConfigOptions = {
   apiKey?: string;
   baseUrl?: string;
   model?: string;
+  responseModel?: string;
   embeddingModel?: string;
   configPath?: string;
   userAgent?: string;
 };
+
+export const DEFAULT_RESPONSE_MODEL = 'gpt-5-mini';
+export const DEFAULT_EMBEDDING_MODEL = 'text-embedding-3-small';
 
 export type EmbeddingProviderConfig = {
   provider: 'openai-compatible';
@@ -46,7 +50,7 @@ export function resolveOpenAIProviderConfig(options: OpenAIProviderConfigOptions
   const apiKey = explicitKey ?? environmentKey ?? configKey;
   if (!apiKey) return null;
 
-  const model = options.model;
+  const model = options.model ?? options.responseModel ?? readString(fileConfig?.responseModel);
   const embeddingModel = options.embeddingModel ?? readString(fileConfig?.embeddingModel) ?? readString(fileConfig?.embeddingsModel);
   const headers = resolveHeaders(fileConfig);
 
@@ -72,7 +76,7 @@ export function resolveEmbeddingProviderConfig(options: OpenAIProviderConfigOpti
     provider: 'openai-compatible',
     apiKey: openAI.apiKey,
     baseUrl: openAI.baseUrl,
-    model: openAI.embeddingModel ?? 'text-embedding-3-small',
+    model: openAI.embeddingModel ?? DEFAULT_EMBEDDING_MODEL,
     ...(openAI.headers ? { headers: openAI.headers } : {}),
   };
 }

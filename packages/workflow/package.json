@@ -13,6 +13,7 @@
   "exports": {
     "./register": "./dist/register.js",
     "./sync-agents": "./dist/sync-agents.js",
+    "./commitments": "./dist/commitments.js",
     "./tools": "./dist/tools.js"
   },
   "files": [

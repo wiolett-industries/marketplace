@@ -52,7 +52,9 @@ test('workflow session hook emits recovery context for active plans', () => {
   const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-hook-'));
   const planDir = path.join(workspace, '.workflow/plans/01-01-26-hooks');
   mkdirSync(planDir, { recursive: true });
+  mkdirSync(path.join(workspace, '.workflow/mr-reviews'), { recursive: true });
   writeFileSync(path.join(workspace, '.workflow/state.json'), JSON.stringify({ active_plan: 'plans/01-01-26-hooks' }), 'utf8');
+  writeFileSync(path.join(workspace, '.workflow/mr-reviews/state.json'), JSON.stringify({ active_review: 'mr-reviews/01-01-26-mr-hooks' }), 'utf8');
 
   const output = runHook({ hook_event_name: 'SessionStart', cwd: workspace }, workspace);
 
@@ -66,9 +68,14 @@ test('workflow session hook emits recovery context for active plans', () => {
   assert.match(output.hookSpecificOutput.additionalContext, /Authorization is permission, not activation/);
   assert.match(output.hookSpecificOutput.additionalContext, /Parent Max\/Ultra and multiple skills do not expand the budget/);
   assert.match(output.hookSpecificOutput.additionalContext, /workflow-mcp/);
+  assert.match(output.hookSpecificOutput.additionalContext, /workflow_plan_complete/);
   assert.match(output.hookSpecificOutput.additionalContext, /Agent Memory MCP installed/);
+  assert.match(output.hookSpecificOutput.additionalContext, /memory_recap/);
+  assert.match(output.hookSpecificOutput.additionalContext, /memory completion latch/);
   assert.match(output.hookSpecificOutput.additionalContext, /read-only\/no-edits work does not write memory/);
   assert.match(output.hookSpecificOutput.additionalContext, /Merge Request Review installed/);
+  assert.match(output.hookSpecificOutput.additionalContext, /Active merge request review: \.workflow\/mr-reviews\/01-01-26-mr-hooks/);
+  assert.match(output.hookSpecificOutput.additionalContext, /mr_review_complete/);
 });
 
 test('workflow session hook omits companion context when companion plugins are absent', () => {
@@ -159,10 +166,50 @@ test('workflow subagent start reminds implementers to stay bounded', () => {
   assert.match(output.hookSpecificOutput.additionalContext, /no open-ended analysis/);
 });
 
-test('workflow hook config does not register session end hooks', () => {
-  const config = JSON.parse(readFileSync(hookConfig, 'utf8'));
+test('Codex registers commitment Stop enforcement while Claude remains hook-optional', () => {
+  const codexConfig = JSON.parse(readFileSync(hookConfig, 'utf8'));
+  const claudeConfig = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/workflow/hooks/hooks.json'), 'utf8'));
 
-  assert.equal(config.hooks.Stop, undefined);
+  assert.match(codexConfig.hooks.Stop[0].hooks[0].command, /PLUGIN_ROOT/);
+  assert.equal(claudeConfig.hooks.Stop, undefined);
+});
+
+test('Codex Stop blocks pending material reflection once without affecting legacy plans', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-stop-reflection-'));
+  const planDir = path.join(workspace, '.workflow/plans/01-01-26-reflection');
+  mkdirSync(planDir, { recursive: true });
+  writeFileSync(path.join(workspace, '.workflow/state.json'), JSON.stringify({ active_plan: 'plans/01-01-26-reflection' }), 'utf8');
+  writeFileSync(
+    path.join(planDir, 'state.json'),
+    JSON.stringify({ commitment_reflection: { required: true, status: 'pending', proposal: { id: 'commitment-1' } } }),
+    'utf8'
+  );
+
+  const blocked = runHook({ hook_event_name: 'Stop', cwd: workspace, stop_hook_active: false }, workspace);
+  const loopGuard = runHook({ hook_event_name: 'Stop', cwd: workspace, stop_hook_active: true }, workspace);
+
+  assert.equal(blocked.decision, 'block');
+  assert.match(blocked.reason, /shrink-first reflection/);
+  assert.doesNotMatch(blocked.reason, /launch an agent/i);
+  assert.equal(loopGuard.continue, true);
+
+  writeFileSync(path.join(planDir, 'state.json'), JSON.stringify({ phase: 'executing' }), 'utf8');
+  assert.equal(runHook({ hook_event_name: 'Stop', cwd: workspace }, workspace).continue, true);
+});
+
+test('Codex Stop allows reviewed and awaiting-user commitment states', () => {
+  for (const status of ['reviewed', 'awaiting_user', 'not_required']) {
+    const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-stop-allowed-'));
+    const planDir = path.join(workspace, '.workflow/plans/01-01-26-reflection');
+    mkdirSync(planDir, { recursive: true });
+    writeFileSync(path.join(workspace, '.workflow/state.json'), JSON.stringify({ active_plan: 'plans/01-01-26-reflection' }), 'utf8');
+    writeFileSync(
+      path.join(planDir, 'state.json'),
+      JSON.stringify({ commitment_reflection: { required: status !== 'not_required', status } }),
+      'utf8'
+    );
+    assert.equal(runHook({ hook_event_name: 'Stop', cwd: workspace }, workspace).continue, true);
+  }
 });
 
 test('workflow hook config does not match compact source as SessionStart', () => {
@@ -271,6 +318,8 @@ test('workflow docs describe source MCP tool and artifact contracts', () => {
     'workflow_status',
     'workflow_plan_create',
     'workflow_plan_update',
+    'workflow_plan_commitment_propose',
+    'workflow_plan_commitment_confirm',
     'workflow_plan_complete',
     'workflow_plan_artifact_write',
     'workflow_audit_create',
@@ -447,6 +496,34 @@ test('workflow prompts route subagents by task shape and cap review loops', () =
   assert.match(fixTriage, /agent_role: workflow_implementer \| workflow_implementer_standard \| workflow_implementer_complex \| main/);
 });
 
+test('workflow skills bound context, delegation, and scope amplification portably', () => {
+  const usingWorkflow = readFileSync(path.join(skillDir, 'using-workflow/SKILL.md'), 'utf8');
+  const intentGate = readFileSync(path.join(skillDir, 'intent-gate/SKILL.md'), 'utf8');
+  const contextDiscovery = readFileSync(path.join(skillDir, 'context-discovery/SKILL.md'), 'utf8');
+  const writingPlans = readFileSync(path.join(skillDir, 'writing-plans/SKILL.md'), 'utf8');
+  const executingPlans = readFileSync(path.join(skillDir, 'executing-plans/SKILL.md'), 'utf8');
+  const finalizingPlan = readFileSync(path.join(skillDir, 'finalizing-plan/SKILL.md'), 'utf8');
+  const workflowMcp = readFileSync(path.join(skillDir, 'workflow-mcp/SKILL.md'), 'utf8');
+
+  assert.match(usingWorkflow, /Authorization is permission, not activation or an explicit request/);
+  assert.match(usingWorkflow, /existing-code review.*default to local work/);
+  assert.match(contextDiscovery, /at most five relevant files/);
+  assert.match(contextDiscovery, /twelve files or about 50 KB/);
+  assert.match(contextDiscovery, /does not restart discovery/);
+  assert.match(intentGate, /L0.*L1.*L2.*L3/s);
+  assert.match(intentGate, /material plan, architecture decision, or scope-expanding solution/);
+  assert.match(intentGate, /Do this silently for chat-only work/);
+  assert.match(writingPlans, /workflow_plan_commitment_propose/);
+  assert.match(writingPlans, /same-model shrink-first reflection/);
+  assert.match(executingPlans, /Do not perform opportunistic refactors/);
+  assert.match(finalizingPlan, /Check scope before style/);
+  assert.match(workflowMcp, /Claude Code and other clients must never be instructed to find or wait for that hook/);
+
+  for (const sharedSkill of [writingPlans, executingPlans, finalizingPlan, workflowMcp]) {
+    assert.doesNotMatch(sharedSkill, /stop_hook_active|PLUGIN_ROOT|CLAUDE_PLUGIN_ROOT/);
+  }
+});
+
 test('workflow skills preserve memory, audit, and MCP guardrails', () => {
   const usingWorkflow = readFileSync(path.join(skillDir, 'using-workflow/SKILL.md'), 'utf8');
   const finalizingPlan = readFileSync(path.join(skillDir, 'finalizing-plan/SKILL.md'), 'utf8');
@@ -455,9 +532,9 @@ test('workflow skills preserve memory, audit, and MCP guardrails', () => {
   const workflowMcpReference = readFileSync(path.join(skillDir, 'workflow-mcp/references/operations.md'), 'utf8');
   const workflowMcpContract = `${workflowMcp}\n${workflowMcpReference}`;
 
-  assert.match(usingWorkflow, /single final durable-memory decision/);
+  assert.match(usingWorkflow, /final memory completion latch/);
   assert.match(usingWorkflow, /Authorization is permission, not activation/);
-  assert.match(finalizingPlan, /follow the single write decision in `using-agent-memory`/);
+  assert.match(finalizingPlan, /follow the memory completion latch in `using-agent-memory`/);
   assert.match(auditFlow, /Agents are read-only and consume the declared audit budget/);
   assert.match(auditFlow, /default maximum 4/);
   assert.match(workflowMcpContract, /Create vs update guard/);
@@ -467,5 +544,22 @@ test('workflow skills preserve memory, audit, and MCP guardrails', () => {
   assert.match(workflowMcpContract, /complete_chunk/);
   assert.match(workflowMcpContract, /Any status other than `active` or `in_progress` clears `active_chunk`/);
   assert.match(workflowMcpContract, /set_chunk_status` with `blocked`/);
-  assert.doesNotMatch(usingWorkflow, /workflow_plan_complete/);
+  assert.match(usingWorkflow, /workflow_plan_complete/);
+  assert.match(usingWorkflow, /workflow_audit_complete/);
+  assert.match(usingWorkflow, /phase update is not completion/);
+});
+
+test('generic review rejects findings without canonical provenance evidence', () => {
+  const finalizingPlan = readFileSync(path.join(skillDir, 'finalizing-plan/SKILL.md'), 'utf8');
+  const codexReviewer = readAgentFile('packages/workflow/agents', 'workflow_overall_reviewer', '.toml');
+  const claudeReviewer = readAgentFile('plugins/workflow/agents', 'workflow_overall_reviewer', '.md');
+
+  assert.match(finalizingPlan, /one focused project-memory query/);
+  assert.match(finalizingPlan, /Reject findings based only on a derived artifact/);
+  assert.match(finalizingPlan, /pass the verified source-of-truth fact and current anchor/);
+  for (const prompt of [codexReviewer, claudeReviewer]) {
+    assert.match(prompt, /canonical source\/owning contract/);
+    assert.match(prompt, /A derived artifact alone is not a finding/);
+    assert.match(prompt, /evidence_basis/);
+  }
 });

@@ -11,6 +11,7 @@ Use the matching MCP tool for deterministic `.workflow/` state and artifact oper
 
 - `workflow_status`
 - `workflow_plan_create`, `workflow_plan_update`, `workflow_plan_complete`, `workflow_plan_artifact_write`
+- `workflow_plan_commitment_propose`, `workflow_plan_commitment_confirm`
 - `workflow_audit_create`, `workflow_audit_update`, `workflow_audit_complete`, `workflow_audit_artifact_write`
 - `workflow_handoff_write`
 - `workflow_findings_normalize`
@@ -25,6 +26,8 @@ Loading this skill never authorizes a new plan/audit. The active primary workflo
 4. Use artifact tools only for allowed run-relative paths. Pass exactly one of `content` or `json`.
 5. Normalize structured findings before storing them.
 6. Finish realized runs with `workflow_plan_complete` or `workflow_audit_complete`; phase-only updates do not clear the root active pointer.
+
+Commitment reflection is platform-neutral state and same-model judgment. Use the propose/confirm tools for material plans before execution and after material scope divergence. A Codex Stop hook may enforce missing state, but skills and MCP remain complete without it; Claude Code and other clients must never be instructed to find or wait for that hook.
 
 Before creating artifacts in a git repository, ensure `.workflow/` is ignored unless explicitly versioned.
 

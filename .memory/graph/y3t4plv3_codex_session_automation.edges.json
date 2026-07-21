@@ -1,0 +1,55 @@
+{
+  "file_name": "y3t4plv3_codex_session_automation",
+  "edges": [
+    {
+      "from_id": "y3t4plv3",
+      "to_id": "uxyyc6dd",
+      "relation": "same_workflow",
+      "weight": 0.55,
+      "reason": "Core migration and orchestration context across agents, skills, hooks, and docs within the same project.",
+      "source": "auto",
+      "created_at": 1784043369967,
+      "updated_at": 1784043369967
+    },
+    {
+      "from_id": "y3t4plv3",
+      "to_id": "0eqwbcjr",
+      "relation": "same_workflow",
+      "weight": 0.5,
+      "reason": "MCP surface alignment and workflow/merge-request-review components within the same project scope.",
+      "source": "auto",
+      "created_at": 1784043369967,
+      "updated_at": 1784043369967
+    },
+    {
+      "from_id": "y3t4plv3",
+      "to_id": "cyeiuloe",
+      "relation": "same_workflow",
+      "weight": 0.5,
+      "reason": "Workflow hooks schema validation and continue field requirement within the project workflow context.",
+      "source": "auto",
+      "created_at": 1784043369967,
+      "updated_at": 1784043369967
+    },
+    {
+      "from_id": "y3t4plv3",
+      "to_id": "btpyl4q2",
+      "relation": "related_to",
+      "weight": 0.4,
+      "reason": "Tooling verification and pnpm setup guidance pertinent to the project environment.",
+      "source": "auto",
+      "created_at": 1784043369967,
+      "updated_at": 1784043369967
+    },
+    {
+      "from_id": "y3t4plv3",
+      "to_id": "e87wrzeg",
+      "relation": "related_to",
+      "weight": 0.4,
+      "reason": "MCP memory patterns and per-call context handling relevant to project memory management.",
+      "source": "auto",
+      "created_at": 1784043369967,
+      "updated_at": 1784043369967
+    }
+  ]
+}

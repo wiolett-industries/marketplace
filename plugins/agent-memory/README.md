@@ -9,8 +9,8 @@ embeddings are configured, and a local read-only dashboard.
 
 ## What It Ships
 
-- `using-agent-memory` skill for focused startup reads, compaction recovery,
-  and one durable write decision
+- `using-agent-memory` skill for proactive task-appropriate reads, compaction
+  recovery, and a mandatory durable-write completion latch
 - MCP server wiring through `.mcp.json`
 - Codex and Claude plugin manifests
 - marketplace icon assets
@@ -33,6 +33,7 @@ Canonical tools include:
 - `memory_setup`
 - `memory_list`
 - `memory_query`
+- `memory_recap`
 - `memory_recall`
 - `memory_save`
 - `memory_update`
@@ -47,10 +48,10 @@ Canonical tools include:
 Compatibility aliases remain available for older skills, but new instructions
 should prefer the canonical names.
 
-The startup skill performs no broad memory dump. It runs one focused query only
-when durable context can materially change the task, and it treats memory writes
-as state changes: read-only/no-edits work does not save or update memory unless
-remembering is explicitly requested.
+The startup skill chooses one task-appropriate read: `memory_query` for a focused
+question or `memory_recap` for broad recovery across several memories. It treats
+memory writes as state changes: read-only/no-edits work does not save or update
+memory unless remembering is explicitly requested.
 
 ## Model Access
 

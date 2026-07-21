@@ -47,8 +47,11 @@ const OPERATION_ALIASES: Record<string, string> = {
 
 export function applyOperation(state: Record<string, unknown>, operation: RunOperation): Record<string, unknown> {
   switch (operation.type) {
-    case 'set_phase':
-      return { ...state, phase: stringField(operation, 'phase') };
+    case 'set_phase': {
+      const phase = stringField(operation, 'phase');
+      assertNonTerminalPhase(phase);
+      return { ...state, phase };
+    }
     case 'set_complexity':
       return { ...state, complexity: stringField(operation, 'complexity') };
     case 'set_depth':
@@ -81,10 +84,19 @@ export function applyOperation(state: Record<string, unknown>, operation: RunOpe
       return { ...state, reviewers: upsertById(asArray(state.reviewers), recordField(operation, 'reviewer')) };
     case 'upsert_sanity_check':
       return { ...state, sanity_checks: upsertById(asArray(state.sanity_checks), recordField(operation, 'sanity_check')) };
-    case 'merge':
-      return { ...state, ...recordField(operation, 'patch') };
+    case 'merge': {
+      const patch = recordField(operation, 'patch');
+      if (typeof patch.phase === 'string') assertNonTerminalPhase(patch.phase);
+      return { ...state, ...patch };
+    }
     default:
       throw unsupportedOperationError(operation.type);
+  }
+}
+
+function assertNonTerminalPhase(phase: string): void {
+  if (phase === 'complete' || phase === 'completed') {
+    throw new Error(`Terminal phase "${phase}" is not allowed in workflow updates. Use workflow_plan_complete or workflow_audit_complete so the matching active pointer is cleared.`);
   }
 }
 

@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { createReviewRun, draftReviewNote, getReviewStatus, updateReviewRun, writeReviewArtifact } from '../dist/runs.js';
+import { completeReviewRun, createReviewRun, draftReviewNote, getReviewStatus, updateReviewRun, writeReviewArtifact } from '../dist/runs.js';
 import { normalizeFindings } from '../dist/findings.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
@@ -49,21 +49,48 @@ test('creates and updates a merge request review run', () => {
   assert.equal(state.discussions_loaded, true);
 });
 
+test('terminal review operations clear only the matching active review pointer', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'mr-review-completion-'));
+  createReviewRun({
+    workspace_root: workspace,
+    title: 'Old review',
+    slug: '01-01-26-old-review',
+    review_mode: 'normal',
+  });
+  createReviewRun({
+    workspace_root: workspace,
+    title: 'Current review',
+    slug: '01-01-26-current-review',
+    review_mode: 'normal',
+  });
+
+  const oldResult = completeReviewRun(workspace, 'mr-reviews/01-01-26-old-review');
+  assert.equal(oldResult.state.approved, true);
+  assert.equal(getReviewStatus(workspace).state.active_review, 'mr-reviews/01-01-26-current-review');
+
+  const currentResult = updateReviewRun(workspace, undefined, [{ type: 'mark_approved' }]);
+  assert.equal(currentResult.state.phase, 'approved');
+  assert.equal(getReviewStatus(workspace).state.active_review, null);
+});
+
 test('normalizes findings and drafts fixed-format notes', () => {
   const normalized = normalizeFindings([
-    { severity: 'low', problem: 'Minor' },
-    { severity: 'important', problem: 'Important' },
+    { severity: 'low', problem: 'Minor', evidence_basis: 'Current code path' },
+    { severity: 'important', problem: 'Important', evidence: 'Canonical contract' },
   ]);
   const note = draftReviewNote({
     severity: 'Important',
     problem: 'Bug',
     why_it_matters: 'Breaks review',
     expected_fix: 'Patch it',
+    evidence_basis: 'The changed implementation violates the current contract.',
   });
 
   assert.deepEqual(normalized.findings.map((finding) => finding.severity), ['Important', 'Minor']);
+  assert.deepEqual(normalized.findings.map((finding) => finding.evidence_basis), ['Canonical contract', 'Current code path']);
   assert.match(note.markdown, /Severity: Important/);
   assert.match(note.markdown, /Expected fix:/);
+  assert.match(note.markdown, /Evidence basis:\nThe changed implementation violates the current contract\./);
 });
 
 test('review skill keeps a lean trigger, public severity contract, and bounded loops', () => {
@@ -84,8 +111,26 @@ test('review skill keeps a lean trigger, public severity contract, and bounded l
   assert.match(skill, /`normal`: 0 agents by default; at most 1 total/);
   assert.match(skill, /`high-risk`.*at most 2 agents total/s);
   assert.match(skill, /do not restart every support agent/);
-  assert.match(skill, /follow `using-agent-memory` for its single durable-memory decision/);
+  assert.match(skill, /follow `using-agent-memory` for its memory completion latch/);
   assert.match(skill, /One clean pass at the current SHA is sufficient/);
+  assert.match(skill, /query once before findings/);
+  assert.match(skill, /identify canonical source, provenance class/);
+  assert.match(skill, /derived artifact alone/);
+  assert.match(skill, /Pass verified provenance and its current anchor/);
+  assert.match(protocol, /Evidence basis/);
+  assert.match(protocol, /upstream source and update boundary/);
+});
+
+test('Codex and Claude reviewers require canonical provenance evidence', () => {
+  for (const name of ['merge_request_primary_reviewer', 'merge_request_risk_reviewer']) {
+    const codex = readFileSync(path.join(repoRoot, `packages/merge-request-review/agents/${name}.toml`), 'utf8');
+    const claude = readFileSync(path.join(repoRoot, `plugins/merge-request-review/agents/${name}.md`), 'utf8');
+    for (const prompt of [codex, claude]) {
+      assert.match(prompt, /canonical source\/owning contract|canonical source, provenance class/);
+      assert.match(prompt, /derived artifact alone/);
+      assert.match(prompt, /Evidence basis/);
+    }
+  }
 });
 
 test('merge request review docs describe MCP tool and artifact contracts', () => {
@@ -99,6 +144,7 @@ test('merge request review docs describe MCP tool and artifact contracts', () =>
     'mr_review_status',
     'mr_review_create',
     'mr_review_update',
+    'mr_review_complete',
     'mr_review_artifact_write',
     'mr_review_findings_normalize',
     'mr_review_note_draft',

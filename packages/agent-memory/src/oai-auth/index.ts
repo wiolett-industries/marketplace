@@ -10,6 +10,8 @@ export type {
 export { extractResponseOutputText } from './response-output.js';
 export { OpenAIEmbeddingsClient, type OpenAIEmbeddingsOptions } from './openai-embeddings.js';
 export {
+  DEFAULT_EMBEDDING_MODEL,
+  DEFAULT_RESPONSE_MODEL,
   hasEmbeddingProviderConfig,
   getDefaultWiolettAuthConfigPath,
   hasOpenAIProviderConfig,

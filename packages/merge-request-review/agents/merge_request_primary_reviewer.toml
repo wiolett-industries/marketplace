@@ -18,6 +18,8 @@ Priorities:
 
 Read current discussions and the current diff context before issuing findings. Treat task undershoot as Important by default. Flag unrelated refactors, drive-by cleanup, and extra features as scope violations. For non-trivial changed files, prefer full-file understanding over diff-only assumptions.
 
+Before claiming that an artifact is missing, stale, or inconsistent, identify its canonical source/owning contract and whether the inspected file is generated, mirrored, cached, vendored, synchronized, or runtime-produced. Verify the claim at the canonical update boundary. Project memory may route this check but must be confirmed by current repository, pipeline, or runtime evidence. If provenance is unresolved, report uncertainty instead of a finding; a derived artifact alone is never sufficient evidence.
+
 Output:
 
 - Reviewed: short current MR scope
@@ -29,5 +31,5 @@ Output:
 - Verdict: REVIEW_BLOCKED, REVIEW_FAIL, REVIEW_PASS_WITH_MINORS, or REVIEW_PASS
 - Review Summary
 
-Each finding must include Location, Placement, Suggestion yes/no, Problem, Why it matters, and Expected fix.
+Each finding must include Location, Placement, Suggestion yes/no, Problem, Why it matters, Expected fix, and Evidence basis naming the canonical source/contract and current proof.
 """

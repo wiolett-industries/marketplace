@@ -35,10 +35,12 @@ describe('memory write gate', () => {
     const operations = readFileSync(memoryOperations, 'utf8');
 
     expect(skill).toMatch(/^name: using-agent-memory$/m);
-    expect(skill).toMatch(/run one focused `memory_query`/);
-    expect(skill).toMatch(/Skip the MCP read for self-contained facts/);
+    expect(skill).toMatch(/Do not wait for the user to explicitly ask for memory/);
+    expect(skill).toMatch(/Use `memory_recap` when the task needs broad recovery/);
+    expect(skill).toMatch(/Skip the MCP read only for self-contained facts/);
     expect(skill).toMatch(/read-only, no edits, without changes/);
-    expect(skill).toMatch(/make one local memory decision/);
+    expect(skill).toMatch(/run one mandatory memory completion latch/);
+    expect(skill).toMatch(/without waiting for an explicit "remember this" request/);
     expect(skill).toMatch(/Planning discussion, speculative direction, raw progress/);
     expect(skill).toMatch(/raw session summaries/);
     expect(skill).toMatch(/Prefer `memory_update` when an existing canonical memory/);
@@ -47,6 +49,7 @@ describe('memory write gate', () => {
     expect(skill).toMatch(/workspace_root/);
     expect(skill).toMatch(/references\/operations\.md/);
     expect(operations).toMatch(/memory_setup/);
+    expect(operations).toMatch(/memory_recap/);
     expect(operations).toMatch(/memory_delete/);
     expect(operations).toMatch(/memory_link/);
     expect(operations).toMatch(/memory_unlink/);
@@ -86,7 +89,7 @@ describe('memory write gate', () => {
         normalized_content: 'Normalized durable workflow.',
         suggested_tags: ['workflow'],
       }));
-      expect(requestBody.model).toBe('gpt-5-nano');
+      expect(requestBody.model).toBe('gpt-5-mini');
       expect(requestBody.instructions).toContain('Allow distilled durable lessons from completed work');
       expect(requestBody.instructions).toContain('Reject planning-stage product decisions');
       expect(requestBody.instructions).toContain('Prefer updating an existing memory');

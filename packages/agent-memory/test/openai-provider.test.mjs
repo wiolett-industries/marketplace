@@ -37,12 +37,12 @@ test('extracts output text from response shapes', () => {
   }), 'hello\nworld');
 });
 
-test('OpenAI responses client defaults to gpt-5-nano', async () => {
+test('OpenAI responses client defaults to gpt-5-mini', async () => {
   const previousFetch = globalThis.fetch;
   globalThis.fetch = async (_url, init) => {
     assert.equal(init.headers.Authorization, 'Bearer sk-test');
     const body = JSON.parse(String(init.body));
-    assert.equal(body.model, 'gpt-5-nano');
+    assert.equal(body.model, 'gpt-5-mini');
     assert.equal(body.store, false);
     return new Response(JSON.stringify({ output_text: 'hi' }), { status: 200 });
   };
@@ -68,8 +68,9 @@ test('reads Wiolett OpenAI-compatible fallback config', async () => {
   await fs.writeFile(configPath, JSON.stringify({
     openAIKey: 'sk-test-config',
     endpoint: 'https://provider.test/v1',
-    model: 'ignored-config-model',
+    model: 'ignored-generic-config-model',
     defaultModel: 'ignored-default-model',
+    responseModel: 'gpt-configured',
     embeddingModel: 'embed-test',
     organization: 'org-test',
     project: 'proj-test',
@@ -79,18 +80,18 @@ test('reads Wiolett OpenAI-compatible fallback config', async () => {
   assert.equal(config?.source, 'wiolett-config');
   assert.equal(config?.apiKey, 'sk-test-config');
   assert.equal(config?.baseUrl, 'https://provider.test/v1');
-  assert.equal(config?.model, undefined);
+  assert.equal(config?.model, 'gpt-configured');
   assert.equal(config?.embeddingModel, 'embed-test');
   assert.equal(config?.headers?.['OpenAI-Organization'], 'org-test');
   assert.equal(config?.headers?.['OpenAI-Project'], 'proj-test');
 });
 
-test('allows only explicit text model overrides', async () => {
+test('explicit text model overrides responseModel config', async () => {
   await withoutAmbientAuth(async () => {
     const configPath = path.join(await fs.mkdtemp(path.join(os.tmpdir(), 'wiolett-auth-model-')), 'auth-config.json');
     await fs.writeFile(configPath, JSON.stringify({
       openAIKey: 'sk-test-config',
-      model: 'ignored-config-model',
+      responseModel: 'gpt-configured',
     }), 'utf8');
 
     const config = resolveOpenAIProviderConfig({ configPath, model: 'gpt-explicit' });

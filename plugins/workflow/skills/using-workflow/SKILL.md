@@ -26,6 +26,8 @@ A skill trigger never implies an artifact, subagent, plan, or verification step 
 4. Select one primary path and one assurance profile.
 5. Load only the module needed for the current phase.
 
+Read this router once per task. Re-read only after context recovery/reset or an installed-skill version change; a new user turn is not a new task.
+
 ## Action Boundary
 
 - Answer, explain, diagnose, review, or discussion requests authorize inspection and reporting, not code, `.workflow/`, memory, or external writes.
@@ -47,7 +49,7 @@ Assurance is about consequence, not implementation difficulty.
 
 The budget is a ceiling, never a quota. Parent Max/Ultra does not raise it. Multiple skills, files, checklist items, or workflow phases do not create independent launch budgets.
 
-Launch a subagent only for concrete parallel speedup, noisy-context isolation, or independent high-risk judgment. Authorization is permission, not activation. Prefer local execution for tightly coupled, short, critical-path work. Reuse an existing agent for focused follow-up instead of launching another phase-specific agent.
+Launch only for concrete parallel speedup, noisy-context isolation, or independent high-risk judgment. Authorization is permission, not activation or an explicit request. Discussion, diagnosis, existing-code review, localized changes, and critical-path fixes default to local work. Keep bounded questions local. Reuse an agent for focused follow-up instead of launching another phase-specific agent.
 
 Skills and plans route by semantic `work_class` and `agent_role`. Exact model and reasoning settings live in canonical agent TOMLs. If a named role is unavailable, continue locally unless independent review was explicitly required; do not silently upgrade models or add agents.
 
@@ -61,12 +63,15 @@ Do not rerun the same check while the diff and relevant environment are unchange
 
 Stop when all scoped acceptance criteria pass, required verification is green, and no material blocker remains. `LOW`, cosmetic, speculative, or out-of-scope polish does not extend the task unless requested.
 
+Before final output, close every realized active run: call `workflow_plan_complete` for an active completed plan or `workflow_audit_complete` for an active completed audit. A phase update is not completion and does not clear the root active pointer. Leave a run active only when it is genuinely blocked or intentionally awaiting more work, and report that state explicitly.
+
 ## Shared Engineering Constraints
 
 - Never disable, weaken, suppress, or bypass lint/test rules; treat lint warnings as work.
 - Avoid unrelated refactors, placeholders, unwired artifacts, and silent scope shrink.
+- Prefer the smallest behavior-complete diff; future flexibility, architectural neatness, and adjacent cleanup are not requirements unless requested.
 - Keep touched code files focused and below 500 lines unless an explicit approved exception applies.
 - Do not claim fixed, complete, or ready without fresh relevant evidence.
 - Before drafting a PR/MR, inspect local templates or recent examples when available.
 
-Use `workflow-mcp` only when `.workflow/` state or artifacts are actually needed. Use `using-agent-memory` for the single final durable-memory decision; other workflow modules must not duplicate its policy.
+Use `workflow-mcp` only when `.workflow/` state or artifacts are actually needed. Use `using-agent-memory` for the final memory completion latch; other workflow modules must not duplicate its policy.

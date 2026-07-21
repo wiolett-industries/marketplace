@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { normalizeFindings } from './findings.js';
+import { confirmPlanCommitment, proposePlanCommitment } from './commitments.js';
 import {
   completeAuditRun,
   completePlanRun,
@@ -16,6 +17,7 @@ import {
 
 const workspaceRoot = z.string().min(1).optional();
 const operation = z.object({ type: z.string().min(1) }).catchall(z.unknown());
+const changeClass = z.enum(['L0', 'L1', 'L2', 'L3']);
 const stateOperationHint = [
   'Supported operations include set_phase, set_open_findings, upsert_task, complete_task, set_active_chunk,',
   'clear_active_chunk, upsert_chunk, set_chunk_status, complete_chunk, cancel_chunk, wait_chunk,',
@@ -80,6 +82,50 @@ export function registerWorkflowTools(server: McpServer): void {
       },
     },
     async ({ workspace_root, plan_run, operations }) => asTextResult(updatePlanRun(workspace_root, plan_run, operations))
+  );
+
+  server.registerTool(
+    'workflow_plan_commitment_propose',
+    {
+      title: 'Propose Plan Commitment',
+      description: 'Record a material plan or handoff candidate and return one bounded shrink-first same-model reflection prompt. This portable tool never launches an agent or requires a lifecycle hook.',
+      inputSchema: {
+        workspace_root: workspaceRoot,
+        plan_run: z.string().min(1).optional(),
+        kind: z.enum(['plan', 'architecture', 'implementation_handoff']),
+        original_request: z.string().min(1),
+        candidate_summary: z.string().min(1),
+        expected_change_class: changeClass,
+        candidate_change_class: changeClass,
+        expected_surfaces: z.array(z.string()).optional(),
+        candidate_surfaces: z.array(z.string()).optional(),
+        must_preserve: z.array(z.string()).optional(),
+        non_goals: z.array(z.string()).optional(),
+        new_abstractions: z.array(z.string()).optional(),
+        new_contracts: z.array(z.string()).optional(),
+        simpler_alternative: z.string().optional(),
+      },
+    },
+    async (input) => asTextResult(proposePlanCommitment(input))
+  );
+
+  server.registerTool(
+    'workflow_plan_commitment_confirm',
+    {
+      title: 'Confirm Plan Commitment',
+      description: 'Record the result of the bounded same-model reflection. KEEP preserves the candidate, SHRINK narrows it, ASK pauses for one material user decision, and REPLAN requires another proposal.',
+      inputSchema: {
+        workspace_root: workspaceRoot,
+        plan_run: z.string().min(1).optional(),
+        decision: z.enum(['KEEP', 'SHRINK', 'ASK', 'REPLAN']),
+        rationale: z.string().min(1),
+        revised_summary: z.string().optional(),
+        removed_scope: z.array(z.string()).optional(),
+        justifications: z.array(z.string()).optional(),
+        user_question: z.string().optional(),
+      },
+    },
+    async (input) => asTextResult(confirmPlanCommitment(input))
   );
 
   server.registerTool(

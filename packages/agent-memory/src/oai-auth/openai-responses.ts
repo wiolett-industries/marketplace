@@ -1,6 +1,6 @@
 import type { ModelClient, ModelResponse, ModelResponseRequest } from './types.js';
 import { extractResponseOutputText } from './response-output.js';
-import { resolveOpenAIProviderConfig, type OpenAIProviderConfigOptions } from './openai-provider-config.js';
+import { DEFAULT_RESPONSE_MODEL, resolveOpenAIProviderConfig, type OpenAIProviderConfigOptions } from './openai-provider-config.js';
 import { sanitizeErrorText } from './utils.js';
 
 export type OpenAIResponsesOptions = OpenAIProviderConfigOptions;
@@ -16,7 +16,7 @@ export class OpenAIResponsesClient implements ModelClient {
     const config = resolveOpenAIProviderConfig(options);
     this.apiKey = config?.apiKey;
     this.baseUrl = options.baseUrl ?? config?.baseUrl ?? 'https://api.openai.com/v1';
-    this.model = options.model ?? config?.model ?? 'gpt-5-nano';
+    this.model = options.model ?? options.responseModel ?? config?.model ?? DEFAULT_RESPONSE_MODEL;
     this.userAgent = options.userAgent ?? '@wiolett/agent-memory';
     this.headers = config?.headers ?? {};
   }

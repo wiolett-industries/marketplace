@@ -3,6 +3,16 @@ import { syncWorkflowAgents, type SyncWorkflowAgentsResult } from './sync-agents
 import { registerWorkflowTools as registerWorkflowMcpTools } from './tools.js';
 
 export { syncWorkflowAgents, type SyncWorkflowAgentsResult };
+export {
+  confirmPlanCommitment,
+  initialCommitmentReflection,
+  proposePlanCommitment,
+  type ChangeClass,
+  type CommitmentConfirmationInput,
+  type CommitmentDecision,
+  type CommitmentKind,
+  type CommitmentProposalInput,
+} from './commitments.js';
 
 export function registerWorkflowTools(server: McpServer): void {
   registerWorkflowMcpTools(server);

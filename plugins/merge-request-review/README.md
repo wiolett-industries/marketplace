@@ -20,6 +20,7 @@ The workflow is intentionally strict:
 - existing MR discussions are always read before code review starts
 - current GitLab CI is primary evidence; local checks fill concrete verification gaps
 - full files are inspected when the diff lacks control-flow, state, contract, or integration context
+- missing/stale artifact findings require canonical source, provenance, update-boundary, and current-proof evidence; derived artifacts alone are insufficient
 - blocking findings are posted as inline threads by default
 - blocked, findings, and clean states are explicit; approved is the post-clean approval state
 - final clean note and approval happen together
@@ -41,6 +42,7 @@ The bundled MCP owns review protocol state only. It does not read GitLab, post n
 - `mr_review_status`
 - `mr_review_create`
 - `mr_review_update`
+- `mr_review_complete`
 - `mr_review_artifact_write`
 - `mr_review_findings_normalize`
 - `mr_review_note_draft`

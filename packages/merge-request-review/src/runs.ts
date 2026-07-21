@@ -117,6 +117,31 @@ export function updateReviewRun(workspaceRootInput: string | undefined, run: str
   state.updated_at = new Date().toISOString();
   writeJsonFile(statePath, state);
   syncManifest(runDir, state);
+  if (operations.some((operation) => operation.type === 'mark_approved')) {
+    clearActiveReview(workspaceRoot, runDir);
+  }
+
+  return {
+    workspace_root: workspaceRoot,
+    run: relativeToReviewRoot(workspaceRoot, runDir),
+    state,
+  };
+}
+
+export function completeReviewRun(workspaceRootInput: string | undefined, run?: string): Record<string, unknown> {
+  const workspaceRoot = resolveWorkspaceRoot(workspaceRootInput);
+  const runDir = resolveRunDir(workspaceRoot, run);
+  const statePath = path.join(runDir, 'state.json');
+  const state = {
+    ...readObject(statePath),
+    approved: true,
+    phase: 'approved',
+    review_state: 'approved',
+    updated_at: new Date().toISOString(),
+  };
+  writeJsonFile(statePath, state);
+  syncManifest(runDir, state);
+  clearActiveReview(workspaceRoot, runDir);
 
   return {
     workspace_root: workspaceRoot,
@@ -149,6 +174,7 @@ export function draftReviewNote(input: {
   problem: string;
   why_it_matters: string;
   expected_fix: string;
+  evidence_basis: string;
 }): { markdown: string } {
   return {
     markdown: [
@@ -162,6 +188,9 @@ export function draftReviewNote(input: {
       '',
       'Expected fix:',
       input.expected_fix,
+      '',
+      'Evidence basis:',
+      input.evidence_basis,
       '',
     ].join('\n'),
   };
@@ -242,6 +271,14 @@ function writeRootState(workspaceRoot: string, patch: Record<string, unknown>): 
     ...patch,
     updated_at: new Date().toISOString(),
   });
+}
+
+function clearActiveReview(workspaceRoot: string, runDir: string): void {
+  const run = relativeToReviewRoot(workspaceRoot, runDir);
+  const rootState = readRootState(workspaceRoot);
+  if (rootState.active_review === run) {
+    writeRootState(workspaceRoot, { active_review: null });
+  }
 }
 
 function readRootState(workspaceRoot: string): Record<string, unknown> {

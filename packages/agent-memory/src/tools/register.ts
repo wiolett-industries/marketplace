@@ -8,6 +8,7 @@ import { handleInspect } from './inspect.js';
 import { handleLink, handleUnlink } from './graph.js';
 import { handleList } from './list.js';
 import { handleQuery } from './query.js';
+import { handleRecap } from './recap.js';
 import { handleRecall } from './recall.js';
 import { handleGet } from './get.js';
 import { handleReadLite } from './read-lite.js';
@@ -59,7 +60,7 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_save',
     {
       title: 'Save Memory',
-      description: 'Save durable project or global knowledge after sanity review, especially reusable preferences, workflows, gotchas, root causes, fix patterns, and verification sequences.',
+      description: 'Proactively save a new durable project or global lesson after completed non-trivial work when reusable preferences, workflows, gotchas, root causes, fix patterns, or verification sequences emerged. Do not save raw progress or transcripts.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
@@ -79,7 +80,7 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_update',
     {
       title: 'Update Memory',
-      description: 'Update a canonical memory without changing its ID or filename; manual graph links are preserved and automatic links are refreshed.',
+      description: 'Proactively update an existing canonical memory after completed non-trivial work when the durable lesson changed or was refined; its ID and manual graph links are preserved.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
@@ -123,7 +124,7 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_query',
     {
       title: 'Query Memory',
-      description: 'Search memory and return a compiled answer with source references.',
+      description: 'Answer a focused question by searching and synthesizing multiple relevant memories with source references. Use proactively when prior repository or user context could affect non-trivial work.',
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
@@ -140,6 +141,28 @@ function registerCanonicalTools(server: McpServer): void {
         return asTextResult(emptyQueryResult());
       }
       return asTextResult(await handleQuery({ scope: resolvedScope, query, limit, detail, expand, expand_hops }));
+    })
+  );
+
+  server.registerTool(
+    'memory_recap',
+    {
+      title: 'Recap Memory',
+      description: 'Synthesize a broad, multi-memory recap for non-trivial work, compaction recovery, or context handoff. Use topic to focus the recap; omit it to recover the most important current memories.',
+      inputSchema: z.object({
+        scope: scopeSchema.describe('Defaults to project.'),
+        workspace_root: workspaceRootSchema,
+        topic: z.string().min(1).optional(),
+        limit: z.number().int().min(1).max(50).optional(),
+        detail: detailSchema,
+      }),
+    },
+    async ({ scope, workspace_root, topic, limit, detail }) => withProjectRootAsync(workspace_root, async () => {
+      const resolvedScope = scope ?? 'project';
+      if (!ensureMemoryReadable(resolvedScope)) {
+        return asTextResult(emptyQueryResult());
+      }
+      return asTextResult(await handleRecap({ scope: resolvedScope, topic, limit, detail }));
     })
   );
 

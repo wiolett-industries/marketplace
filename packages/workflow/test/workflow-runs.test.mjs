@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { normalizeFindings } from '../dist/findings.js';
+import { confirmPlanCommitment, proposePlanCommitment } from '../dist/commitments.js';
 import {
   completeAuditRun,
   completePlanRun,
@@ -39,8 +40,106 @@ test('creates a plan run and marks it active', () => {
   assert.equal(manifest.paths.ui_contract, 'plans/01-01-26-workflow-tools/ui-contract.md');
   assert.equal(state.tasks[0].id, 'T1');
   assert.equal(state.active_chunk, null);
+  assert.equal(state.commitment_reflection.required, true);
+  assert.equal(state.commitment_reflection.status, 'pending');
   assert.equal(readFileSync(path.join(workspace, '.workflow', 'plans', '01-01-26-workflow-tools', 'plan.md'), 'utf8'), '# Plan\n');
   assert.match(readFileSync(path.join(workspace, '.workflow', 'plans', '01-01-26-workflow-tools', 'ui-contract.md'), 'utf8'), /No UI contract applies/);
+});
+
+test('simple plans do not require commitment reflection', () => {
+  const workspace = makeWorkspace();
+  createPlanRun({
+    workspace_root: workspace,
+    title: 'Small direct plan',
+    slug: '01-01-26-small-direct-plan',
+    complexity: 'simple',
+  });
+
+  const state = readJson(path.join(workspace, '.workflow', 'plans', '01-01-26-small-direct-plan', 'state.json'));
+  assert.equal(state.commitment_reflection.required, false);
+  assert.equal(state.commitment_reflection.status, 'not_required');
+  assert.doesNotThrow(() => updatePlanRun(workspace, undefined, [{ type: 'set_phase', phase: 'executing' }]));
+});
+
+test('material plans require a bounded commitment reflection before execution', () => {
+  const workspace = makeWorkspace();
+  createPlanRun({
+    workspace_root: workspace,
+    title: 'Material plan',
+    slug: '01-01-26-material-plan',
+    complexity: 'medium',
+  });
+
+  assert.throws(
+    () => updatePlanRun(workspace, undefined, [{ type: 'set_phase', phase: 'executing' }]),
+    /commitment reflection is pending/,
+  );
+
+  const proposal = proposePlanCommitment({
+    workspace_root: workspace,
+    kind: 'plan',
+    original_request: 'Change one existing setting.',
+    candidate_summary: 'Add a generic settings platform and migrate the existing setting.',
+    expected_change_class: 'L1',
+    candidate_change_class: 'L3',
+    expected_surfaces: ['src/settings'],
+    candidate_surfaces: ['src/settings', 'src/platform', 'src'],
+    new_abstractions: ['SettingsPlatform'],
+    new_contracts: ['settings-v2 API'],
+  });
+
+  assert.match(proposal.reflection_prompt, /remove unsupported scope/);
+  assert.deepEqual(
+    proposal.commitment_reflection.proposal.findings.map((finding) => finding.code),
+    ['CHANGE_CLASS_ESCALATION', 'OUTSIDE_EXPECTED_SURFACE', 'NEW_ABSTRACTION', 'NEW_CONTRACT', 'SIMPLER_ALTERNATIVE_MISSING'],
+  );
+  assert.deepEqual(
+    proposal.commitment_reflection.proposal.findings.find((finding) => finding.code === 'OUTSIDE_EXPECTED_SURFACE').detail,
+    ['src/platform', 'src'],
+  );
+  assert.throws(
+    () => confirmPlanCommitment({ workspace_root: workspace, decision: 'KEEP', rationale: 'Looks fine.' }),
+    /explicit justifications/,
+  );
+
+  const confirmation = confirmPlanCommitment({
+    workspace_root: workspace,
+    decision: 'SHRINK',
+    rationale: 'The platform work is not required for the requested behavior.',
+    revised_summary: 'Change the existing setting in src/settings only.',
+    removed_scope: ['src/platform', 'settings-v2 API'],
+  });
+
+  assert.equal(confirmation.commitment_reflection.status, 'reviewed');
+  assert.equal(confirmation.commitment_reflection.review.decision, 'SHRINK');
+  assert.doesNotThrow(() => updatePlanRun(workspace, undefined, [{ type: 'set_phase', phase: 'executing' }]));
+});
+
+test('ASK and REPLAN commitment decisions cannot enter execution', () => {
+  for (const decision of ['ASK', 'REPLAN']) {
+    const workspace = makeWorkspace();
+    createPlanRun({ workspace_root: workspace, title: `${decision} plan`, complexity: 'medium' });
+    proposePlanCommitment({
+      workspace_root: workspace,
+      kind: 'architecture',
+      original_request: 'Discuss the architecture.',
+      candidate_summary: 'Replace the storage layer.',
+      expected_change_class: 'L1',
+      candidate_change_class: 'L3',
+    });
+    confirmPlanCommitment({
+      workspace_root: workspace,
+      decision,
+      rationale: 'A material decision remains.',
+      revised_summary: decision === 'REPLAN' ? 'Keep the existing storage layer.' : undefined,
+      user_question: decision === 'ASK' ? 'Should the storage layer change?' : undefined,
+    });
+
+    assert.throws(
+      () => updatePlanRun(workspace, undefined, [{ type: 'set_phase', phase: 'executing' }]),
+      /commitment reflection is (awaiting_user|replan_required)/,
+    );
+  }
 });
 
 test('updates plan state with structured operations', () => {
@@ -67,6 +166,26 @@ test('updates plan state with structured operations', () => {
   assert.equal(manifest.complexity, 'medium');
   assert.equal(result.state.tasks[0].status, 'completed');
   assert.equal(result.state.open_findings[0].severity, 'LOW');
+});
+
+test('rejects terminal phase updates that would strand the active workflow pointer', () => {
+  const workspace = makeWorkspace();
+  createPlanRun({
+    workspace_root: workspace,
+    title: 'Terminal phase guard',
+    slug: '01-01-26-terminal-phase-guard',
+    complexity: 'simple',
+  });
+
+  assert.throws(
+    () => updatePlanRun(workspace, undefined, [{ type: 'set_phase', phase: 'complete' }]),
+    /Use workflow_plan_complete or workflow_audit_complete/,
+  );
+  assert.throws(
+    () => updatePlanRun(workspace, undefined, [{ type: 'merge', patch: { phase: 'completed' } }]),
+    /Use workflow_plan_complete or workflow_audit_complete/,
+  );
+  assert.equal(getWorkflowStatus(workspace).state.active_plan, 'plans/01-01-26-terminal-phase-guard');
 });
 
 test('updates active plan chunk lifecycle with structured operations', () => {

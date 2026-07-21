@@ -22,6 +22,7 @@ import { writeGraphFile } from '../dist/files.js';
 import { handleInspect } from '../dist/tools/inspect.js';
 import { handleRecall } from '../dist/tools/recall.js';
 import { handleQuery } from '../dist/tools/query.js';
+import { handleRecap } from '../dist/tools/recap.js';
 import { rebuildFromFiles } from '../dist/rebuild.js';
 import { spreadingActivation } from '../dist/retrieval/activation.js';
 import { handlePath } from '../dist/tools/path.js';
@@ -460,6 +461,7 @@ async function runMcp() {
     name: 'memory_query',
     arguments: { query: 'Canonical smoke memory', limit: 3 },
   });
+  const recap = await client.callTool({ name: 'memory_recap', arguments: { limit: 3 } });
   const inspect = await client.callTool({ name: 'memory_inspect', arguments: { view: 'all' } });
   await transport.close();
 
@@ -477,6 +479,7 @@ async function runMcp() {
     canonicalList,
     canonicalIndexList,
     query,
+    recap,
     inspect,
   };
 }
@@ -606,6 +609,7 @@ async function runMcpReadUninitialized() {
   const lite = await client.callTool({ name: 'memory_read_lite', arguments: {} });
   const list = await client.callTool({ name: 'memory_list', arguments: {} });
   const query = await client.callTool({ name: 'memory_query', arguments: { query: 'anything' } });
+  const recap = await client.callTool({ name: 'memory_recap', arguments: {} });
   const get = await client.callTool({ name: 'memory_get', arguments: { id: 'missing' } });
   const inspect = await client.callTool({ name: 'memory_inspect', arguments: { view: 'all' } });
   await transport.close();
@@ -616,6 +620,7 @@ async function runMcpReadUninitialized() {
     lite,
     list,
     query,
+    recap,
     get,
     inspect,
   };
@@ -774,6 +779,52 @@ async function runQueryExpand() {
   });
 }
 
+async function runSynthesis() {
+  const projectDir = createTempProject('pm-synthesis');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+    const first = await handleWrite({
+      content: 'Production deploys require the release build before upload.',
+      tags: ['deploy', 'release'],
+      summary: 'Release build requirement',
+    });
+    const second = await handleWrite({
+      content: 'Deployment verification includes a health check after upload.',
+      tags: ['deploy', 'verification'],
+      summary: 'Deploy health check',
+    });
+    const recap = await handleRecap({ scope: 'project', detail: 'normal' });
+
+    const previousFetch = globalThis.fetch;
+    const previousKey = process.env.OPENAI_API_KEY;
+    let responseRequest;
+    process.env.OPENAI_API_KEY = 'sk-test-synthesis';
+    resetModelProvider();
+    globalThis.fetch = async (url, init) => {
+      if (String(url).endsWith('/embeddings')) {
+        return new Response(JSON.stringify({ data: [{ embedding: [] }] }), { status: 200 });
+      }
+      responseRequest = JSON.parse(String(init.body));
+      return new Response(JSON.stringify({ output_text: 'Run the release build, upload, then perform the health check.' }), { status: 200 });
+    };
+
+    try {
+      const query = await handleQuery({ query: 'deploy health release', scope: 'project', expand: false });
+      return {
+        ids: { first: first.id, second: second.id },
+        query,
+        recap,
+        responseRequest,
+      };
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
+      else process.env.OPENAI_API_KEY = previousKey;
+      resetModelProvider();
+    }
+  });
+}
+
 async function runSupersede() {
   const ts = 1700000000000;
   const pure = buildSupersedeOutcome(
@@ -923,6 +974,7 @@ const runners = {
   health: runHealth,
   prune: runPrune,
   'query-expand': runQueryExpand,
+  synthesis: runSynthesis,
   supersede: runSupersede,
   derank: runDerank,
   setup: runSetup,

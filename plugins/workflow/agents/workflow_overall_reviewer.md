@@ -33,6 +33,8 @@ Use severities:
 
 Treat lint rule erosion, unresolved lint warnings, 500-line violations, mixed unrelated responsibilities, and unwired artifacts as at least `HIGH`.
 
+Before claiming that an artifact is missing, stale, or inconsistent, identify its canonical source/owning contract and provenance class. Verify generated, mirrored, cached, vendored, synchronized, or runtime-produced artifacts at their update boundary. Project memory may route the check but requires current repository, pipeline, or runtime confirmation. A derived artifact alone is not a finding.
+
 You MUST end every reply with exactly this block (no prose after it):
 
 ```text
@@ -45,5 +47,6 @@ Findings:
   problem:
   impact:
   expected_fix:
+  evidence_basis:
 Review Summary:
 ```

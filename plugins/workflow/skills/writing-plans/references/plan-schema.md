@@ -43,6 +43,10 @@ Keep one level under `chunks/<chunk-slug>/` with its own plan, manifest, state, 
 
 Chunk scopes must be disjoint unless root decisions define a shared integration point. Cross-chunk scope changes require root decision and state updates.
 
+## Commitment Reflection
+
+Medium and larger plans start with `state.json.commitment_reflection.status: "pending"`. Use `workflow_plan_commitment_propose` and `workflow_plan_commitment_confirm`; do not edit this field manually. `reviewed` permits execution, `awaiting_user` pauses for the recorded question, and `replan_required` requires a narrower proposal. Simple and legacy plans may be `not_required` or omit the field.
+
 ## Handoff
 
 Use `workflow_handoff_write` with `kind: "plan"`, `from_module: "writing-plans"`, `to_module: "executing-plans"`, a concise summary, relevant artifacts, locked decisions, open questions, risks, and next actions.

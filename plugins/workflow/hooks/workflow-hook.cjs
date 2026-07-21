@@ -115,11 +115,13 @@ function activeWorkflowSummary(root) {
     const planPath = path.join(workflowRoot, globalState.active_plan);
     lines.push(`Active workflow plan: .workflow/${globalState.active_plan}`);
     lines.push(`Read: ${path.relative(root, path.join(planPath, "manifest.json"))}, ${path.relative(root, path.join(planPath, "state.json"))}, ${path.relative(root, path.join(planPath, "plan.md"))}.`);
+    lines.push("Before final output for completed work, call `workflow_plan_complete`; a phase update does not clear `active_plan`.");
   }
 
   if (globalState?.active_audit) {
     lines.push(`Active workflow audit: .workflow/${globalState.active_audit}`);
     lines.push("Read audit manifest/state plus prompts, reviews, sanity, and master artifacts.");
+    lines.push("Before final output for a completed audit, call `workflow_audit_complete`; a phase update does not clear `active_audit`.");
   }
 
   return lines;
@@ -135,7 +137,7 @@ function authSummary() {
 
 function projectMemorySummary(root) {
   if (fs.existsSync(path.join(root, ".memory"))) {
-    return "Project Agent Memory `.memory/` exists; use one focused project `memory_query` when prior repo knowledge can change the task.";
+    return "Project Agent Memory `.memory/` exists; proactively use `memory_query` for a focused question or `memory_recap` for broad recovery when durable repo context can affect non-trivial work.";
   }
   return "No project `.memory/`: reads no-op; writes may init only for durable saves.";
 }
@@ -146,23 +148,29 @@ function agentMemoryContext(root) {
   }
 
   return [
-    "Agent Memory MCP installed: read `using-agent-memory`; use one focused read only when durable context can change the task.",
+    "Agent Memory MCP installed: read `using-agent-memory`; choose one task-appropriate `memory_query` or `memory_recap` without waiting for an explicit memory request when durable context can change non-trivial work.",
     "Agent Memory writes are state changes; read-only/no-edits work does not write memory unless remembering is explicitly requested.",
     authSummary(),
     projectMemorySummary(root),
-    "Completed non-trivial work makes one memory decision; save only a real durable lesson and never raw progress or secrets.",
+    "Before final output for completed non-trivial work, run the memory completion latch: save or update a real reusable lesson when one emerged; never save raw progress, transcripts, or secrets.",
   ];
 }
 
-function mergeRequestReviewContext() {
+function mergeRequestReviewContext(root) {
   if (!hasCompanionPlugin("merge-request-review")) {
     return [];
   }
 
-  return [
+  const lines = [
     "Merge Request Review installed: use `review-merge-request` only for an actual ready GitLab MR; do not also use `finalizing-plan` for that review.",
     "External GitLab MCP owns GitLab reads/writes; MR review MCP owns only `.workflow/mr-reviews/` artifacts.",
   ];
+  const reviewState = readJson(path.join(root, ".workflow", "mr-reviews", "state.json"));
+  if (reviewState?.active_review) {
+    lines.push(`Active merge request review: .workflow/${reviewState.active_review}`);
+    lines.push("After the clean note and external GitLab approval succeed, call `mr_review_complete`; changing phase alone does not clear `active_review`.");
+  }
+  return lines;
 }
 
 function sessionContext(input) {
@@ -177,7 +185,7 @@ function sessionContext(input) {
     "Use `workflow-mcp` only for authorized `.workflow/` operations; manual state/artifact writes are fallback only.",
     ...activeWorkflowSummary(root),
     ...agentMemoryContext(root),
-    ...mergeRequestReviewContext(),
+    ...mergeRequestReviewContext(root),
     "Read-only/no-edits work does not write code, `.workflow/`, memory, or external state unless the same request explicitly authorizes it.",
     "Keep `.workflow/` ignored unless explicitly versioned.",
   ];
@@ -185,6 +193,44 @@ function sessionContext(input) {
 }
 
 function postCompactContext() {
+  ok();
+}
+
+function stopCommitmentReflection(input) {
+  if (input.stop_hook_active) {
+    ok();
+    return;
+  }
+
+  const root = repoRoot(input.cwd || process.cwd());
+  const globalState = readJson(path.join(root, ".workflow", "state.json"));
+  if (!globalState?.active_plan) {
+    ok();
+    return;
+  }
+
+  const planState = readJson(path.join(root, ".workflow", globalState.active_plan, "state.json"));
+  const reflection = planState?.commitment_reflection;
+  if (!reflection || reflection.required !== true) {
+    ok();
+    return;
+  }
+
+  if (reflection.status === "pending") {
+    const hasProposal = Boolean(reflection.proposal);
+    block(
+      hasProposal
+        ? "Before presenting or executing this material plan, perform the bounded shrink-first reflection returned by `workflow_plan_commitment_propose`, then call `workflow_plan_commitment_confirm`. Work locally from the existing context without another repository discovery pass."
+        : "This material plan still needs its bounded commitment reflection. Call `workflow_plan_commitment_propose`, review the candidate by trying to remove unsupported scope, then call `workflow_plan_commitment_confirm`. Work locally from the existing context without another repository discovery pass."
+    );
+    return;
+  }
+
+  if (reflection.status === "replan_required") {
+    block("Replace the rejected candidate with a narrower plan, then run one new propose/confirm commitment reflection. Keep the pass local and omit architecture polish.");
+    return;
+  }
+
   ok();
 }
 
@@ -360,6 +406,9 @@ function main() {
         } else {
           ok();
         }
+        break;
+      case "Stop":
+        stopCommitmentReflection(input);
         break;
       default:
         ok();

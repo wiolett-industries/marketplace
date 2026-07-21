@@ -21,4 +21,8 @@ describe('query graph-expansion (A1)', () => {
     expect(aCandidate.via).toBeNull();
     expect(bCandidate.via).toEqual({ seedId: a, relation: 'related_to', weight: 0.9 });
   });
+
+  test('expanded memories participate in the deterministic synthesized answer', () => {
+    expect(result.expandAnswer).toContain(b);
+  });
 });

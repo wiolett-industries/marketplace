@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { assertPlanCommitmentReady, initialCommitmentReflection } from './commitments.js';
 import { normalizeFindings } from './findings.js';
 import { resolveSafeRelative, writeJsonFile } from './fs-utils.js';
 import { makeSlug } from './naming.js';
@@ -96,6 +97,7 @@ export function createPlanRun(input: CreatePlanInput): Record<string, unknown> {
     open_findings: [],
     handoffs: [],
     latest_handoff: null,
+    commitment_reflection: initialCommitmentReflection(input.complexity, now),
     updated_at: now,
   };
 
@@ -192,6 +194,9 @@ export function writeWorkflowHandoff(input: HandoffWriteInput): Record<string, u
   const runDir = resolveRunDir(workspaceRoot, kind, input.run);
   const statePath = path.join(runDir, 'state.json');
   const state = readRunJson(statePath);
+  if (kind === 'plans' && input.to_module === 'executing-plans') {
+    assertPlanCommitmentReady(state);
+  }
   const now = new Date().toISOString();
   const id = normalizeHandoffId(input.id || `${input.from_module}-to-${input.to_module}`);
   const handoff = {
@@ -255,6 +260,10 @@ function updateRunState(workspaceRootInput: string | undefined, kind: 'plans' | 
     next = applyOperation(next, operation);
   }
 
+  if (kind === 'plans' && next.phase === 'executing' && current.phase !== 'executing') {
+    assertPlanCommitmentReady(next);
+  }
+
   next.updated_at = new Date().toISOString();
   writeJsonFile(statePath, next);
   syncManifestFromState(runDir, kind, next);
@@ -270,6 +279,9 @@ function completeRun(workspaceRootInput: string | undefined, kind: 'plans' | 'au
   const runDir = resolveRunDir(workspaceRoot, kind, run);
   const statePath = path.join(runDir, 'state.json');
   const current = readRunJson(statePath);
+  if (kind === 'plans') {
+    assertPlanCommitmentReady(current);
+  }
   const now = new Date().toISOString();
   const nextState = {
     ...current,

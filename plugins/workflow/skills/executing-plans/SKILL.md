@@ -24,6 +24,8 @@ Read [references/execution-state.md](references/execution-state.md) only when up
 - Update state at meaningful milestones: task start, material block, review handoff, and task completion.
 - Do not write workflow state after every tool call or tiny edit.
 - Execute tasks within their allowed scope and record any approved scope change before editing outside it.
+- Do not perform opportunistic refactors. A new API/schema/protocol/shared abstraction/layer or a higher change class requires an approved plan update and a renewed commitment reflection before implementation continues.
+- For a small user correction, inspect and edit only the touched surface plus directly affected tests; do not restart repository discovery.
 - For chunks, root owns dependency order and integration. Never create nested chunks.
 
 ## Semantic Work Routing
@@ -51,6 +53,8 @@ The agent budget is global across planning, execution, and finalization. Reuse a
 The worker runs scoped checks for its assigned change. The parent verifies output exists, performs minimal diff/scope sanity, and runs only integration or acceptance evidence not already proven by an unchanged worker result. Do not rerun the same command solely because ownership returned to the parent.
 
 After relevant edits, rerun the strongest affected check once. Merge delegated work only after the applicable gate passes.
+
+If implementation materially diverges from the reviewed commitment, call `workflow_plan_commitment_propose` with the new candidate and confirm a revised decision before handoff. Hook enforcement is optional and must not be awaited or treated as a dependency.
 
 ## Completion
 

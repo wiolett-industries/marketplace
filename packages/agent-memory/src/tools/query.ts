@@ -1,4 +1,4 @@
-import { compileRecall } from '../compile/recall.js';
+import { compileSynthesis } from '../compile/synthesis.js';
 import { getEntryById } from '../db.js';
 import type { MemoryScope } from '../scope.js';
 import { handleSearch } from './search.js';
@@ -32,14 +32,6 @@ export async function handleQuery(args: {
     return { answer: '', sources: [], candidates: [] };
   }
 
-  const primary = results[0];
-  const compiled = await compileRecall({
-    id: primary.id,
-    scope,
-    detail: args.detail ?? 'normal',
-    include_sources: true,
-  });
-
   const candidates: QueryCandidate[] = results.map((entry) => ({
     id: entry.id,
     file_name: entry.file_name,
@@ -48,9 +40,8 @@ export async function handleQuery(args: {
     via: null,
   }));
 
-  // A1: graph-expand the top search hits so memories connected by edges (but
-  // not matched by the query text) surface as additional candidates. Augments
-  // `candidates` only; `answer` stays focused on the primary hit.
+  // Graph-expand the top search hits so memories connected by edges (but not
+  // matched by the query text) can also participate in the synthesized answer.
   if (args.expand ?? true) {
     const resultIds = new Set(results.map((entry) => entry.id));
     const seeds = results.slice(0, EXPAND_SEED_COUNT).map((entry) => ({ id: entry.id, weight: entry.score }));
@@ -84,9 +75,21 @@ export async function handleQuery(args: {
     candidates.push(...expansion.slice(0, limit));
   }
 
+  const compiled = await compileSynthesis({
+    mode: 'query',
+    query: args.query,
+    detail: args.detail,
+    candidates: candidates
+      .map((candidate) => {
+        const entry = getEntryById(candidate.id, scope);
+        return entry ? { entry, score: candidate.score, via: candidate.via } : null;
+      })
+      .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null),
+  });
+
   return {
-    answer: compiled?.answer ?? primary.content,
-    sources: compiled?.sources ?? [{ id: primary.id, role: 'primary' }],
+    answer: compiled.answer,
+    sources: compiled.sources,
     candidates,
   };
 }

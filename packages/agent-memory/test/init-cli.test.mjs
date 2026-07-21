@@ -54,7 +54,7 @@ describe('agent-memory init', () => {
     );
   });
 
-  test('writes non-interactive API key config without text model fields', () => {
+  test('writes non-interactive API key config with a dedicated response model', () => {
     const configPath = tempConfigPath();
     const output = runCli(
       [
@@ -63,6 +63,8 @@ describe('agent-memory init', () => {
         'sk-test',
         '--endpoint',
         'https://provider.test/v1',
+        '--response-model',
+        'gpt-provider',
         '--embedding-model',
         'embed-test',
         '--force',
@@ -75,6 +77,7 @@ describe('agent-memory init', () => {
     expect(config).toEqual({
       openAIKey: 'sk-test',
       endpoint: 'https://provider.test/v1',
+      responseModel: 'gpt-provider',
       embeddingModel: 'embed-test',
     });
     expect(config).not.toHaveProperty('model');
@@ -84,6 +87,7 @@ describe('agent-memory init', () => {
     const checkOutput = runCli(['init', '--check'], { configPath });
     expect(checkOutput).toContain(`Agent Memory auth is configured via ${configPath}`);
     expect(checkOutput).toContain('Endpoint: https://provider.test/v1');
+    expect(checkOutput).toContain('Response model: gpt-provider');
     expect(checkOutput).toContain('Embedding model: embed-test');
   });
 });

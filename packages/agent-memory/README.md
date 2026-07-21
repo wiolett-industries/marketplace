@@ -24,7 +24,7 @@ This package backs the standalone Agent Memory plugin.
 - supersede/duplicate detection on save: contradicting memories get a `supersedes` edge and are downranked (never deleted)
 - pathfinding between two memories and read-only graph health metrics + auto-edge pruning
 - sanity-gated saves and stable in-place memory updates
-- compiled recall/query answers with source references
+- compiled recall/query answers and broad multi-memory recaps with source references
 - automatic project-memory setup on write/mutation use; reads stay no-op when project memory is absent
 
 ## Memory Scopes
@@ -88,6 +88,7 @@ Canonical tools:
 - `memory_update`
 - `memory_recall`
 - `memory_query`
+- `memory_recap`
 - `memory_list`
 - `memory_inspect`
 - `memory_delete`
@@ -125,7 +126,8 @@ Compatibility aliases remain available until the bundled skills move to the new 
 Normal reads should use:
 
 - `memory_recall` for one compiled memory context
-- `memory_query` for a compiled answer from search results
+- `memory_query` for a query-aware answer synthesized from several ranked search results
+- `memory_recap` for broad task startup or compaction recovery across several current memories
 - `memory_list({ index_only: true })` for lightweight index browsing; omit `index_only` to include deep memories as well
 
 `memory_inspect` is intentionally raw and meant for maintenance/debugging.
@@ -162,6 +164,7 @@ You can also provide `OPENAI_API_KEY` directly. The config may contain:
 {
   "openAIKey": "sk-proj-...",
   "endpoint": "https://api.openai.com/v1",
+  "responseModel": "gpt-5-mini",
   "embeddingModel": "text-embedding-3-small"
 }
 ```
@@ -185,6 +188,7 @@ Example canonical calls:
 ```text
 memory_save(content="Project releases use pnpm build before publish.", tags=["release", "pnpm"])
 memory_query(query="How do releases work?")
+memory_recap(topic="release and deployment context")
 memory_list(scope="project", workspace_root="/path/to/repo", index_only=true)
 memory_recall(memory_id="abc123xy")
 memory_inspect(view="all")

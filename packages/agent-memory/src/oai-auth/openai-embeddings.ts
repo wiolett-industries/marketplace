@@ -1,5 +1,5 @@
 import type { EmbeddingClient } from './types.js';
-import { resolveOpenAIProviderConfig, type OpenAIProviderConfigOptions } from './openai-provider-config.js';
+import { DEFAULT_EMBEDDING_MODEL, resolveOpenAIProviderConfig, type OpenAIProviderConfigOptions } from './openai-provider-config.js';
 import { isJsonObject, sanitizeErrorText } from './utils.js';
 
 export type OpenAIEmbeddingsOptions = OpenAIProviderConfigOptions;
@@ -15,7 +15,7 @@ export class OpenAIEmbeddingsClient implements EmbeddingClient {
     const config = resolveOpenAIProviderConfig(options);
     this.apiKey = config?.apiKey;
     this.baseUrl = options.baseUrl ?? config?.baseUrl ?? 'https://api.openai.com/v1';
-    this.model = options.embeddingModel ?? config?.embeddingModel ?? 'text-embedding-3-small';
+    this.model = options.embeddingModel ?? config?.embeddingModel ?? DEFAULT_EMBEDDING_MODEL;
     this.userAgent = options.userAgent ?? '@wiolett/agent-memory';
     this.headers = config?.headers ?? {};
   }

@@ -1,10 +1,9 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { getDefaultWiolettAuthConfigPath, resolveOpenAIProviderConfig } from '../oai-auth/index.js';
+import { DEFAULT_EMBEDDING_MODEL, DEFAULT_RESPONSE_MODEL, getDefaultWiolettAuthConfigPath, resolveOpenAIProviderConfig } from '../oai-auth/index.js';
 import { promptConfirm, promptPassword, promptText, renderInitFooter, renderInitHeader } from './prompts.js';
 
 const DEFAULT_ENDPOINT = 'https://api.openai.com/v1';
-const DEFAULT_EMBEDDING_MODEL = 'text-embedding-3-small';
 
 type InitArgs = {
   check: boolean;
@@ -12,6 +11,7 @@ type InitArgs = {
   printPath: boolean;
   key?: string;
   endpoint?: string;
+  responseModel?: string;
   embeddingModel?: string;
 };
 
@@ -51,6 +51,7 @@ function parseInitArgs(argv: string[], commandName: string): InitArgs {
     else if (arg === '--print-path') args.printPath = true;
     else if (arg === '--key') args.key = readValue(argv, index += 1, '--key');
     else if (arg === '--endpoint') args.endpoint = readValue(argv, index += 1, '--endpoint');
+    else if (arg === '--response-model') args.responseModel = readValue(argv, index += 1, '--response-model');
     else if (arg === '--embedding-model') args.embeddingModel = readValue(argv, index += 1, '--embedding-model');
     else if (arg === '--help' || arg === '-h') {
       printInitHelp(commandName);
@@ -84,6 +85,7 @@ function checkConfig(configPath: string, commandName: string): void {
   const source = provider.source === 'environment' ? 'OPENAI_API_KEY' : configPath;
   console.log(`Agent Memory auth is configured via ${source}.`);
   console.log(`Endpoint: ${provider.baseUrl}`);
+  console.log(`Response model: ${provider.model ?? DEFAULT_RESPONSE_MODEL}`);
   console.log(`Embedding model: ${provider.embeddingModel ?? DEFAULT_EMBEDDING_MODEL}`);
 }
 
@@ -99,10 +101,12 @@ async function initConfig(configPath: string, args: InitArgs): Promise<void> {
   try {
     const openAIKey = args.key ?? await promptRequiredPassword('OpenAI API key');
     const endpoint = args.endpoint ?? await promptText('Endpoint', DEFAULT_ENDPOINT);
+    const responseModel = args.responseModel ?? await promptText('Response model', DEFAULT_RESPONSE_MODEL);
     const embeddingModel = args.embeddingModel ?? await promptText('Embedding model', DEFAULT_EMBEDDING_MODEL);
     writeConfig(configPath, {
       openAIKey,
       endpoint,
+      responseModel,
       embeddingModel,
     });
     process.stdout.write(`\x1b[36m│\x1b[0m Saved ${configPath}\n`);
@@ -117,13 +121,14 @@ async function promptRequiredPassword(message: string): Promise<string> {
   return value;
 }
 
-function writeConfig(configPath: string, config: { openAIKey: string; endpoint: string; embeddingModel: string }): void {
+function writeConfig(configPath: string, config: { openAIKey: string; endpoint: string; responseModel: string; embeddingModel: string }): void {
   mkdirSync(path.dirname(configPath), { recursive: true, mode: 0o700 });
   const existing = readExistingConfig(configPath);
   const next = {
     ...existing,
     openAIKey: config.openAIKey,
     endpoint: config.endpoint || DEFAULT_ENDPOINT,
+    responseModel: config.responseModel || DEFAULT_RESPONSE_MODEL,
     embeddingModel: config.embeddingModel || DEFAULT_EMBEDDING_MODEL,
   };
   delete (next as { model?: unknown }).model;
@@ -153,6 +158,7 @@ function printInitHelp(commandName: string): void {
     '  --print-path               Print config path',
     '  --key <key>                Non-interactive API key setup',
     '  --endpoint <url>           API endpoint (default: https://api.openai.com/v1)',
+    `  --response-model <model>   Response model (default: ${DEFAULT_RESPONSE_MODEL})`,
     '  --embedding-model <model>  Embedding model (default: text-embedding-3-small)',
   ].join('\n'));
 }

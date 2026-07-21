@@ -14,11 +14,12 @@ Layers:
 - `deep`: canonical memory text, embeddings when configured, and graph links
 - `lite`: lightweight index or pointer layer used for discovery
 
-Canonical tools: `memory_setup`, `memory_list`, `memory_query`, `memory_recall`, `memory_save`, `memory_update`, `memory_inspect`, `memory_delete`, `memory_link`, `memory_unlink`, `memory_graph`, `memory_path`, and `memory_graph_prune`. Use compatibility aliases only when canonical tools are unavailable.
+Canonical tools: `memory_setup`, `memory_list`, `memory_query`, `memory_recap`, `memory_recall`, `memory_save`, `memory_update`, `memory_inspect`, `memory_delete`, `memory_link`, `memory_unlink`, `memory_graph`, `memory_path`, and `memory_graph_prune`. Use compatibility aliases only when canonical tools are unavailable.
 
 ## Focused Reads
 
 - `memory_query`: search and compile an answer; graph expansion may add related candidates.
+- `memory_recap`: synthesize several current memories for broad task startup, compaction recovery, or handoff; add `topic` when the recap should stay focused.
 - `memory_recall`: recover a known memory plus useful relations.
 - `memory_list({ index_only: true })`: inspect only the lite index/pointer layer.
 - Omit `index_only` when debugging whether deep memories exist but the index is empty or stale.

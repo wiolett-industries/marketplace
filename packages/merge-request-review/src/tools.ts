@@ -1,10 +1,23 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { normalizeFindings } from './findings.js';
-import { createReviewRun, draftReviewNote, getReviewStatus, updateReviewRun, writeReviewArtifact } from './runs.js';
+import { completeReviewRun, createReviewRun, draftReviewNote, getReviewStatus, updateReviewRun, writeReviewArtifact } from './runs.js';
 
 const workspaceRoot = z.string().min(1).optional();
-const operation = z.object({ type: z.string().min(1) }).catchall(z.unknown());
+const reviewOperationType = z.enum([
+  'set_phase',
+  'set_review_mode',
+  'set_ci_status',
+  'set_discussions',
+  'set_findings',
+  'set_blockers',
+  'set_review_round',
+  'set_clean_rounds',
+  'upsert_posted_note',
+  'mark_approved',
+  'merge',
+]);
+const operation = z.object({ type: reviewOperationType }).catchall(z.unknown());
 
 function asTextResult(payload: unknown) {
   return {
@@ -57,7 +70,7 @@ export function registerMergeRequestReviewTools(server: McpServer): void {
     'mr_review_update',
     {
       title: 'Update MR Review Run',
-      description: 'Apply structured state operations to the active or named merge request review run.',
+      description: 'Apply structured state operations to the active or named merge request review run. mark_approved is a compatibility terminal operation that also clears the matching active_review pointer; prefer mr_review_complete for the final latch.',
       inputSchema: {
         workspace_root: workspaceRoot,
         review_run: z.string().min(1).optional(),
@@ -65,6 +78,19 @@ export function registerMergeRequestReviewTools(server: McpServer): void {
       },
     },
     async ({ workspace_root, review_run, operations }) => asTextResult(updateReviewRun(workspace_root, review_run, operations))
+  );
+
+  server.registerTool(
+    'mr_review_complete',
+    {
+      title: 'Complete MR Review Run',
+      description: 'After the clean note is posted and the GitLab MR is approved, mark the active or named review approved and clear active_review when it points to that run. This is the mandatory terminal latch for a realized clean review.',
+      inputSchema: {
+        workspace_root: workspaceRoot,
+        review_run: z.string().min(1).optional(),
+      },
+    },
+    async ({ workspace_root, review_run }) => asTextResult(completeReviewRun(workspace_root, review_run))
   );
 
   server.registerTool(
@@ -106,6 +132,7 @@ export function registerMergeRequestReviewTools(server: McpServer): void {
         problem: z.string().min(1),
         why_it_matters: z.string().min(1),
         expected_fix: z.string().min(1),
+        evidence_basis: z.string().min(1),
       },
     },
     async (input) => asTextResult(draftReviewNote(input))

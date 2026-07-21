@@ -35,7 +35,7 @@ async function startMcpServer(): Promise<void> {
     },
     {
       instructions:
-        'Merge Request Review MCP syncs merge_request_* custom agents at startup and exposes deterministic .workflow/mr-reviews artifact/state tools. It does not talk to GitLab directly, post notes, approve MRs, or replace agent judgment.',
+        'Merge Request Review MCP syncs merge_request_* custom agents at startup and exposes deterministic .workflow/mr-reviews artifact/state tools. It does not talk to GitLab directly, post notes, approve MRs, or replace agent judgment. After the clean note is posted and external GitLab approval succeeds, call mr_review_complete before final output; changing phase alone does not close active_review.',
     }
   );
 

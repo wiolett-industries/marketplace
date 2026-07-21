@@ -24,6 +24,10 @@ Once the latch passes, stop. Do not add another review, rerun unchanged checks, 
 
 Read active state, the plan's acceptance criteria, current diff, latest relevant evidence, and only the artifacts needed by the changed paths. For chunked work, finalize local chunk evidence and run one root integration pass; do not create a reviewer matrix per chunk.
 
+Check scope before style: compare the final diff with the reviewed change class, expected surfaces, must-preserve constraints, and non-goals. If material scope or architecture changed, run one new commitment propose/confirm pass; otherwise do not repeat it. Do not turn finalization into architecture polish.
+
+Before accepting a finding that an artifact is missing, stale, or inconsistent, identify its canonical source/owning contract and whether it is generated, mirrored, cached, vendored, synchronized, or runtime-produced. Use one focused project-memory query when durable provenance can change the verdict, then confirm it against current repository, pipeline, or runtime evidence. Reject findings based only on a derived artifact or unresolved provenance.
+
 Use the verification budget from `using-workflow`:
 
 - run the strongest relevant targeted bundle once after the final change set;
@@ -47,6 +51,8 @@ Profiles:
 
 Visible UI does not add a reviewer automatically. Missing named agents fall back to local review unless independence was explicitly required.
 
+When provenance memory affects review, pass the verified source-of-truth fact and current anchor to the selected reviewer; do not make it infer ownership from derived files.
+
 ## Findings And Fix Loop
 
 Severities are `BLOCKING`, `HIGH`, `MEDIUM`, and `LOW`; `CLEAN` means no findings. Lint/test suppression, unresolved lint warnings, unapproved 500-line touched code, unrelated responsibility growth, unwired behavior, and silent scope shrink are at least `HIGH`.
@@ -63,7 +69,7 @@ Read [references/review-protocol.md](references/review-protocol.md) only when st
 
 For substantial production UI, invoke `ui-contract` review mode once. Bounded mockups use their one local visual pass and do not enter a production UI gate.
 
-Before final output, follow the single write decision in `using-agent-memory`; do not duplicate its trigger list here.
+Before final output, follow the memory completion latch in `using-agent-memory`; do not duplicate its trigger list here.
 
 Use `workflow_findings_normalize`, `workflow_plan_update`, `workflow_plan_artifact_write`, and `workflow_plan_complete` when available. Manual findings/state/artifact writes are fallback only. `workflow_plan_complete` is mandatory for a realized active plan because phase-only updates do not clear root active state.
 

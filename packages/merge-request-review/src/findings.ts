@@ -37,6 +37,7 @@ export function normalizeFindings(input: unknown): { findings: Array<Record<stri
       problem: String(record.problem || record.summary || ''),
       why_it_matters: String(record.why_it_matters || record.impact || ''),
       expected_fix: String(record.expected_fix || record.recommendation || ''),
+      evidence_basis: String(record.evidence_basis || record.evidence || ''),
       source: String(record.source || ''),
     };
   }).filter((finding) => {

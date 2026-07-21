@@ -28,7 +28,7 @@ async function main(): Promise<void> {
     },
     {
       instructions:
-        'Workflow MCP syncs workflow_* custom agents at startup, then exposes deterministic filesystem tools for workflow plan and audit runs under .workflow/. Use these tools whenever available for workflow status, run creation, state updates, run completion, artifact writes, findings normalization, and structured handoffs; manual .workflow writes are fallback only. It does not generate plans, run subagents, or replace agent judgment; tools only create, update, complete, normalize, and inspect durable workflow artifacts.',
+        'Workflow MCP syncs workflow_* custom agents at startup, then exposes deterministic filesystem tools for workflow plan and audit runs under .workflow/. Use these tools whenever available for workflow status, run creation, state updates, run completion, artifact writes, findings normalization, structured handoffs, and material-plan commitment reflection; manual .workflow writes are fallback only. Before executing a material plan, use workflow_plan_commitment_propose and workflow_plan_commitment_confirm for one same-model shrink-first review from existing context. Before final output for a realized active run, call workflow_plan_complete or workflow_audit_complete; setting phase to complete is rejected because it would not clear the root active pointer. Hook enforcement is optional and platform-specific. It does not generate plans, run subagents, or replace agent judgment.',
     }
   );
   registerWorkflowTools(server);

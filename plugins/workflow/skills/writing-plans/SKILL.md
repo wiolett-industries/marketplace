@@ -29,6 +29,7 @@ Read [references/plan-schema.md](references/plan-schema.md) when creating a run,
 The plan must lock decisions that execution cannot safely infer:
 
 - exact goal, success criteria, scope, and non-goals;
+- expected change class (`L0`-`L3`), expected surfaces, must-preserve constraints, and the smallest behavior-complete approach;
 - repository facts, constraints, and accepted decisions;
 - implementation approach and dependency order;
 - tasks with allowed scope, ownership, and expected files/artifacts;
@@ -40,6 +41,8 @@ For delegated work, record semantic `work_class`, `agent_role`, and `delegation_
 
 Never use `TBD`, `TODO`, vague placeholders, fake staging, silent scope shrink, or unwired "basic version" language unless explicitly accepted.
 
+New APIs, schemas, protocols, shared abstractions, or platform layers must either fit the approved envelope or name the simpler alternative and why it is insufficient now. Do not justify them with hypothetical future use alone.
+
 ## Chunk Only When Useful
 
 Chunk when a single pass would be unreliable: complex/very-complex work, more than seven meaningful tasks, independent subsystems, disjoint agent ownership, or difficult recovery. Keep one chunk level. Root owns shared decisions, dependencies, integration, and finalization; chunks own bounded disjoint scopes and local checks.
@@ -48,9 +51,12 @@ For medium and larger work, separate analysis/decision tasks from small implemen
 
 ## Plan Review
 
+- For every material plan, call `workflow_plan_commitment_propose`, perform the returned same-model shrink-first reflection from existing context, then call `workflow_plan_commitment_confirm` with `KEEP`, `SHRINK`, `ASK`, or `REPLAN` before execution. This is a local second look, not an agent review or another discovery pass.
 - `standard`: local self-check; no plan reviewer unless a specific ambiguity or integration risk would materially benefit from independence.
 - `assurance`: use at most one plan reviewer for the dominant unresolved risk. Add a second only for a distinct high-impact risk and within the existing task-wide budget.
 
 Fix only blocking plan gaps. `LOW` polish never delays execution readiness.
+
+Hooks may transparently enforce this checkpoint on a platform that supports it. Never invoke, wait for, search for, or depend on a hook. When the commitment MCP tools are unavailable, perform the same local envelope/class/simpler-alternative check in the plan and continue; hook absence is never a blocker. These semantics must remain valid in both Codex and Claude Code.
 
 Stop when another capable agent can execute the plan without new product or architecture decisions. Record readiness and hand off to `executing-plans`; do not start a separate review budget.

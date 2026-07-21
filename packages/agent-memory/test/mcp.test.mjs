@@ -11,6 +11,7 @@ describe('MCP launcher smoke test', () => {
         'memory_update',
         'memory_recall',
         'memory_query',
+        'memory_recap',
         'memory_list',
         'memory_inspect',
         'memory_graph',
@@ -66,6 +67,7 @@ describe('MCP launcher smoke test', () => {
     expect(result.globalLite.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.canonicalWrite.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.query.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
+    expect(result.recap.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.inspect.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.lite.content[0].text).toContain('Smoke memory');
     expect(result.canonicalList.content[0].text).toContain('Canonical smoke memory');
@@ -116,6 +118,11 @@ describe('MCP launcher smoke test', () => {
     expect(JSON.parse(result.lite.content[0].text)).toEqual([]);
     expect(JSON.parse(result.list.content[0].text)).toEqual([]);
     expect(JSON.parse(result.query.content[0].text)).toEqual({
+      answer: '',
+      sources: [],
+      candidates: [],
+    });
+    expect(JSON.parse(result.recap.content[0].text)).toEqual({
       answer: '',
       sources: [],
       candidates: [],

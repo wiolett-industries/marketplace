@@ -24,6 +24,10 @@ Draft/WIP MRs are not reviewable. Red MR/CI checks or reproducible failing requi
 
 Review the actual diff and trace affected execution paths. Read a full changed file when the diff lacks control-flow, state, contract, or integration context; do not read every generated, lock, snapshot, vendor, binary, or trivial file by ritual. Inspect those only when risky, suspicious, or unexpectedly large.
 
+When Agent Memory exists, query once before findings for the changed domain's source of truth and generation/release workflow. Confirm hits against current repository, pipeline, or runtime evidence; ignoring relevant memory is a review error.
+
+Before a missing/stale/inconsistent finding, identify canonical source, provenance class, update boundary, and MR ownership; verify there. Unknown provenance is uncertainty, not a finding. A derived artifact alone is not evidence. State current proof.
+
 Use current CI as primary verification when it clearly covers the change. Run local checks or a temporary worktree only to reproduce a finding, cover missing/ambiguous evidence, or validate behavior CI cannot prove. Do not duplicate clear green CI merely to accumulate evidence.
 
 Apply only relevant review gates and record irrelevant gates as not applicable. The required lenses are scope/acceptance, correctness, affected async/state behavior, changed contracts/boundaries, migration/deletion safety, security, performance, UI states when UI changed, and verification adequacy. A tiny diff is still high risk when it changes branching, caches, invalidation, identity, or contracts.
@@ -38,6 +42,8 @@ Authorization is permission, not activation. The parent owns discussions, scope,
 - `merge_request_verification_reviewer` is only for large or ambiguous CI/local evidence.
 
 Support agents consume the same mode budget. If one consumes a slot, the parent covers the ordinary corresponding step. Missing named agents fall back locally unless independent review was explicitly required.
+
+Pass verified provenance and its current anchor to support reviewers.
 
 ## Findings And Re-review
 
@@ -57,8 +63,8 @@ Finalize only when:
 - required verification is green or an explicit user exception is recorded;
 - high-risk independent coverage is current when required.
 
-One clean pass at the current SHA is sufficient. Post the final clean note and approve together, then mark the run `approved`. Do not repeat an unchanged clean review.
+One clean pass at the current SHA is sufficient. Post the final clean note and approve together. The final MCP mutation is `mr_review_complete`; it marks the run `approved` and clears the matching `active_review` pointer. Do not substitute `set_phase`, omit this terminal latch, or repeat an unchanged clean review.
 
-Before final chat output, follow `using-agent-memory` for its single durable-memory decision; do not duplicate its policy here.
+Before final chat output, follow `using-agent-memory` for its memory completion latch; do not duplicate its policy here.
 
 Read [references/protocol.md](references/protocol.md) before writing MCP review artifacts, storing findings, or posting GitLab notes.
