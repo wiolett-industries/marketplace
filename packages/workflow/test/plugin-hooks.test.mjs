@@ -48,6 +48,18 @@ function runHookWithEnv(input, env, cwd = repoRoot) {
   return result.stdout.trim() ? JSON.parse(result.stdout) : {};
 }
 
+function runKimiHook(input, cwd = repoRoot) {
+  return spawnSync(process.execPath, [hookScript], {
+    cwd,
+    input: JSON.stringify(input),
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      KIMI_PLUGIN_ROOT: repoRoot,
+    },
+  });
+}
+
 test('workflow session hook emits recovery context for active plans', () => {
   const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-hook-'));
   const planDir = path.join(workspace, '.workflow/plans/01-01-26-hooks');
@@ -273,6 +285,37 @@ test('Codex Stop allows reviewed and awaiting-user commitment states', () => {
   }
 });
 
+test('Kimi Stop uses native exit-code blocking without changing Codex output', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-kimi-stop-'));
+  const planDir = path.join(workspace, '.workflow/plans/01-01-26-kimi-reflection');
+  mkdirSync(planDir, { recursive: true });
+  writeFileSync(path.join(workspace, '.workflow/state.json'), JSON.stringify({ active_plan: 'plans/01-01-26-kimi-reflection' }), 'utf8');
+  writeFileSync(
+    path.join(planDir, 'state.json'),
+    JSON.stringify({ commitment_reflection: { required: true, status: 'pending', proposal: { id: 'commitment-1' } } }),
+    'utf8'
+  );
+
+  const kimiBlocked = runKimiHook({ hook_event_name: 'Stop', cwd: workspace }, workspace);
+  assert.equal(kimiBlocked.status, 2);
+  assert.equal(kimiBlocked.stdout, '');
+  assert.match(kimiBlocked.stderr, /shrink-first reflection/);
+
+  const codexBlocked = runHook({ hook_event_name: 'Stop', cwd: workspace }, workspace);
+  assert.equal(codexBlocked.decision, 'block');
+  assert.match(codexBlocked.reason, /shrink-first reflection/);
+
+  writeFileSync(
+    path.join(planDir, 'state.json'),
+    JSON.stringify({ commitment_reflection: { required: true, status: 'reviewed' } }),
+    'utf8'
+  );
+  const kimiAllowed = runKimiHook({ hook_event_name: 'Stop', cwd: workspace }, workspace);
+  assert.equal(kimiAllowed.status, 0);
+  assert.equal(kimiAllowed.stdout, '');
+  assert.equal(kimiAllowed.stderr, '');
+});
+
 test('workflow hook config does not match compact source as SessionStart', () => {
   const config = JSON.parse(readFileSync(hookConfig, 'utf8'));
 
@@ -359,6 +402,86 @@ test('repository ships both Codex and Claude plugin manifests', () => {
     assert.equal(entry.version, undefined);
   }
   assert.equal(claudeHookConfig.hooks.PostToolUse[0].matcher, 'Bash');
+});
+
+test('repository ships Kimi aggregate and per-plugin manifests without cross-platform hook drift', () => {
+  const rootPackage = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
+  const kimiMarketplace = JSON.parse(readFileSync(path.join(repoRoot, '.kimi-plugin/marketplace.json'), 'utf8'));
+  const aggregate = JSON.parse(readFileSync(path.join(repoRoot, 'kimi.plugin.json'), 'utf8'));
+  const pluginNames = ['agent-memory', 'workflow', 'merge-request-review'];
+  const supportedKimiFields = new Set([
+    'name',
+    'version',
+    'description',
+    'keywords',
+    'author',
+    'homepage',
+    'license',
+    'skills',
+    'sessionStart',
+    'skillInstructions',
+    'mcpServers',
+    'hooks',
+    'commands',
+    'interface',
+  ]);
+
+  assert.equal(aggregate.name, 'wiolett-industries');
+  assert.equal(aggregate.version, rootPackage.version);
+  assert.equal(aggregate.sessionStart.skill, 'using-workflow');
+  assert.deepEqual(Object.keys(aggregate.mcpServers), pluginNames);
+  assert.deepEqual(aggregate.hooks.map((hook) => hook.event), ['Stop']);
+  assert.doesNotMatch(JSON.stringify(aggregate.hooks), /PostToolUse/);
+  assert.equal(aggregate.agents, undefined);
+  assert.deepEqual(kimiMarketplace.plugins.map((plugin) => plugin.id), ['wiolett-industries']);
+  assert.equal(kimiMarketplace.plugins[0].source, 'https://github.com/wiolett-industries/marketplace');
+  assert.equal(kimiMarketplace.plugins[0].version, aggregate.version);
+
+  for (const pluginName of pluginNames) {
+    const pluginRoot = path.join(repoRoot, 'plugins', pluginName);
+    const kimi = JSON.parse(readFileSync(path.join(pluginRoot, 'kimi.plugin.json'), 'utf8'));
+    const codex = JSON.parse(readFileSync(path.join(pluginRoot, '.codex-plugin/plugin.json'), 'utf8'));
+    const claude = JSON.parse(readFileSync(path.join(pluginRoot, '.claude-plugin/plugin.json'), 'utf8'));
+    const sourceMcp = JSON.parse(readFileSync(path.join(pluginRoot, '.mcp.json'), 'utf8')).mcpServers;
+
+    assert.equal(kimi.name, pluginName);
+    assert.equal(kimi.version, codex.version);
+    assert.equal(kimi.version, claude.version);
+    assert.equal(kimi.agents, undefined);
+    assert.ok(Object.keys(kimi).every((field) => supportedKimiFields.has(field)), `${pluginName} has an unsupported Kimi field`);
+
+    for (const skillPath of Array.isArray(kimi.skills) ? kimi.skills : [kimi.skills]) {
+      assert.match(skillPath, /^\.\/.+\/$/);
+      assert.equal(existsSync(path.resolve(pluginRoot, skillPath)), true, `${pluginName} has a missing Kimi skills path`);
+    }
+
+    for (const [serverName, server] of Object.entries(sourceMcp)) {
+      assert.deepEqual(kimi.mcpServers[serverName], {
+        command: server.command,
+        args: server.args,
+      });
+      assert.deepEqual(aggregate.mcpServers[serverName], kimi.mcpServers[serverName]);
+    }
+  }
+
+  const kimiWorkflow = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/workflow/kimi.plugin.json'), 'utf8'));
+  const codexWorkflow = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/workflow/.codex-plugin/plugin.json'), 'utf8'));
+  const claudeHooks = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/workflow/hooks/hooks.json'), 'utf8'));
+  assert.deepEqual(kimiWorkflow.hooks.map((hook) => hook.event), ['Stop']);
+  assert.equal(codexWorkflow.hooks, './hooks/codex-hooks.json');
+  assert.equal(claudeHooks.hooks.PostToolUse[0].matcher, 'Bash');
+  assert.equal(claudeHooks.hooks.Stop, undefined);
+});
+
+test('README documents Kimi aggregate installation and platform boundaries', () => {
+  const readme = readFileSync(path.join(repoRoot, 'README.md'), 'utf8');
+
+  assert.match(readme, /\/plugins install https:\/\/github\.com\/wiolett-industries\/marketplace/);
+  assert.match(readme, /one aggregate `wiolett-industries`\s+plugin/);
+  assert.match(readme, /MCP servers can be enabled or disabled\s+independently/);
+  assert.match(readme, /does not load the Codex TOML agents or Claude Code plugin\s+agents/);
+  assert.match(readme, /Claude\/Codex hook\s+configuration remains separate/);
+  assert.match(readme, /Kimi treats that event as observation-only/);
 });
 
 test('runtime source versions match package manifests', () => {

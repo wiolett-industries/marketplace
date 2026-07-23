@@ -5,9 +5,9 @@
 Unified marketplace source for [Wiolett Industries](https://wiolett.net)
 agent plugins.
 
-This repository ships Codex and Claude Code plugin metadata together.
-Platform-specific manifests and agent definitions are committed so users can
-install directly without running generators or setup commands.
+This repository ships Codex, Claude Code, and Kimi Code plugin metadata
+together. Platform-specific manifests and agent definitions are committed so
+users can install directly without running generators or setup commands.
 
 ## Why
 
@@ -56,6 +56,13 @@ Claude Code:
 /plugin install agent-memory@wiolett-industries
 /plugin install workflow@wiolett-industries
 /plugin install merge-request-review@wiolett-industries
+```
+
+Kimi Code:
+
+```text
+/plugins install https://github.com/wiolett-industries/marketplace
+/reload
 ```
 
 Agent Memory auth:
@@ -107,6 +114,41 @@ Then install the plugins you want:
 /plugin install workflow@wiolett-industries
 /plugin install merge-request-review@wiolett-industries
 ```
+
+## Install In Kimi Code
+
+Kimi Code installs this repository as one aggregate `wiolett-industries`
+plugin. The aggregate includes the Agent Memory, Workflow, and Merge Request
+Review skills and MCP servers:
+
+```text
+/plugins install https://github.com/wiolett-industries/marketplace
+/reload
+```
+
+Installing, enabling, disabling, or updating a Kimi plugin takes effect after
+`/reload` or in a new session. All three Wiolett components are installed
+together, but their MCP servers can be enabled or disabled independently:
+
+```text
+/plugins mcp disable wiolett-industries merge-request-review
+/reload
+```
+
+The same aggregate is also available through the repository's Kimi marketplace
+catalog:
+
+```text
+/plugins marketplace https://raw.githubusercontent.com/wiolett-industries/marketplace/main/.kimi-plugin/marketplace.json
+```
+
+Kimi uses the shared portable `SKILL.md` files and Kimi-native inline MCP
+declarations. It does not load the Codex TOML agents or Claude Code plugin
+agents; workflows run locally by default and may use Kimi's built-in `explore`,
+`plan`, or `coder` agents only within the same task-wide budget. The Kimi
+manifest registers only the bounded Workflow `Stop` guard. Claude/Codex hook
+configuration remains separate, and the Claude `PostToolUse` output filter is
+not registered because Kimi treats that event as observation-only.
 
 ## Model Access
 
@@ -213,12 +255,18 @@ npx -y @wiolett/agent-memory@latest view global
 - Package overview: [`packages/README.md`](./packages/README.md)
 - Codex marketplace: [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json)
 - Claude Code marketplace: [`.claude-plugin/marketplace.json`](./.claude-plugin/marketplace.json)
+- Kimi Code aggregate manifest: [`kimi.plugin.json`](./kimi.plugin.json)
+- Kimi Code marketplace: [`.kimi-plugin/marketplace.json`](./.kimi-plugin/marketplace.json)
 - Codex plugin manifests: `plugins/*/.codex-plugin/plugin.json`
 - Claude Code plugin manifests: `plugins/*/.claude-plugin/plugin.json`
+- Kimi Code per-plugin manifests: `plugins/*/kimi.plugin.json`
 - Codex workflow/MR agents: `packages/*/agents/*.toml`
 - Claude Code workflow/MR agents: `plugins/*/agents/*.md`
 
-The platform-specific agent files are intentionally committed. Maintainers may
+The platform-specific files are intentionally committed. Kimi currently
+packages skills and MCP servers but not custom agents from a plugin manifest,
+so its compatibility instructions map bounded delegation to Kimi's built-in
+agents instead of copying Codex or Claude agent definitions. Maintainers may
 use generators in the future, but generated outputs must stay in git so install
 and runtime behavior remain turnkey.
 

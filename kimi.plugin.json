@@ -1,0 +1,63 @@
+{
+  "name": "wiolett-industries",
+  "version": "0.2.10",
+  "description": "Wiolett Industries workflow, memory, and GitLab merge request review plugins for Kimi Code.",
+  "keywords": [
+    "workflow",
+    "memory",
+    "mcp",
+    "review",
+    "gitlab"
+  ],
+  "author": {
+    "name": "Wiolett Industries"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace",
+  "license": "MIT",
+  "skills": [
+    "./plugins/agent-memory/skills/",
+    "./plugins/workflow/skills/",
+    "./plugins/merge-request-review/skills/"
+  ],
+  "sessionStart": {
+    "skill": "using-workflow"
+  },
+  "skillInstructions": "Kimi Code compatibility: use the built-in explore, plan, and coder agents only when their task shape fits and the active task-wide agent budget allows it. If a workflow names a Codex- or Claude-specific custom agent that is unavailable, continue locally unless independent review was explicitly required. Do not assume that Codex or Claude hook behavior exists in Kimi.",
+  "mcpServers": {
+    "agent-memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wiolett/agent-memory@latest"
+      ]
+    },
+    "workflow": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wiolett/workflow@latest"
+      ]
+    },
+    "merge-request-review": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wiolett/merge-request-review@latest"
+      ]
+    }
+  },
+  "hooks": [
+    {
+      "event": "Stop",
+      "command": "node ./plugins/workflow/hooks/workflow-hook.cjs",
+      "timeout": 10
+    }
+  ],
+  "interface": {
+    "displayName": "Wiolett Industries Agent Plugins",
+    "shortDescription": "Workflow, memory, and review tools for Kimi Code",
+    "longDescription": "An aggregate Kimi Code plugin that installs Agent Memory, Workflow, and Merge Request Review together. Skills share the same portable contracts used by Codex and Claude Code, while MCP servers and the bounded Stop hook are wired through Kimi-native manifest fields.",
+    "developerName": "Wiolett Industries",
+    "websiteURL": "https://github.com/wiolett-industries/marketplace"
+  }
+}

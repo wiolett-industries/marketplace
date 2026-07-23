@@ -1,0 +1,35 @@
+{
+  "name": "merge-request-review",
+  "version": "0.3.5",
+  "description": "Ready GitLab MR review with discussion intake, applicable gates, CI-first evidence, bounded agents, focused re-review, and one clean-pass approval.",
+  "keywords": [
+    "kimi",
+    "gitlab",
+    "merge-request",
+    "review",
+    "approval"
+  ],
+  "author": {
+    "name": "Wiolett Industries"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/merge-request-review",
+  "license": "MIT",
+  "skills": "./skills/",
+  "skillInstructions": "Kimi Code compatibility: perform normal reviews locally by default and use built-in subagents only when the review risk and shared task budget justify them. GitLab reads, notes, and approval still require an external GitLab MCP.",
+  "mcpServers": {
+    "merge-request-review": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wiolett/merge-request-review@latest"
+      ]
+    }
+  },
+  "interface": {
+    "displayName": "Merge Request Review",
+    "shortDescription": "CI-first GitLab review with bounded agents and one clean pass",
+    "longDescription": "A Kimi Code GitLab merge request review workflow with current-discussion intake, canonical-source evidence, CI-first verification, focused delta re-review, and MCP-backed review state. External GitLab MCP access is still required.",
+    "developerName": "Wiolett Industries",
+    "websiteURL": "https://github.com/wiolett-industries/marketplace"
+  }
+}

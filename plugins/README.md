@@ -7,6 +7,11 @@ contains platform manifests, skills, assets, and any platform-native agent or
 hook files needed by that plugin. Generated or synced platform artifacts are
 committed on purpose so installs stay turnkey.
 
+Kimi Code installs the repository root as one aggregate plugin by default.
+Each bundle also contains a `kimi.plugin.json` for local development and future
+per-plugin ZIP distribution. The aggregate behavior and installation commands
+are documented in the repository [README](../README.md#install-in-kimi-code).
+
 ## Plugin Bundles
 
 - [`agent-memory`](./agent-memory) - persistent scoped memory with global and
@@ -21,7 +26,8 @@ committed on purpose so installs stay turnkey.
 ## Layout
 
 Codex plugin metadata lives under each bundle's `.codex-plugin/` directory.
-Claude Code plugin metadata lives under `.claude-plugin/`.
+Claude Code plugin metadata lives under `.claude-plugin/`. Kimi Code metadata
+lives in `kimi.plugin.json`.
 
 Common plugin files:
 
@@ -39,3 +45,8 @@ plugins keep their own skills and MCP servers, but they do not register
 separate hooks. The workflow hook detects installed companions such as
 `agent-memory` and `merge-request-review` and adds the relevant startup context
 or reviewer validation.
+
+Kimi registers only Workflow's bounded `Stop` guard. Its hook entry lives only
+in the Kimi manifests, while Codex and Claude continue to use their existing
+platform-specific hook configurations. Kimi does not register the
+`PostToolUse` output filter because that event is observation-only there.

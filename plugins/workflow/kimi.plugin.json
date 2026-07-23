@@ -1,0 +1,46 @@
+{
+  "name": "workflow",
+  "version": "0.4.5",
+  "description": "Lean, risk-budgeted workflows for Kimi Code with one primary path, focused context, selective subagents, single-pass verification, and explicit completion gates.",
+  "keywords": [
+    "kimi",
+    "workflow",
+    "planning",
+    "audit",
+    "review",
+    "agents"
+  ],
+  "author": {
+    "name": "Wiolett Industries"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/workflow",
+  "license": "MIT",
+  "skills": "./skills/",
+  "sessionStart": {
+    "skill": "using-workflow"
+  },
+  "skillInstructions": "Kimi Code compatibility: use the built-in explore, plan, and coder agents only when their task shape fits and the active task-wide agent budget allows it. If a named Codex- or Claude-specific custom agent is unavailable, continue locally unless independent review was explicitly required.",
+  "mcpServers": {
+    "workflow": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wiolett/workflow@latest"
+      ]
+    }
+  },
+  "hooks": [
+    {
+      "event": "Stop",
+      "command": "node ./hooks/workflow-hook.cjs",
+      "timeout": 10
+    }
+  ],
+  "interface": {
+    "displayName": "Workflow",
+    "shortDescription": "One-path engineering workflow with bounded agents and verification",
+    "longDescription": "A Kimi Code workflow router with direct, plan-execute, audit, and GitLab review paths, bounded agent budgets, durable MCP-backed state, and a Kimi-native Stop guard for material-plan reflection.",
+    "developerName": "Wiolett Industries",
+    "websiteURL": "https://github.com/wiolett-industries/marketplace"
+  }
+}

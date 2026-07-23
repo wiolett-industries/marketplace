@@ -10,7 +10,15 @@ function readInput() {
   return raw ? JSON.parse(raw) : {};
 }
 
+function isKimiHost() {
+  return Boolean(process.env.KIMI_PLUGIN_ROOT);
+}
+
 function writeContext(eventName, lines) {
+  if (isKimiHost()) {
+    process.stdout.write(lines.filter(Boolean).join("\n"));
+    return;
+  }
   console.log(
     JSON.stringify({
       continue: true,
@@ -23,10 +31,18 @@ function writeContext(eventName, lines) {
 }
 
 function ok() {
+  if (isKimiHost()) {
+    return;
+  }
   console.log(JSON.stringify({ continue: true }));
 }
 
 function block(reason) {
+  if (isKimiHost()) {
+    process.stderr.write(`${reason}\n`);
+    process.exitCode = 2;
+    return;
+  }
   console.log(JSON.stringify({ decision: "block", reason }));
 }
 

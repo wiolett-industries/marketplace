@@ -1,0 +1,38 @@
+{
+  "name": "agent-memory",
+  "version": "0.4.4",
+  "description": "Persistent scoped Agent Memory with focused startup recall, explicit write boundaries, graph tools, and a local dashboard.",
+  "keywords": [
+    "kimi",
+    "memory",
+    "mcp",
+    "agent-memory",
+    "persistence"
+  ],
+  "author": {
+    "name": "Wiolett Industries"
+  },
+  "homepage": "https://github.com/wiolett-industries/marketplace/tree/main/plugins/agent-memory",
+  "license": "MIT",
+  "skills": "./skills/",
+  "sessionStart": {
+    "skill": "using-agent-memory"
+  },
+  "skillInstructions": "Kimi Code compatibility: Agent Memory is provided by this plugin's MCP server. Keep reads focused and treat writes as explicit durable state changes.",
+  "mcpServers": {
+    "agent-memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wiolett/agent-memory@latest"
+      ]
+    }
+  },
+  "interface": {
+    "displayName": "Agent Memory",
+    "shortDescription": "Focused durable memory with explicit read/write boundaries",
+    "longDescription": "Persistent global and project memory for Kimi Code with focused recall, model-gated writes, graph tools, provider routing, configuration migration, and a local read-only dashboard.",
+    "developerName": "Wiolett Industries",
+    "websiteURL": "https://github.com/wiolett-industries/marketplace"
+  }
+}

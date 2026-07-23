@@ -1,0 +1,20 @@
+{
+  "version": "2",
+  "plugins": [
+    {
+      "id": "wiolett-industries",
+      "displayName": "Wiolett Industries Agent Plugins",
+      "version": "0.2.10",
+      "description": "Workflow, memory, and GitLab merge request review tools distributed as one aggregate Kimi Code plugin.",
+      "homepage": "https://github.com/wiolett-industries/marketplace",
+      "source": "https://github.com/wiolett-industries/marketplace",
+      "keywords": [
+        "workflow",
+        "memory",
+        "mcp",
+        "review",
+        "gitlab"
+      ]
+    }
+  ]
+}
