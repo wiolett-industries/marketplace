@@ -69,7 +69,7 @@ function printViewHelp(): void {
     'Usage: agent-memory view [path|global] [options]',
     '',
     '  path      Project directory whose .memory store to open (default: cwd)',
-    '  global    Open the global store (~/.agents/agent-memory)',
+    '  global    Open the configured global store',
     '',
     'Options:',
     '  --port <n>   Preferred port (default 7077; auto-increments if taken)',

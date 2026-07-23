@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from '@jest/globals';
@@ -13,8 +14,34 @@ async function withMockedProvider(fn) {
   const previousFetch = globalThis.fetch;
   const previousKey = process.env.OPENAI_API_KEY;
   const previousConfigPath = process.env.WIOLETT_AUTH_CONFIG_PATH;
-  process.env.OPENAI_API_KEY = 'sk-test-gate';
-  process.env.WIOLETT_AUTH_CONFIG_PATH = '/tmp/agent-memory-missing-gate-config.json';
+  const previousAgentsHome = process.env.PROJECT_MEMORY_AGENTS_HOME;
+  const agentsHome = mkdtempSync(path.join(os.tmpdir(), 'agent-memory-gate-home-'));
+  const configDir = path.join(agentsHome, '.wiolett', 'config');
+  mkdirSync(configDir, { recursive: true });
+  writeFileSync(path.join(configDir, 'ai-providers.yml'), `version: 1
+providers:
+  openai:
+    driver: openai
+    base_url: https://api.openai.com/v1
+    auth: { api_key: sk-test-gate }
+    apis:
+      responses: { path: /responses, store: false }
+      embeddings: { path: /embeddings }
+    defaults:
+      text_api: responses
+      models: { text: gpt-5-mini, embeddings: text-embedding-3-small }
+`, 'utf8');
+  writeFileSync(path.join(configDir, 'mcp-config.yml'), `version: 1
+mcp:
+  agent-memory:
+    routing:
+      embeddings: { provider: openai, api: embeddings }
+      gate: { provider: openai, api: responses }
+      synthesis: { provider: openai, api: responses }
+`, 'utf8');
+  delete process.env.OPENAI_API_KEY;
+  delete process.env.WIOLETT_AUTH_CONFIG_PATH;
+  process.env.PROJECT_MEMORY_AGENTS_HOME = agentsHome;
   resetModelProvider();
 
   try {
@@ -25,6 +52,8 @@ async function withMockedProvider(fn) {
     else process.env.OPENAI_API_KEY = previousKey;
     if (previousConfigPath === undefined) delete process.env.WIOLETT_AUTH_CONFIG_PATH;
     else process.env.WIOLETT_AUTH_CONFIG_PATH = previousConfigPath;
+    if (previousAgentsHome === undefined) delete process.env.PROJECT_MEMORY_AGENTS_HOME;
+    else process.env.PROJECT_MEMORY_AGENTS_HOME = previousAgentsHome;
     resetModelProvider();
   }
 }

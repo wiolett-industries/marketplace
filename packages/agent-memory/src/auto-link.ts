@@ -202,7 +202,7 @@ async function refineWithModel(source: EntryRecord, candidates: CandidateScore[]
     return [];
   }
 
-  const model = await getModelClient();
+  const model = await getModelClient('gate');
   if (!model) {
     return [];
   }
@@ -327,7 +327,7 @@ async function detectSupersession(
 ): Promise<{ supersedeEdges: GraphEdgeRecord[]; duplicateOf: string[] }> {
   if (!highSimilarity.length) return { supersedeEdges: [], duplicateOf: [] };
 
-  const model = await getModelClient();
+  const model = await getModelClient('gate');
   if (!model) return { supersedeEdges: [], duplicateOf: [] };
 
   try {

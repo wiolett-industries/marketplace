@@ -26,7 +26,7 @@ A skill trigger never implies an artifact, subagent, plan, or verification step 
 4. Select one primary path and one assurance profile.
 5. Load only the module needed for the current phase.
 
-Read this router once per task. Re-read only after context recovery/reset or an installed-skill version change; a new user turn is not a new task.
+Read this router once per task. Re-read after context recovery/reset, a skill-version change, or a materially different request; same-task follow-ups do not restart routing.
 
 ## Action Boundary
 

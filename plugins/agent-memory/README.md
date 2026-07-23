@@ -19,7 +19,7 @@ The runtime package is [`@wiolett/agent-memory`](../../packages/agent-memory).
 
 ## Memory Model
 
-- Global memory lives under `~/.agents/agent-memory/` and follows the user
+- Global memory lives under `~/.agents/.wiolett/global-memory/` by default and follows the user
   across repositories.
 - Project memory lives under `<repo>/.memory/` and belongs to that repository.
 - Canonical project `.memory/` markdown, index, embedding, and graph files are
@@ -65,10 +65,16 @@ Configure once:
 npx -y @wiolett/agent-memory@latest init
 ```
 
-The config is stored at `~/.agents/.wiolett/auth-config.json` with `0600`
-permissions. `OPENAI_API_KEY` can also be provided through the environment.
-OpenAI-compatible providers must support the endpoints used by Agent Memory:
-`POST /responses` and `POST /embeddings`.
+Agent Memory creates `~/.agents/.wiolett/config/ai-providers.yml` and
+`mcp-config.yml`; generated comments are English and provider credentials are
+stored with `0600` permissions. Named roles may combine providers and models.
+Text providers may use `POST /responses` or `POST /chat/completions`, while
+embedding providers use `POST /embeddings`.
+
+The same locked migration runs from `init` and MCP startup. It imports the
+legacy JSON config and moves the old global store to the configured path while
+leaving a compatibility symlink. Workflow and Merge Request Review only read
+their sections of `mcp-config.yml` and never generate or migrate it.
 
 ## Dashboard
 

@@ -30,7 +30,7 @@ export async function evaluateMemoryWrite(args: {
   scope: MemoryScope;
   operation: 'save' | 'update';
 }): Promise<MemoryGateResult> {
-  const model = await getModelClient();
+  const model = await getModelClient('gate');
   if (!model) {
     if (args.scope === 'global') {
       return {

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -44,6 +44,54 @@ test('creates a plan run and marks it active', () => {
   assert.equal(state.commitment_reflection.status, 'pending');
   assert.equal(readFileSync(path.join(workspace, '.workflow', 'plans', '01-01-26-workflow-tools', 'plan.md'), 'utf8'), '# Plan\n');
   assert.match(readFileSync(path.join(workspace, '.workflow', 'plans', '01-01-26-workflow-tools', 'ui-contract.md'), 'utf8'), /No UI contract applies/);
+});
+
+test('reads custom Workflow artifact roots without writing shared configuration', () => {
+  const workspace = makeWorkspace();
+  const agentsHome = mkdtempSync(path.join(os.tmpdir(), 'workflow-config-home-'));
+  const configDir = path.join(agentsHome, '.wiolett', 'config');
+  mkdirSync(configDir, { recursive: true });
+  writeFileSync(path.join(configDir, 'mcp-config.yml'), `version: 1
+mcp:
+  workflow:
+    artifacts:
+      root: .agent-artifacts/workflow
+      plans: plan-runs
+      audits: audit-runs
+`, 'utf8');
+  const previousHome = process.env.PROJECT_MEMORY_AGENTS_HOME;
+  process.env.PROJECT_MEMORY_AGENTS_HOME = agentsHome;
+  try {
+    const result = createPlanRun({
+      workspace_root: workspace,
+      title: 'Configured workflow',
+      slug: 'configured-workflow',
+      complexity: 'simple',
+    });
+    assert.equal(result.run, 'plan-runs/configured-workflow');
+    assert.equal(existsSync(path.join(workspace, '.agent-artifacts', 'workflow', 'plan-runs', 'configured-workflow', 'state.json')), true);
+    assert.equal(existsSync(path.join(configDir, 'mcp-config.yml')), true);
+  } finally {
+    if (previousHome === undefined) delete process.env.PROJECT_MEMORY_AGENTS_HOME;
+    else process.env.PROJECT_MEMORY_AGENTS_HOME = previousHome;
+  }
+});
+
+test('falls back to default Workflow artifact paths for invalid shared config', () => {
+  const workspace = makeWorkspace();
+  const agentsHome = mkdtempSync(path.join(os.tmpdir(), 'workflow-invalid-config-home-'));
+  const configDir = path.join(agentsHome, '.wiolett', 'config');
+  mkdirSync(configDir, { recursive: true });
+  writeFileSync(path.join(configDir, 'mcp-config.yml'), 'version: [invalid\n', 'utf8');
+  const previousHome = process.env.PROJECT_MEMORY_AGENTS_HOME;
+  process.env.PROJECT_MEMORY_AGENTS_HOME = agentsHome;
+  try {
+    createPlanRun({ workspace_root: workspace, title: 'Fallback workflow', slug: 'fallback-workflow', complexity: 'simple' });
+    assert.equal(existsSync(path.join(workspace, '.workflow', 'plans', 'fallback-workflow', 'state.json')), true);
+  } finally {
+    if (previousHome === undefined) delete process.env.PROJECT_MEMORY_AGENTS_HOME;
+    else process.env.PROJECT_MEMORY_AGENTS_HOME = previousHome;
+  }
 });
 
 test('simple plans do not require commitment reflection', () => {

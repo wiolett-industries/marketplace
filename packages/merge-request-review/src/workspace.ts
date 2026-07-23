@@ -1,5 +1,6 @@
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
+import { readReviewArtifactRoot } from './config.js';
 
 export function resolveWorkspaceRoot(input?: string): string {
   const start = path.resolve(input || process.cwd());
@@ -7,11 +8,11 @@ export function resolveWorkspaceRoot(input?: string): string {
 }
 
 export function reviewRoot(workspaceRoot: string): string {
-  return path.join(workspaceRoot, '.workflow', 'mr-reviews');
+  return readReviewArtifactRoot(workspaceRoot);
 }
 
 export function statePath(workspaceRoot: string): string {
-  return path.join(workspaceRoot, '.workflow', 'mr-reviews', 'state.json');
+  return path.join(reviewRoot(workspaceRoot), 'state.json');
 }
 
 export function listReviewDirs(root: string): string[] {

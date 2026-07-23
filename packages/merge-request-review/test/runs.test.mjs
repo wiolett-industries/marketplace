@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -49,6 +49,52 @@ test('creates and updates a merge request review run', () => {
   assert.equal(state.discussions_loaded, true);
 });
 
+test('reads a custom Merge Request Review artifact root without creating configuration', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'mr-review-config-workspace-'));
+  const agentsHome = mkdtempSync(path.join(os.tmpdir(), 'mr-review-config-home-'));
+  const configDir = path.join(agentsHome, '.wiolett', 'config');
+  mkdirSync(configDir, { recursive: true });
+  writeFileSync(path.join(configDir, 'mcp-config.yml'), `version: 1
+mcp:
+  merge-request-review:
+    artifacts:
+      root: .agent-artifacts/reviews
+`, 'utf8');
+  const previousHome = process.env.PROJECT_MEMORY_AGENTS_HOME;
+  process.env.PROJECT_MEMORY_AGENTS_HOME = agentsHome;
+  try {
+    const result = createReviewRun({
+      workspace_root: workspace,
+      title: 'Configured review',
+      slug: 'configured-review',
+      review_mode: 'normal',
+    });
+    assert.equal(result.run, 'mr-reviews/configured-review');
+    assert.equal(existsSync(path.join(workspace, '.agent-artifacts', 'reviews', 'configured-review', 'state.json')), true);
+    assert.equal(existsSync(path.join(configDir, 'mcp-config.yml')), true);
+  } finally {
+    if (previousHome === undefined) delete process.env.PROJECT_MEMORY_AGENTS_HOME;
+    else process.env.PROJECT_MEMORY_AGENTS_HOME = previousHome;
+  }
+});
+
+test('falls back to the default review artifact path for invalid shared config', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'mr-review-invalid-workspace-'));
+  const agentsHome = mkdtempSync(path.join(os.tmpdir(), 'mr-review-invalid-home-'));
+  const configDir = path.join(agentsHome, '.wiolett', 'config');
+  mkdirSync(configDir, { recursive: true });
+  writeFileSync(path.join(configDir, 'mcp-config.yml'), 'version: [invalid\n', 'utf8');
+  const previousHome = process.env.PROJECT_MEMORY_AGENTS_HOME;
+  process.env.PROJECT_MEMORY_AGENTS_HOME = agentsHome;
+  try {
+    createReviewRun({ workspace_root: workspace, title: 'Fallback review', slug: 'fallback-review', review_mode: 'normal' });
+    assert.equal(existsSync(path.join(workspace, '.workflow', 'mr-reviews', 'fallback-review', 'state.json')), true);
+  } finally {
+    if (previousHome === undefined) delete process.env.PROJECT_MEMORY_AGENTS_HOME;
+    else process.env.PROJECT_MEMORY_AGENTS_HOME = previousHome;
+  }
+});
+
 test('terminal review operations clear only the matching active review pointer', () => {
   const workspace = mkdtempSync(path.join(os.tmpdir(), 'mr-review-completion-'));
   createReviewRun({
@@ -64,13 +110,43 @@ test('terminal review operations clear only the matching active review pointer',
     review_mode: 'normal',
   });
 
+  updateReviewRun(workspace, 'mr-reviews/01-01-26-old-review', [
+    { type: 'set_discussions', discussions: [] },
+    { type: 'set_findings', findings: [] },
+    { type: 'set_blockers', blockers: [] },
+    { type: 'set_clean_rounds', clean_rounds: 1 },
+    { type: 'set_phase', phase: 'clean' },
+  ]);
   const oldResult = completeReviewRun(workspace, 'mr-reviews/01-01-26-old-review');
   assert.equal(oldResult.state.approved, true);
   assert.equal(getReviewStatus(workspace).state.active_review, 'mr-reviews/01-01-26-current-review');
 
-  const currentResult = updateReviewRun(workspace, undefined, [{ type: 'mark_approved' }]);
+  const currentResult = updateReviewRun(workspace, undefined, [
+    { type: 'set_discussions', discussions: [] },
+    { type: 'set_findings', findings: [] },
+    { type: 'set_blockers', blockers: [] },
+    { type: 'set_clean_rounds', clean_rounds: 1 },
+    { type: 'set_phase', phase: 'clean' },
+    { type: 'mark_approved' },
+  ]);
   assert.equal(currentResult.state.phase, 'approved');
   assert.equal(getReviewStatus(workspace).state.active_review, null);
+});
+
+test('rejects terminal approval before the local clean-review latch passes', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'mr-review-guard-'));
+  createReviewRun({ workspace_root: workspace, title: 'Guarded review', slug: 'guarded-review', review_mode: 'normal' });
+
+  assert.throws(() => completeReviewRun(workspace), /must be in clean phase/);
+  updateReviewRun(workspace, undefined, [
+    { type: 'set_discussions', discussions: [] },
+    { type: 'set_findings', findings: [{ severity: 'Important', problem: 'Still broken', status: 'open' }] },
+    { type: 'set_blockers', blockers: [] },
+    { type: 'set_clean_rounds', clean_rounds: 1 },
+    { type: 'set_phase', phase: 'clean' },
+  ]);
+  assert.throws(() => completeReviewRun(workspace), /unresolved Critical or Important/);
+  assert.equal(getReviewStatus(workspace).state.active_review, 'mr-reviews/guarded-review');
 });
 
 test('normalizes findings and drafts fixed-format notes', () => {

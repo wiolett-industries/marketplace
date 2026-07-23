@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { existsSync } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
+import { getBootstrapAgentsHome, readMcpConfig, resolveConfiguredPath } from './config.js';
 
 export type MemoryScope = 'project' | 'global';
 
@@ -15,12 +15,9 @@ function resolveExplicitProjectRoot(projectPath: string): string {
 }
 
 export function getAgentsHome(): string {
-  const configured = process.env.PROJECT_MEMORY_AGENTS_HOME?.trim();
-  if (configured) {
-    return configured;
-  }
-
-  return path.join(os.homedir(), '.agents');
+  const bootstrapHome = getBootstrapAgentsHome();
+  const configured = readMcpConfig()?.mcp['agent-memory']?.runtime?.home;
+  return configured ? resolveConfiguredPath(configured, bootstrapHome) : bootstrapHome;
 }
 
 export function getGlobalMemoryRoot(): string {
@@ -28,12 +25,12 @@ export function getGlobalMemoryRoot(): string {
   if (configured) {
     return configured;
   }
-
-  return path.join(getAgentsHome(), 'agent-memory');
+  const storage = readMcpConfig()?.mcp['agent-memory']?.storage?.memory.global ?? '.wiolett/global-memory';
+  return resolveConfiguredPath(storage, getAgentsHome());
 }
 
 function hasProjectMemoryLayout(projectPath: string): boolean {
-  const memoryDir = path.join(projectPath, '.memory');
+  const memoryDir = getProjectMemoryRoot(projectPath);
   return (
     existsSync(path.join(memoryDir, 'memories')) ||
     existsSync(path.join(memoryDir, 'index')) ||
@@ -102,7 +99,12 @@ export async function withProjectRootAsync<T>(projectPath: string | undefined, f
 }
 
 export function getMemoryRoot(scope: MemoryScope = 'project', projectPath?: string): string {
-  return scope === 'global' ? getGlobalMemoryRoot() : path.join(getProjectRoot(projectPath), '.memory');
+  return scope === 'global' ? getGlobalMemoryRoot() : getProjectMemoryRoot(getProjectRoot(projectPath));
+}
+
+function getProjectMemoryRoot(projectRoot: string): string {
+  const configured = readMcpConfig()?.mcp['agent-memory']?.storage?.memory.project ?? '.memory';
+  return resolveConfiguredPath(configured, projectRoot);
 }
 
 export function getScopeLabel(scope: MemoryScope): string {

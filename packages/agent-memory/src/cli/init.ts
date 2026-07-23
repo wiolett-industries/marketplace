@@ -1,66 +1,92 @@
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
-import { DEFAULT_EMBEDDING_MODEL, DEFAULT_RESPONSE_MODEL, getDefaultWiolettAuthConfigPath, resolveOpenAIProviderConfig } from '../oai-auth/index.js';
+import { chmodSync, copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { parseDocument } from 'yaml';
+import {
+  DEFAULT_EMBEDDING_MODEL,
+  DEFAULT_OPENAI_ENDPOINT,
+  DEFAULT_RESPONSE_MODEL,
+  createDefaultAiProvidersConfig,
+  createDefaultMcpConfig,
+  getConfigPaths,
+  readAiProvidersConfig,
+  readMcpConfig,
+  writeGeneratedYaml,
+} from '../config.js';
+import { ensureConfigAndStorageMigrated } from '../migration.js';
+import { resolveOpenAIProviderConfig } from '../oai-auth/index.js';
 import { promptConfirm, promptPassword, promptText, renderInitFooter, renderInitHeader } from './prompts.js';
-
-const DEFAULT_ENDPOINT = 'https://api.openai.com/v1';
 
 type InitArgs = {
   check: boolean;
+  dryRun: boolean;
   force: boolean;
+  nonInteractive: boolean;
   printPath: boolean;
+  configDir?: string;
   key?: string;
   endpoint?: string;
+  textApi?: 'responses' | 'chat_completions';
   responseModel?: string;
   embeddingModel?: string;
+  globalMemory?: string;
+  projectMemory?: string;
+  workflowArtifacts?: string;
+  mrReviewArtifacts?: string;
 };
 
-interface InitCommandOptions {
-  commandName?: string;
-}
+interface InitCommandOptions { commandName?: string }
 
 export async function runInitCommand(argv: string[], options: InitCommandOptions = {}): Promise<void> {
   const commandName = options.commandName ?? 'agent-memory init';
   const args = parseInitArgs(argv, commandName);
-  const configPath = getConfigPath();
+  const env = { ...process.env, ...(args.configDir ? { WIOLETT_CONFIG_DIR: args.configDir } : {}) };
+  const paths = getConfigPaths(env);
 
   if (args.printPath) {
-    console.log(configPath);
+    console.log(paths.aiProviders);
     return;
   }
+  if (args.dryRun) {
+    console.log(`Agent Memory would ensure ${paths.aiProviders} and ${paths.mcpConfig}.`);
+    console.log(`Legacy provider source: ${paths.legacyAuth}`);
+    console.log(`Legacy global memory source: ${paths.agentsHome}/agent-memory`);
+    return;
+  }
+
+  prepareExplicitMcpPaths(paths.mcpConfig, paths.agentsHome, args);
+  await ensureConfigAndStorageMigrated({ trigger: 'init', env, log: (message) => console.log(message) });
 
   if (args.check) {
-    checkConfig(configPath, commandName);
+    checkConfig(paths.aiProviders, paths.mcpConfig, commandName);
     return;
   }
 
-  await initConfig(configPath, args);
+  await initConfig(paths.aiProviders, paths.mcpConfig, args);
 }
 
 function parseInitArgs(argv: string[], commandName: string): InitArgs {
-  const args: InitArgs = {
-    check: false,
-    force: false,
-    printPath: false,
-  };
-
+  const args: InitArgs = { check: false, dryRun: false, force: false, nonInteractive: false, printPath: false };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--check') args.check = true;
+    else if (arg === '--dry-run') args.dryRun = true;
     else if (arg === '--force') args.force = true;
+    else if (arg === '--non-interactive') args.nonInteractive = true;
     else if (arg === '--print-path') args.printPath = true;
-    else if (arg === '--key') args.key = readValue(argv, index += 1, '--key');
-    else if (arg === '--endpoint') args.endpoint = readValue(argv, index += 1, '--endpoint');
-    else if (arg === '--response-model') args.responseModel = readValue(argv, index += 1, '--response-model');
-    else if (arg === '--embedding-model') args.embeddingModel = readValue(argv, index += 1, '--embedding-model');
+    else if (arg === '--config-dir') args.configDir = readValue(argv, index += 1, arg);
+    else if (arg === '--key') args.key = readValue(argv, index += 1, arg);
+    else if (arg === '--endpoint') args.endpoint = readValue(argv, index += 1, arg);
+    else if (arg === '--text-api') args.textApi = readTextApi(readValue(argv, index += 1, arg));
+    else if (arg === '--response-model') args.responseModel = readValue(argv, index += 1, arg);
+    else if (arg === '--embedding-model') args.embeddingModel = readValue(argv, index += 1, arg);
+    else if (arg === '--global-memory') args.globalMemory = readValue(argv, index += 1, arg);
+    else if (arg === '--project-memory') args.projectMemory = readValue(argv, index += 1, arg);
+    else if (arg === '--workflow-artifacts') args.workflowArtifacts = readValue(argv, index += 1, arg);
+    else if (arg === '--mr-review-artifacts') args.mrReviewArtifacts = readValue(argv, index += 1, arg);
     else if (arg === '--help' || arg === '-h') {
       printInitHelp(commandName);
       process.exit(0);
-    } else {
-      throw new Error(`Unknown init option: ${arg}`);
-    }
+    } else throw new Error(`Unknown init option: ${arg}`);
   }
-
   return args;
 }
 
@@ -70,49 +96,153 @@ function readValue(argv: string[], index: number, flag: string): string {
   return value;
 }
 
-function getConfigPath(): string {
-  return process.env.WIOLETT_AUTH_CONFIG_PATH?.trim() || getDefaultWiolettAuthConfigPath();
+function readTextApi(value: string): 'responses' | 'chat_completions' {
+  if (value === 'responses') return value;
+  if (value === 'chat-completions' || value === 'chat_completions') return 'chat_completions';
+  throw new Error('--text-api must be responses or chat-completions.');
 }
 
-function checkConfig(configPath: string, commandName: string): void {
-  const provider = resolveOpenAIProviderConfig({ configPath });
-  if (!provider) {
-    console.log(`Agent Memory auth is not configured. Run: ${commandName}`);
+function checkConfig(providersPath: string, mcpPath: string, commandName: string): void {
+  const mcp = readMcpConfig(mcpPath);
+  const roles = {
+    gate: resolveOpenAIProviderConfig({ providersConfigPath: providersPath, mcpConfigPath: mcpPath, role: 'gate' }),
+    synthesis: resolveOpenAIProviderConfig({ providersConfigPath: providersPath, mcpConfigPath: mcpPath, role: 'synthesis' }),
+    embeddings: resolveOpenAIProviderConfig({ providersConfigPath: providersPath, mcpConfigPath: mcpPath, role: 'embeddings' }),
+  };
+  const unresolved = (Object.keys(roles) as Array<keyof typeof roles>)
+    .filter((role) => mcp?.mcp['agent-memory']?.routing?.[role] !== null && !roles[role]);
+  if (unresolved.length) {
+    console.log(`Agent Memory configuration is unresolved for: ${unresolved.join(', ')}. Run: ${commandName}`);
     process.exitCode = 1;
     return;
   }
-
-  const source = provider.source === 'environment' ? 'OPENAI_API_KEY' : configPath;
-  console.log(`Agent Memory auth is configured via ${source}.`);
-  console.log(`Endpoint: ${provider.baseUrl}`);
-  console.log(`Response model: ${provider.model ?? DEFAULT_RESPONSE_MODEL}`);
-  console.log(`Embedding model: ${provider.embeddingModel ?? DEFAULT_EMBEDDING_MODEL}`);
+  console.log(`Agent Memory providers are configured via ${providersPath}.`);
+  printTextRole('Gate', roles.gate, mcp?.mcp['agent-memory']?.routing?.gate === null);
+  printTextRole('Synthesis', roles.synthesis, mcp?.mcp['agent-memory']?.routing?.synthesis === null);
+  printEmbeddingRole(roles.embeddings, mcp?.mcp['agent-memory']?.routing?.embeddings === null);
 }
 
-async function initConfig(configPath: string, args: InitArgs): Promise<void> {
-  const existing = resolveOpenAIProviderConfig({ configPath });
-  if (existing && !args.force && !args.key) {
-    console.log(`Agent Memory auth is already configured via ${existing.source === 'environment' ? 'OPENAI_API_KEY' : configPath}.`);
-    const overwrite = await promptConfirm('Write a config file anyway?', false);
+async function initConfig(configPath: string, mcpConfigPath: string, args: InitArgs): Promise<void> {
+  const providersConfig = readAiProvidersConfig(configPath);
+  const existing = providersConfig?.providers.openai;
+  if (existing?.auth?.api_key && !args.force && !hasExplicitProviderArgs(args) && !args.nonInteractive) {
+    console.log(`Agent Memory auth is already configured via ${configPath}.`);
+    const overwrite = await promptConfirm('Update the existing YAML configuration?', false);
     if (!overwrite) return;
   }
+  if (args.nonInteractive && !hasExplicitProviderArgs(args)) return;
 
   renderInitHeader();
   try {
-    const openAIKey = args.key ?? await promptRequiredPassword('OpenAI API key');
-    const endpoint = args.endpoint ?? await promptText('Endpoint', DEFAULT_ENDPOINT);
-    const responseModel = args.responseModel ?? await promptText('Response model', DEFAULT_RESPONSE_MODEL);
-    const embeddingModel = args.embeddingModel ?? await promptText('Embedding model', DEFAULT_EMBEDDING_MODEL);
-    writeConfig(configPath, {
-      openAIKey,
-      endpoint,
-      responseModel,
-      embeddingModel,
-    });
+    const apiKey = args.key ?? existing?.auth?.api_key ?? (args.nonInteractive ? '' : await promptRequiredPassword('OpenAI API key'));
+    const endpoint = args.endpoint ?? existing?.base_url ?? (args.nonInteractive ? DEFAULT_OPENAI_ENDPOINT : await promptText('Endpoint', DEFAULT_OPENAI_ENDPOINT));
+    const textApi = args.textApi ?? existing?.defaults?.text_api ?? 'responses';
+    const responseModel = args.responseModel ?? existing?.defaults?.models?.text
+      ?? (args.nonInteractive ? DEFAULT_RESPONSE_MODEL : await promptText('Response model', DEFAULT_RESPONSE_MODEL));
+    const embeddingModel = args.embeddingModel ?? existing?.defaults?.models?.embeddings
+      ?? (args.nonInteractive ? DEFAULT_EMBEDDING_MODEL : await promptText('Embedding model', DEFAULT_EMBEDDING_MODEL));
+    if (args.force && existsSync(configPath)) backupFile(configPath);
+    if (args.force && existsSync(mcpConfigPath)) backupFile(mcpConfigPath);
+    if (existing) {
+      updateYaml(configPath, [
+        [['providers', 'openai', 'auth', 'api_key'], apiKey],
+        [['providers', 'openai', 'base_url'], endpoint],
+        [['providers', 'openai', 'defaults', 'text_api'], textApi],
+        [['providers', 'openai', 'defaults', 'models', 'text'], responseModel],
+        [['providers', 'openai', 'defaults', 'models', 'embeddings'], embeddingModel],
+      ]);
+    } else {
+      const definition = createDefaultAiProvidersConfig().providers.openai;
+      definition.auth = { api_key: apiKey };
+      definition.base_url = endpoint;
+      definition.defaults = { text_api: textApi, models: { text: responseModel, embeddings: embeddingModel } };
+      updateYaml(configPath, [[['providers', 'openai'], definition]]);
+    }
+    updateYaml(mcpConfigPath, routeUpdates(readMcpConfig(mcpConfigPath), textApi, responseModel, embeddingModel));
     process.stdout.write(`\x1b[36m│\x1b[0m Saved ${configPath}\n`);
   } finally {
     renderInitFooter();
   }
+}
+
+function routeUpdates(
+  config: ReturnType<typeof readMcpConfig>,
+  textApi: 'responses' | 'chat_completions',
+  responseModel: string,
+  embeddingModel: string,
+): Array<[Array<string>, unknown]> {
+  const routing = config?.mcp['agent-memory']?.routing;
+  const updates: Array<[Array<string>, unknown]> = [];
+  for (const role of ['gate', 'synthesis'] as const) {
+    const route = routing?.[role];
+    if (route === null || (route && route.provider !== 'openai')) continue;
+    if (!route) updates.push([['mcp', 'agent-memory', 'routing', role], { provider: 'openai', api: textApi, model: responseModel }]);
+    else {
+      updates.push([['mcp', 'agent-memory', 'routing', role, 'api'], textApi]);
+      updates.push([['mcp', 'agent-memory', 'routing', role, 'model'], responseModel]);
+    }
+  }
+  const embedding = routing?.embeddings;
+  if (embedding !== null && (!embedding || embedding.provider === 'openai')) {
+    if (!embedding) updates.push([['mcp', 'agent-memory', 'routing', 'embeddings'], { provider: 'openai', api: 'embeddings', model: embeddingModel }]);
+    else updates.push([['mcp', 'agent-memory', 'routing', 'embeddings', 'model'], embeddingModel]);
+  }
+  return updates;
+}
+
+function printTextRole(
+  label: string,
+  provider: ReturnType<typeof resolveOpenAIProviderConfig>,
+  disabled: boolean,
+): void {
+  if (disabled) {
+    console.log(`${label}: disabled`);
+    return;
+  }
+  if (!provider) return;
+  console.log(`${label}: provider=${provider.providerId} api=${provider.textApi === 'chat_completions' ? 'chat-completions' : provider.textApi} model=${provider.model ?? DEFAULT_RESPONSE_MODEL} endpoint=${provider.baseUrl}`);
+}
+
+function printEmbeddingRole(
+  provider: ReturnType<typeof resolveOpenAIProviderConfig>,
+  disabled: boolean,
+): void {
+  if (disabled) {
+    console.log('Embeddings: disabled');
+    return;
+  }
+  if (!provider) return;
+  console.log(`Embeddings: provider=${provider.providerId} model=${provider.embeddingModel ?? DEFAULT_EMBEDDING_MODEL} endpoint=${provider.baseUrl}`);
+}
+
+function prepareExplicitMcpPaths(configPath: string, agentsHome: string, args: InitArgs): void {
+  const updates: Array<[Array<string>, string]> = [];
+  if (args.globalMemory) updates.push([['mcp', 'agent-memory', 'storage', 'memory', 'global'], args.globalMemory]);
+  if (args.projectMemory) updates.push([['mcp', 'agent-memory', 'storage', 'memory', 'project'], args.projectMemory]);
+  if (args.workflowArtifacts) updates.push([['mcp', 'workflow', 'artifacts', 'root'], args.workflowArtifacts]);
+  if (args.mrReviewArtifacts) updates.push([['mcp', 'merge-request-review', 'artifacts', 'root'], args.mrReviewArtifacts]);
+  if (!updates.length) return;
+  if (!existsSync(configPath)) writeGeneratedYaml(configPath, createDefaultMcpConfig(agentsHome), 'mcp');
+  if (args.force) backupFile(configPath);
+  updateYaml(configPath, updates);
+}
+
+function updateYaml(configPath: string, updates: Array<[Array<string>, unknown]>): void {
+  const document = parseDocument(readFileSync(configPath, 'utf8'), { schema: 'core', uniqueKeys: true });
+  if (document.errors.length) throw new Error(`Invalid YAML in ${configPath}: ${document.errors[0]?.message ?? 'parse error'}`);
+  for (const [path, value] of updates) document.setIn(path, value);
+  writeFileSync(configPath, document.toString({ lineWidth: 0 }), { mode: 0o600 });
+  chmodSync(configPath, 0o600);
+}
+
+function backupFile(configPath: string): void {
+  const backup = `${configPath}.bak-${new Date().toISOString().replace(/[:.]/gu, '-')}`;
+  copyFileSync(configPath, backup);
+  chmodSync(backup, 0o600);
+}
+
+function hasExplicitProviderArgs(args: InitArgs): boolean {
+  return Boolean(args.key || args.endpoint || args.textApi || args.responseModel || args.embeddingModel);
 }
 
 async function promptRequiredPassword(message: string): Promise<string> {
@@ -121,44 +251,25 @@ async function promptRequiredPassword(message: string): Promise<string> {
   return value;
 }
 
-function writeConfig(configPath: string, config: { openAIKey: string; endpoint: string; responseModel: string; embeddingModel: string }): void {
-  mkdirSync(path.dirname(configPath), { recursive: true, mode: 0o700 });
-  const existing = readExistingConfig(configPath);
-  const next = {
-    ...existing,
-    openAIKey: config.openAIKey,
-    endpoint: config.endpoint || DEFAULT_ENDPOINT,
-    responseModel: config.responseModel || DEFAULT_RESPONSE_MODEL,
-    embeddingModel: config.embeddingModel || DEFAULT_EMBEDDING_MODEL,
-  };
-  delete (next as { model?: unknown }).model;
-  delete (next as { defaultModel?: unknown }).defaultModel;
-
-  writeFileSync(configPath, `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 });
-  chmodSync(configPath, 0o600);
-}
-
-function readExistingConfig(configPath: string): Record<string, unknown> {
-  if (!existsSync(configPath)) return {};
-  try {
-    const parsed = JSON.parse(readFileSync(configPath, 'utf8')) as unknown;
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
-  } catch {
-    return {};
-  }
-}
-
 function printInitHelp(commandName: string): void {
   console.log([
     `Usage: ${commandName} [options]`,
     '',
     'Options:',
-    '  --check                    Check whether auth is configured',
-    '  --force                    Overwrite existing config without asking',
-    '  --print-path               Print config path',
-    '  --key <key>                Non-interactive API key setup',
-    '  --endpoint <url>           API endpoint (default: https://api.openai.com/v1)',
-    `  --response-model <model>   Response model (default: ${DEFAULT_RESPONSE_MODEL})`,
-    '  --embedding-model <model>  Embedding model (default: text-embedding-3-small)',
+    '  --check                         Validate and display the active configuration',
+    '  --dry-run                       Show bootstrap paths without writing files',
+    '  --force                         Update without confirmation and create a backup',
+    '  --non-interactive               Do not prompt for missing values',
+    '  --print-path                    Print the AI providers config path',
+    '  --config-dir <path>             Override the Wiolett config directory',
+    '  --key <key>                     Store an API key in ai-providers.yml',
+    `  --endpoint <url>                Provider base URL (default: ${DEFAULT_OPENAI_ENDPOINT})`,
+    '  --text-api <api>                responses or chat-completions',
+    `  --response-model <model>        Text model (default: ${DEFAULT_RESPONSE_MODEL})`,
+    `  --embedding-model <model>       Embedding model (default: ${DEFAULT_EMBEDDING_MODEL})`,
+    '  --global-memory <path>          Configure global Agent Memory storage',
+    '  --project-memory <path>         Configure project Agent Memory storage',
+    '  --workflow-artifacts <path>     Configure Workflow artifact root',
+    '  --mr-review-artifacts <path>    Configure Merge Request Review artifact root',
   ].join('\n'));
 }

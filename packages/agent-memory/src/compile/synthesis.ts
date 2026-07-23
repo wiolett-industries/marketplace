@@ -35,7 +35,7 @@ export async function compileSynthesis(args: {
   const deterministic = buildDeterministicAnswer(args.mode, selected, args.query);
   if (!selected.length) return deterministic;
 
-  const model = await getModelClient();
+  const model = await getModelClient('synthesis');
   if (!model) return deterministic;
 
   const taskInstruction = args.mode === 'query'

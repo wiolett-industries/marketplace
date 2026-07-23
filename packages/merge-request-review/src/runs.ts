@@ -112,6 +112,7 @@ export function updateReviewRun(workspaceRootInput: string | undefined, run: str
   let state = readObject(statePath);
 
   for (const operation of operations) {
+    if (operation.type === 'mark_approved') assertReviewCompletionReady(state);
     state = applyOperation(state, operation);
   }
   state.updated_at = new Date().toISOString();
@@ -132,8 +133,10 @@ export function completeReviewRun(workspaceRootInput: string | undefined, run?: 
   const workspaceRoot = resolveWorkspaceRoot(workspaceRootInput);
   const runDir = resolveRunDir(workspaceRoot, run);
   const statePath = path.join(runDir, 'state.json');
+  const current = readObject(statePath);
+  assertReviewCompletionReady(current);
   const state = {
-    ...readObject(statePath),
+    ...current,
     approved: true,
     phase: 'approved',
     review_state: 'approved',
@@ -148,6 +151,25 @@ export function completeReviewRun(workspaceRootInput: string | undefined, run?: 
     run: relativeToReviewRoot(workspaceRoot, runDir),
     state,
   };
+}
+
+function assertReviewCompletionReady(state: Record<string, unknown>): void {
+  const phase = String(state.phase || state.review_state || '');
+  if (phase !== 'clean') throw new Error(`MR review must be in clean phase before approval; current phase is ${phase || 'unknown'}.`);
+  if (state.discussions_loaded !== true) throw new Error('MR review discussions must be loaded before approval.');
+  if (asArray(state.blockers).length > 0) throw new Error('MR review blockers must be empty before approval.');
+  const blocking = asArray(state.findings).filter((finding) => {
+    if (!finding || typeof finding !== 'object' || Array.isArray(finding)) return false;
+    const record = finding as Record<string, unknown>;
+    const severity = String(record.severity || '');
+    const status = String(record.status || 'open').toLowerCase();
+    return (severity === 'Critical' || severity === 'Important')
+      && !['resolved', 'fixed', 'closed', 'dismissed'].includes(status);
+  });
+  if (blocking.length > 0) throw new Error('MR review has unresolved Critical or Important findings.');
+  if (typeof state.clean_rounds === 'number' && state.clean_rounds < 1) {
+    throw new Error('MR review requires one recorded clean round before approval.');
+  }
 }
 
 export function writeReviewArtifact(input: ArtifactWriteInput): Record<string, unknown> {
@@ -204,7 +226,7 @@ export function getReviewStatus(workspaceRootInput?: string): Record<string, unk
     workspace_root: workspaceRoot,
     review_root: root,
     state: rootState,
-    latest_reviews: listReviewDirs(root).map((entry) => path.relative(path.join(workspaceRoot, '.workflow'), entry).split(path.sep).join('/')),
+    latest_reviews: listReviewDirs(root).map((entry) => relativeToReviewRoot(workspaceRoot, entry)),
   };
 }
 
@@ -259,7 +281,7 @@ function resolveRunDir(workspaceRoot: string, run?: string): string {
     throw new Error('No active merge request review run. Pass review_run explicitly or create one first.');
   }
   if (value.startsWith('mr-reviews/')) {
-    return resolveSafeRelative(path.join(workspaceRoot, '.workflow'), value);
+    return resolveSafeRelative(reviewRoot(workspaceRoot), value.slice('mr-reviews/'.length));
   }
   return resolveSafeRelative(reviewRoot(workspaceRoot), value);
 }
@@ -319,7 +341,8 @@ function runResult(workspaceRoot: string, runDir: string, manifest: unknown, sta
 }
 
 function relativeToReviewRoot(workspaceRoot: string, runDir: string): string {
-  return path.relative(path.join(workspaceRoot, '.workflow'), runDir).split(path.sep).join('/');
+  const relative = path.relative(reviewRoot(workspaceRoot), runDir).split(path.sep).join('/');
+  return `mr-reviews/${relative}`;
 }
 
 function normalizeSlug(value: string): string {

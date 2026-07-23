@@ -54,6 +54,134 @@ function readJson(file) {
   }
 }
 
+function agentsHome() {
+  return process.env.PROJECT_MEMORY_AGENTS_HOME || process.env.AGENTS_HOME || path.join(os.homedir(), ".agents");
+}
+
+function mcpConfigPath() {
+  return path.join(process.env.WIOLETT_CONFIG_DIR || path.join(agentsHome(), ".wiolett", "config"), "mcp-config.yml");
+}
+
+function readYamlScalar(keys) {
+  let source;
+  try {
+    source = fs.readFileSync(mcpConfigPath(), "utf8");
+  } catch {
+    return null;
+  }
+  const stack = [];
+  for (const rawLine of source.split(/\r?\n/u)) {
+    if (!rawLine.trim() || rawLine.trimStart().startsWith("#")) continue;
+    const match = rawLine.match(/^(\s*)([^:#][^:]*):(?:\s*(.*))?$/u);
+    if (!match) continue;
+    const indent = match[1].length;
+    const key = match[2].trim().replace(/^["']|["']$/gu, "");
+    while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
+    stack.push({ indent, key });
+    const value = stripYamlComment(match[3] || "").trim();
+    const currentKeys = stack.map((item) => item.key);
+    if (currentKeys.join(".") === keys.join(".")) return parseYamlScalarValue(value);
+    if (value.startsWith("{") && isPathPrefix(currentKeys, keys)) {
+      const nested = readFlowScalar(value, keys.slice(currentKeys.length));
+      if (nested !== null) return nested;
+    }
+  }
+  return null;
+}
+
+function isPathPrefix(prefix, value) {
+  return prefix.length < value.length && prefix.every((key, index) => value[index] === key);
+}
+
+function parseYamlScalarValue(value) {
+  const normalized = value.trim();
+  if (!normalized || normalized === "null" || normalized === "~") return null;
+  if (normalized.startsWith('"') && normalized.endsWith('"')) {
+    try { return JSON.parse(normalized); } catch { return normalized.slice(1, -1); }
+  }
+  if (normalized.startsWith("'") && normalized.endsWith("'")) return normalized.slice(1, -1).replace(/''/gu, "'");
+  return normalized;
+}
+
+function readFlowScalar(source, keys) {
+  let current = source;
+  for (const key of keys) {
+    const mapping = parseFlowMapping(current);
+    if (!mapping || !mapping.has(key)) return null;
+    current = mapping.get(key);
+  }
+  return parseYamlScalarValue(current);
+}
+
+function parseFlowMapping(source) {
+  const normalized = source.trim();
+  if (!normalized.startsWith("{") || !normalized.endsWith("}")) return null;
+  const mapping = new Map();
+  for (const entry of splitFlow(normalized.slice(1, -1), ",")) {
+    const pair = splitFlow(entry, ":", 2);
+    if (pair.length !== 2) return null;
+    const key = pair[0].trim().replace(/^["']|["']$/gu, "");
+    mapping.set(key, pair[1].trim());
+  }
+  return mapping;
+}
+
+function splitFlow(source, separator, limit = Infinity) {
+  const parts = [];
+  let start = 0;
+  let braces = 0;
+  let brackets = 0;
+  let single = false;
+  let double = false;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === "'" && !double) single = !single;
+    else if (char === '"' && !single && source[index - 1] !== "\\") double = !double;
+    else if (!single && !double) {
+      if (char === "{") braces += 1;
+      else if (char === "}") braces -= 1;
+      else if (char === "[") brackets += 1;
+      else if (char === "]") brackets -= 1;
+      else if (char === separator && braces === 0 && brackets === 0 && parts.length < limit - 1) {
+        parts.push(source.slice(start, index));
+        start = index + 1;
+      }
+    }
+  }
+  parts.push(source.slice(start));
+  return parts;
+}
+
+function stripYamlComment(value) {
+  let single = false;
+  let double = false;
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (char === "'" && !double) single = !single;
+    else if (char === '"' && !single && value[index - 1] !== "\\") double = !double;
+    else if (char === "#" && !single && !double && (index === 0 || /\s/u.test(value[index - 1]))) return value.slice(0, index);
+  }
+  return value;
+}
+
+function resolveConfiguredRoot(workspaceRoot, keys, fallback) {
+  const configured = readYamlScalar(keys) || fallback;
+  const expanded = configured === "~" ? os.homedir() : configured.startsWith("~/") ? path.join(os.homedir(), configured.slice(2)) : configured;
+  return path.resolve(path.isAbsolute(expanded) ? expanded : path.join(workspaceRoot, expanded));
+}
+
+function workflowArtifactRoot(root) {
+  return resolveConfiguredRoot(root, ["mcp", "workflow", "artifacts", "root"], ".workflow");
+}
+
+function reviewArtifactRoot(root) {
+  return resolveConfiguredRoot(root, ["mcp", "merge-request-review", "artifacts", "root"], ".workflow/mr-reviews");
+}
+
+function projectMemoryRoot(root) {
+  return resolveConfiguredRoot(root, ["mcp", "agent-memory", "storage", "memory", "project"], ".memory");
+}
+
 function workflowPluginRoot() {
   return process.env.PLUGIN_ROOT || process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, "..");
 }
@@ -102,24 +230,24 @@ function hasCompanionPlugin(name) {
 }
 
 function activeWorkflowSummary(root) {
-  const workflowRoot = path.join(root, ".workflow");
+  const workflowRoot = workflowArtifactRoot(root);
   const globalStatePath = path.join(workflowRoot, "state.json");
   const globalState = readJson(globalStatePath);
   const lines = [];
 
   if (fs.existsSync(workflowRoot)) {
-    lines.push("`.workflow/` exists; use artifacts, not chat history.");
+    lines.push(`Workflow artifacts exist at \`${path.relative(root, workflowRoot) || "."}/\`; use artifacts, not chat history.`);
   }
 
   if (globalState?.active_plan) {
     const planPath = path.join(workflowRoot, globalState.active_plan);
-    lines.push(`Active workflow plan: .workflow/${globalState.active_plan}`);
+    lines.push(`Active workflow plan: ${path.relative(root, path.join(workflowRoot, globalState.active_plan))}`);
     lines.push(`Read: ${path.relative(root, path.join(planPath, "manifest.json"))}, ${path.relative(root, path.join(planPath, "state.json"))}, ${path.relative(root, path.join(planPath, "plan.md"))}.`);
     lines.push("Before final output for completed work, call `workflow_plan_complete`; a phase update does not clear `active_plan`.");
   }
 
   if (globalState?.active_audit) {
-    lines.push(`Active workflow audit: .workflow/${globalState.active_audit}`);
+    lines.push(`Active workflow audit: ${path.relative(root, path.join(workflowRoot, globalState.active_audit))}`);
     lines.push("Read audit manifest/state plus prompts, reviews, sanity, and master artifacts.");
     lines.push("Before final output for a completed audit, call `workflow_audit_complete`; a phase update does not clear `active_audit`.");
   }
@@ -128,16 +256,17 @@ function activeWorkflowSummary(root) {
 }
 
 function authSummary() {
-  const authFile = path.join(os.homedir(), ".agents", ".wiolett", "auth-config.json");
-  if (process.env.OPENAI_API_KEY || fs.existsSync(authFile)) {
+  const providersFile = path.join(process.env.WIOLETT_CONFIG_DIR || path.join(agentsHome(), ".wiolett", "config"), "ai-providers.yml");
+  if (fs.existsSync(providersFile)) {
     return "Agent Memory auth: configured.";
   }
   return "Agent Memory auth missing for gated writes/embeddings: run `npx -y @wiolett/agent-memory@latest init`.";
 }
 
 function projectMemorySummary(root) {
-  if (fs.existsSync(path.join(root, ".memory"))) {
-    return "Project Agent Memory `.memory/` exists; proactively use `memory_query` for a focused question or `memory_recap` for broad recovery when durable repo context can affect non-trivial work.";
+  const memoryRoot = projectMemoryRoot(root);
+  if (fs.existsSync(memoryRoot)) {
+    return `Project Agent Memory \`${path.relative(root, memoryRoot) || "."}/\` exists; proactively use \`memory_query\` for a focused question or \`memory_recap\` for broad recovery when durable repo context can affect non-trivial work.`;
   }
   return "No project `.memory/`: reads no-op; writes may init only for durable saves.";
 }
@@ -163,11 +292,11 @@ function mergeRequestReviewContext(root) {
 
   const lines = [
     "Merge Request Review installed: use `review-merge-request` only for an actual ready GitLab MR; do not also use `finalizing-plan` for that review.",
-    "External GitLab MCP owns GitLab reads/writes; MR review MCP owns only `.workflow/mr-reviews/` artifacts.",
+    `External GitLab MCP owns GitLab reads/writes; MR review MCP owns only \`${path.relative(root, reviewArtifactRoot(root)) || "."}/\` artifacts.`,
   ];
-  const reviewState = readJson(path.join(root, ".workflow", "mr-reviews", "state.json"));
+  const reviewState = readJson(path.join(reviewArtifactRoot(root), "state.json"));
   if (reviewState?.active_review) {
-    lines.push(`Active merge request review: .workflow/${reviewState.active_review}`);
+    lines.push(`Active merge request review: ${path.relative(root, path.join(reviewArtifactRoot(root), reviewState.active_review.replace(/^mr-reviews\//u, "")))}`);
     lines.push("After the clean note and external GitLab approval succeed, call `mr_review_complete`; changing phase alone does not clear `active_review`.");
   }
   return lines;
@@ -203,13 +332,14 @@ function stopCommitmentReflection(input) {
   }
 
   const root = repoRoot(input.cwd || process.cwd());
-  const globalState = readJson(path.join(root, ".workflow", "state.json"));
+  const workflowRoot = workflowArtifactRoot(root);
+  const globalState = readJson(path.join(workflowRoot, "state.json"));
   if (!globalState?.active_plan) {
     ok();
     return;
   }
 
-  const planState = readJson(path.join(root, ".workflow", globalState.active_plan, "state.json"));
+  const planState = readJson(path.join(workflowRoot, globalState.active_plan, "state.json"));
   const reflection = planState?.commitment_reflection;
   if (!reflection || reflection.required !== true) {
     ok();

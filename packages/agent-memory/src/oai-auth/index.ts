@@ -23,6 +23,7 @@ export {
   type OpenAIProviderConfigSource,
 } from './openai-provider-config.js';
 export { OpenAIResponsesClient, type OpenAIResponsesOptions } from './openai-responses.js';
+export { OpenAIChatCompletionsClient, type OpenAIChatCompletionsOptions } from './openai-chat-completions.js';
 export {
   createDefaultModelProvider,
   type DefaultModelProvider,

@@ -4,6 +4,7 @@ import { runHarness } from './run-harness.mjs';
 describe('MCP launcher smoke test', () => {
   test('MCP server handles basic calls without exposing gate bypass', async () => {
     const result = runHarness('mcp');
+    expect(result.startupConfig).toEqual({ providers: true, mcp: true });
     expect(result.toolNames).toEqual(
       expect.arrayContaining([
         'memory_setup',

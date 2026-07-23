@@ -52,6 +52,7 @@ For medium and larger work, separate analysis/decision tasks from small implemen
 ## Plan Review
 
 - For every material plan, call `workflow_plan_commitment_propose`, perform the returned same-model shrink-first reflection from existing context, then call `workflow_plan_commitment_confirm` with `KEEP`, `SHRINK`, `ASK`, or `REPLAN` before execution. This is a local second look, not an agent review or another discovery pass.
+- After `SHRINK`, rewrite the durable plan and affected tasks to match the confirmed narrower commitment before handoff or execution. Confirmation alone does not modify plan text.
 - `standard`: local self-check; no plan reviewer unless a specific ambiguity or integration risk would materially benefit from independence.
 - `assurance`: use at most one plan reviewer for the dominant unresolved risk. Add a second only for a distinct high-impact risk and within the existing task-wide budget.
 

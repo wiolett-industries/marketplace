@@ -12,7 +12,12 @@ The Workflow plugin is also the consolidated hook owner for Wiolett plugins. Its
 
 ## Tools
 
-The MCP tools are deterministic filesystem helpers for `.workflow/` artifacts. Use them whenever available for workflow status, run creation, state updates, run completion, artifact writes, findings normalization, structured handoffs, and bounded same-model commitment reflection; manual `.workflow/` writes are fallback only. They do not generate plans, run agents, or make architecture decisions.
+The MCP tools are deterministic filesystem helpers for workflow artifacts, stored under `.workflow/` by default. Use them whenever available for workflow status, run creation, state updates, run completion, artifact writes, findings normalization, structured handoffs, and bounded same-model commitment reflection; manual writes are fallback only. They do not generate plans, run agents, or make architecture decisions.
+
+Workflow reads `mcp.workflow.artifacts` from
+`$AGENTS_HOME/.wiolett/config/mcp-config.yml`. It never creates or modifies the
+file; when the file or section is absent it uses `.workflow`, `plans`, and
+`audits`. Invalid configuration produces a warning and the same defaults.
 
 State update tools reject unknown operations with a nearest supported operation and a payload hint. Agents should correct the operation shape and retry the MCP call instead of falling back to manual `.workflow/` writes. Plan and audit updates use one shared operation handler, so the documented plan/audit operation lists are the meaningful subsets agents should use for those run types rather than separate runtime validators.
 

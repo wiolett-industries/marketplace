@@ -7,6 +7,10 @@ description: Use only when creating, resuming, inspecting, updating, completing,
 
 Use the matching MCP tool for deterministic `.workflow/` state and artifact operations whenever it is available. This is the normal path, not a preference. MCP does not generate substantive content, launch agents, merge worktrees, run verification, or replace judgment.
 
+`.workflow/` is the default artifact root. When `workflow_status` reports a
+configured root from `mcp-config.yml`, treat the reported path as authoritative;
+do not assume or manually recreate the default directory.
+
 ## Tool Surface
 
 - `workflow_status`

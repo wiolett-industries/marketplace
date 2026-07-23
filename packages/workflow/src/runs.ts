@@ -6,7 +6,7 @@ import { resolveSafeRelative, writeJsonFile } from './fs-utils.js';
 import { makeSlug } from './naming.js';
 import { applyOperation, asArray, type RunOperation, upsertById } from './run-operations.js';
 import { readRootState, relativeToWorkspace, updateRootState } from './workflow-state.js';
-import { listRunDirs, resolveWorkspaceRoot, workflowRoot } from './workspace.js';
+import { listRunDirs, resolveWorkspaceRoot, workflowAuditsRoot, workflowPlansRoot, workflowRoot } from './workspace.js';
 
 export type PlanComplexity = 'simple' | 'medium' | 'complex' | 'very_complex';
 export type AuditDepth = 'simple' | 'standard' | 'deep' | 'exhaustive';
@@ -65,8 +65,9 @@ export interface HandoffWriteInput {
 export function createPlanRun(input: CreatePlanInput): Record<string, unknown> {
   const workspaceRoot = resolveWorkspaceRoot(input.workspace_root);
   const slug = normalizeRunSlug(input.slug || makeSlug(input.title));
-  const runDir = resolveSafeRelative(path.join(workspaceRoot, '.workflow', 'plans'), slug);
+  const runDir = resolveSafeRelative(workflowPlansRoot(workspaceRoot), slug);
   const now = new Date().toISOString();
+  const runId = relativeToWorkflow(workspaceRoot, runDir);
 
   assertNewRun(runDir);
   mkdirSync(path.join(runDir, 'artifacts'), { recursive: true });
@@ -76,7 +77,7 @@ export function createPlanRun(input: CreatePlanInput): Record<string, unknown> {
   const manifest = {
     kind: 'plan',
     version: 1,
-    run_id: `plans/${slug}`,
+    run_id: runId,
     slug,
     phase: 'planning',
     title: input.title,
@@ -84,7 +85,7 @@ export function createPlanRun(input: CreatePlanInput): Record<string, unknown> {
     created_at: now,
     updated_at: now,
     workspace_root: workspaceRoot,
-    paths: planPaths(slug),
+    paths: planPaths(runId),
   };
   const state = {
     phase: 'planning',
@@ -109,15 +110,16 @@ export function createPlanRun(input: CreatePlanInput): Record<string, unknown> {
   writeText(path.join(runDir, 'decisions.md'), input.decisions_markdown || `# Decisions\n`);
   writeText(path.join(runDir, 'ui-contract.md'), `# UI Contract\n\nNo UI contract applies unless frontend or visible UI work is in scope.\n`);
 
-  const rootState = updateRootState(workspaceRoot, { active_plan: `plans/${slug}` });
+  const rootState = updateRootState(workspaceRoot, { active_plan: runId });
   return runResult(workspaceRoot, runDir, manifest, state, rootState);
 }
 
 export function createAuditRun(input: CreateAuditInput): Record<string, unknown> {
   const workspaceRoot = resolveWorkspaceRoot(input.workspace_root);
   const slug = normalizeRunSlug(input.slug || makeSlug(input.title));
-  const runDir = resolveSafeRelative(path.join(workspaceRoot, '.workflow', 'audits'), slug);
+  const runDir = resolveSafeRelative(workflowAuditsRoot(workspaceRoot), slug);
   const now = new Date().toISOString();
+  const runId = relativeToWorkflow(workspaceRoot, runDir);
   const normalizedFindings = normalizeFindings(input.findings || []);
 
   assertNewRun(runDir);
@@ -129,7 +131,7 @@ export function createAuditRun(input: CreateAuditInput): Record<string, unknown>
   const manifest = {
     kind: 'audit',
     version: 1,
-    run_id: `audits/${slug}`,
+    run_id: runId,
     slug,
     phase: 'scoping',
     title: input.title,
@@ -138,7 +140,7 @@ export function createAuditRun(input: CreateAuditInput): Record<string, unknown>
     created_at: now,
     updated_at: now,
     workspace_root: workspaceRoot,
-    paths: auditPaths(slug),
+    paths: auditPaths(runId),
   };
   const state = {
     phase: 'scoping',
@@ -160,7 +162,7 @@ export function createAuditRun(input: CreateAuditInput): Record<string, unknown>
   writeText(path.join(runDir, 'planning-input.md'), input.planning_input_markdown || `# Planning Input\n`);
   writeText(path.join(runDir, 'master-audit.md'), `# Master Audit\n`);
 
-  const rootState = updateRootState(workspaceRoot, { active_audit: `audits/${slug}` });
+  const rootState = updateRootState(workspaceRoot, { active_audit: runId });
   return runResult(workspaceRoot, runDir, manifest, state, rootState);
 }
 
@@ -244,8 +246,8 @@ export function getWorkflowStatus(workspaceRootInput?: string): Record<string, u
     workspace_root: workspaceRoot,
     workflow_root: root,
     state,
-    latest_plans: listRunDirs(path.join(root, 'plans')).map((entry) => relativeToWorkspace(workspaceRoot, entry)),
-    latest_audits: listRunDirs(path.join(root, 'audits')).map((entry) => relativeToWorkspace(workspaceRoot, entry)),
+    latest_plans: listRunDirs(workflowPlansRoot(workspaceRoot)).map((entry) => relativeToWorkspace(workspaceRoot, entry)),
+    latest_audits: listRunDirs(workflowAuditsRoot(workspaceRoot)).map((entry) => relativeToWorkspace(workspaceRoot, entry)),
   };
 }
 
@@ -334,10 +336,10 @@ function resolveRunDir(workspaceRoot: string, kind: 'plans' | 'audits', run?: st
   if (!value) {
     throw new Error(`No active ${kind.slice(0, -1)} run. Pass run explicitly or create one first.`);
   }
-  if (value.startsWith(`${kind}/`)) {
+  if (value.includes('/')) {
     return resolveSafeRelative(root, value);
   }
-  return resolveSafeRelative(path.join(root, kind), value);
+  return resolveSafeRelative(kind === 'plans' ? workflowPlansRoot(workspaceRoot) : workflowAuditsRoot(workspaceRoot), value);
 }
 
 function touchManifest(runDir: string): void {
@@ -426,34 +428,34 @@ function relativeToWorkflow(workspaceRoot: string, runDir: string): string {
   return path.relative(workflowRoot(workspaceRoot), runDir).split(path.sep).join('/');
 }
 
-function planPaths(slug: string): Record<string, string> {
+function planPaths(runId: string): Record<string, string> {
   return {
-    plan: `plans/${slug}/plan.md`,
-    manifest: `plans/${slug}/manifest.json`,
-    state: `plans/${slug}/state.json`,
-    context: `plans/${slug}/context.md`,
-    questions: `plans/${slug}/questions.md`,
-    decisions: `plans/${slug}/decisions.md`,
-    ui_contract: `plans/${slug}/ui-contract.md`,
-    artifacts: `plans/${slug}/artifacts`,
-    chunks: `plans/${slug}/chunks`,
-    handoffs: `plans/${slug}/handoffs`,
+    plan: `${runId}/plan.md`,
+    manifest: `${runId}/manifest.json`,
+    state: `${runId}/state.json`,
+    context: `${runId}/context.md`,
+    questions: `${runId}/questions.md`,
+    decisions: `${runId}/decisions.md`,
+    ui_contract: `${runId}/ui-contract.md`,
+    artifacts: `${runId}/artifacts`,
+    chunks: `${runId}/chunks`,
+    handoffs: `${runId}/handoffs`,
   };
 }
 
-function auditPaths(slug: string): Record<string, string> {
+function auditPaths(runId: string): Record<string, string> {
   return {
-    audit: `audits/${slug}/audit.md`,
-    manifest: `audits/${slug}/manifest.json`,
-    state: `audits/${slug}/state.json`,
-    scope: `audits/${slug}/scope.md`,
-    prompts: `audits/${slug}/prompts`,
-    reviews: `audits/${slug}/reviews`,
-    sanity: `audits/${slug}/sanity`,
-    findings: `audits/${slug}/findings.json`,
-    master_audit: `audits/${slug}/master-audit.md`,
-    planning_input: `audits/${slug}/planning-input.md`,
-    handoffs: `audits/${slug}/handoffs`,
+    audit: `${runId}/audit.md`,
+    manifest: `${runId}/manifest.json`,
+    state: `${runId}/state.json`,
+    scope: `${runId}/scope.md`,
+    prompts: `${runId}/prompts`,
+    reviews: `${runId}/reviews`,
+    sanity: `${runId}/sanity`,
+    findings: `${runId}/findings.json`,
+    master_audit: `${runId}/master-audit.md`,
+    planning_input: `${runId}/planning-input.md`,
+    handoffs: `${runId}/handoffs`,
   };
 }
 

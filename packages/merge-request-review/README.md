@@ -6,9 +6,14 @@ On startup it:
 
 - syncs canonical `merge_request_*` custom agents into `~/.codex/agents/` with GPT-5.6 Luna for structured intake/verification, Terra for primary review, and Sol for high-risk review
 - creates best-effort compatibility links under `~/.agents/agents/`
-- registers filesystem-backed `.workflow/mr-reviews/` state and artifact tools
+- registers filesystem-backed review state and artifact tools under `.workflow/mr-reviews/` by default
 
 This package does not talk to GitLab. The model or an external GitLab MCP is responsible for fetching MR metadata, discussions, diffs, CI state, posting notes, and approving merge requests. This MCP owns only the review protocol state, local artifacts, normalized findings, and fixed-format note drafts.
+
+The artifact root is read from `mcp.merge-request-review.artifacts.root` in
+`$AGENTS_HOME/.wiolett/config/mcp-config.yml`. This package never creates or
+changes shared configuration; a missing or invalid section falls back to
+`.workflow/mr-reviews`.
 
 ## Tools
 

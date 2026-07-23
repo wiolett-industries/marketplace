@@ -37,7 +37,7 @@ This plugin ships these lowercase skill entrypoints:
 - consolidated platform hooks for workflow startup/subagent contracts, Codex commitment enforcement, and installed companion plugin hints/checks
 - a bundled workflow MCP server that syncs `workflow_*` custom agents globally at startup and exposes deterministic `.workflow/` plan/audit and commitment tools
 
-Workflow artifacts are filesystem-first. Use Workflow MCP to create, update, complete, inspect, and normalize an authorized plan/audit run whenever tools are available; manual `.workflow/` writes are fallback only. Fast work and read-only discussion do not create artifacts. This version does not use a workflow RAG layer.
+Workflow artifacts are filesystem-first and live under `.workflow/` by default. The MCP and consolidated hook read optional artifact paths from `$AGENTS_HOME/.wiolett/config/mcp-config.yml`; only Agent Memory generates or migrates that file. Use Workflow MCP to create, update, complete, inspect, and normalize an authorized plan/audit run whenever tools are available; manual writes are fallback only. Fast work and read-only discussion do not create artifacts. This version does not use a workflow RAG layer.
 
 ## Hook Consolidation
 

@@ -1,6 +1,6 @@
 {
   "name": "workflow",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "Lean, risk-budgeted workflows for Codex with one primary path, focused context, selective subagents, single-pass verification, and explicit completion gates.",
   "author": {
     "name": "Wiolett Industries",

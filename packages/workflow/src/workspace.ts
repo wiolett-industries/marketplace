@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { readWorkflowArtifactConfig } from './config.js';
 
 export function resolveWorkspaceRoot(workspaceRoot?: string): string {
   const start = path.resolve(workspaceRoot || process.cwd());
@@ -8,7 +9,18 @@ export function resolveWorkspaceRoot(workspaceRoot?: string): string {
 }
 
 export function workflowRoot(workspaceRoot?: string): string {
-  return path.join(resolveWorkspaceRoot(workspaceRoot), '.workflow');
+  const resolvedWorkspace = resolveWorkspaceRoot(workspaceRoot);
+  return readWorkflowArtifactConfig(resolvedWorkspace).root;
+}
+
+export function workflowPlansRoot(workspaceRoot?: string): string {
+  const resolvedWorkspace = resolveWorkspaceRoot(workspaceRoot);
+  return readWorkflowArtifactConfig(resolvedWorkspace).plans;
+}
+
+export function workflowAuditsRoot(workspaceRoot?: string): string {
+  const resolvedWorkspace = resolveWorkspaceRoot(workspaceRoot);
+  return readWorkflowArtifactConfig(resolvedWorkspace).audits;
 }
 
 export function rootStatePath(workspaceRoot?: string): string {

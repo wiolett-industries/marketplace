@@ -10,14 +10,18 @@ export class OpenAIEmbeddingsClient implements EmbeddingClient {
   private readonly model: string;
   private readonly userAgent: string;
   private readonly headers: Record<string, string>;
+  private readonly apiPath: string;
+  private readonly timeoutMs: number;
 
   constructor(options: OpenAIEmbeddingsOptions = {}) {
-    const config = resolveOpenAIProviderConfig(options);
+    const config = resolveOpenAIProviderConfig({ ...options, role: 'embeddings' });
     this.apiKey = config?.apiKey;
     this.baseUrl = options.baseUrl ?? config?.baseUrl ?? 'https://api.openai.com/v1';
     this.model = options.embeddingModel ?? config?.embeddingModel ?? DEFAULT_EMBEDDING_MODEL;
     this.userAgent = options.userAgent ?? '@wiolett/agent-memory';
     this.headers = config?.headers ?? {};
+    this.apiPath = config?.apiPath ?? '/embeddings';
+    this.timeoutMs = config?.timeoutMs ?? 30_000;
   }
 
   async createEmbedding(input: string, options: { signal?: AbortSignal } = {}): Promise<number[]> {
@@ -25,7 +29,7 @@ export class OpenAIEmbeddingsClient implements EmbeddingClient {
       return [];
     }
 
-    const response = await fetch(`${this.baseUrl.replace(/\/+$/u, '')}/embeddings`, {
+    const response = await fetch(`${this.baseUrl.replace(/\/+$/u, '')}/${this.apiPath.replace(/^\/+/, '')}`, {
       method: 'POST',
       headers: {
         ...this.headers,
@@ -37,7 +41,7 @@ export class OpenAIEmbeddingsClient implements EmbeddingClient {
         model: this.model,
         input,
       }),
-      signal: options.signal,
+      signal: options.signal ?? AbortSignal.timeout(this.timeoutMs),
     });
     const text = await response.text();
     if (!response.ok) {

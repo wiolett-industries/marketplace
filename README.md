@@ -137,44 +137,58 @@ Or configure it non-interactively:
 
 ```bash
 npx -y @wiolett/agent-memory@latest init \
-  --key "$OPENAI_API_KEY" \
+  --key "sk-proj-..." \
   --endpoint "https://api.openai.com/v1" \
+  --text-api responses \
   --response-model "gpt-5-mini" \
   --embedding-model "text-embedding-3-small"
 ```
 
-The config is stored at:
+Agent Memory creates and owns these English-commented YAML files:
 
 ```text
-~/.agents/.wiolett/auth-config.json
+~/.agents/.wiolett/config/ai-providers.yml
+~/.agents/.wiolett/config/mcp-config.yml
 ```
 
-The file is written with `0600` permissions. You can override the path with
-`WIOLETT_AUTH_CONFIG_PATH`, or skip the config file and provide
-`OPENAI_API_KEY` in the environment.
+The provider file is written with `0600` permissions. Workflow and Merge
+Request Review only read their artifact-root sections and use their existing
+defaults when shared configuration is absent.
 
-The config accepts OpenAI-compatible values:
+Provider transport and credentials live in `ai-providers.yml`:
 
-```json
-{
-  "openAIKey": "sk-proj-...",
-  "endpoint": "https://api.openai.com/v1",
-  "responseModel": "gpt-5-mini",
-  "embeddingModel": "text-embedding-3-small",
-  "headers": {
-    "X-Custom-Header": "value"
-  }
-}
+```yaml
+version: 1
+providers:
+  openai:
+    driver: openai
+    base_url: https://api.openai.com/v1
+    auth:
+      api_key: sk-proj-...
+    apis:
+      responses:
+        path: /responses
+        store: false
+      chat_completions:
+        path: /chat/completions
+      embeddings:
+        path: /embeddings
 ```
 
-Supported key aliases include `openAIKey`, `openaiApiKey`,
-`openai_api_key`, `apiKey`, and `api_key`. Endpoint aliases include
-`endpoint`, `baseUrl`, `baseURL`, `openAIBaseUrl`, and `openaiBaseUrl`.
+Role routing and MCP storage live in `mcp-config.yml`. Embeddings, the write
+gate, and synthesis may use different providers and models. Workflow and MR
+review artifact roots are configurable there as well.
 
-Other providers work when they implement the OpenAI-compatible endpoints Agent
-Memory calls:
+The same locked idempotent migration runs from both `agent-memory init` and
+Agent Memory MCP startup. It converts the legacy JSON config and moves
+`~/.agents/agent-memory` to `~/.agents/.wiolett/global-memory` (or the configured
+path), preserving a timestamped backup and a compatibility symlink.
+
+Other providers work when they implement the configured OpenAI-compatible
+endpoints. Depending on role routing, Agent Memory calls:
 
 - `POST /responses` with Bearer-token auth and OpenAI Responses-style output
+- `POST /chat/completions` with Chat Completions request/response conversion
 - `POST /embeddings` returning numeric embedding vectors
 - the configured embedding model, or the default `text-embedding-3-small`
 - the configured response model, or Agent Memory's default `gpt-5-mini`, or a provider

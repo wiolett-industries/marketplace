@@ -1,6 +1,6 @@
 {
   "name": "@wiolett/merge-request-review",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "type": "module",
   "description": "Merge request review MCP runtime for stateful GitLab MR review artifacts and custom-agent sync.",
   "license": "MIT",
@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "yaml": "^2.8.1",
     "zod": "^4.1.12"
   },
   "devDependencies": {

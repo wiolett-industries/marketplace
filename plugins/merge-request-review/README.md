@@ -9,7 +9,11 @@ This plugin ships:
 - `merge_request_risk_reviewer` for high-risk merge requests with meaningful blast radius
 - `merge_request_discussion_auditor` for existing discussion intake and unresolved blocker state
 - `merge_request_verification_reviewer` for CI/local verification quality and reviewability
-- a bundled MCP server that syncs `merge_request_*` custom agents globally and stores `.workflow/mr-reviews/` state and artifacts
+- a bundled MCP server that syncs `merge_request_*` custom agents globally and stores review state and artifacts under `.workflow/mr-reviews/` by default
+
+The MCP reads an optional `mcp.merge-request-review.artifacts.root` from
+`$AGENTS_HOME/.wiolett/config/mcp-config.yml`. Agent Memory owns generation and
+migration of that file; this plugin remains a read-only consumer.
 
 This plugin does not register platform hooks directly. When the `workflow` plugin is installed, its consolidated hook detects `merge-request-review` and applies merge_request_* reviewer prompts and output validation.
 

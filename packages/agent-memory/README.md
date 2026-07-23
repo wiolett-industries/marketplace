@@ -13,7 +13,7 @@ This package backs the standalone Agent Memory plugin.
 
 ## Highlights
 
-- global memory stored under `~/.agents/agent-memory/`
+- global memory stored under `~/.agents/.wiolett/global-memory/` by default
 - project memory stored under `<repo>/.memory/`
 - deep canonical memories plus a separate lightweight index layer
 - semantic and keyword search
@@ -57,7 +57,7 @@ Project memory auto-initializes on write/mutation use in a repository. Read tool
 Global memory:
 
 ```text
-~/.agents/agent-memory/
+~/.agents/.wiolett/global-memory/
   memories/
   index/
   embeddings/
@@ -152,31 +152,54 @@ Model access uses Agent Memory's built-in OpenAI-compatible auth resolver. Confi
 npx -y @wiolett/agent-memory@latest init
 ```
 
-The init command writes:
+The init command creates English-commented YAML under:
 
 ```text
-~/.agents/.wiolett/auth-config.json
+~/.agents/.wiolett/config/ai-providers.yml
+~/.agents/.wiolett/config/mcp-config.yml
 ```
 
-You can also provide `OPENAI_API_KEY` directly. The config may contain:
+Agent Memory is the only writer and migrator for these files. Workflow and
+Merge Request Review read their artifact paths from `mcp-config.yml` and use
+their built-in defaults when it is absent. A provider entry looks like:
 
-```json
-{
-  "openAIKey": "sk-proj-...",
-  "endpoint": "https://api.openai.com/v1",
-  "responseModel": "gpt-5-mini",
-  "embeddingModel": "text-embedding-3-small"
-}
+```yaml
+version: 1
+providers:
+  openai:
+    driver: openai
+    base_url: https://api.openai.com/v1
+    auth:
+      api_key: sk-proj-...
+    apis:
+      responses:
+        path: /responses
+        store: false
+      chat_completions:
+        path: /chat/completions
+      embeddings:
+        path: /embeddings
 ```
+
+Text roles may use either Responses or Chat Completions. Embeddings, the write
+gate, and synthesis can route to different named providers and models in
+`mcp-config.yml`. The provider file is written with `0600` permissions.
+
+On either MCP startup or `agent-memory init`, the same locked idempotent
+bootstrap migrates the legacy `auth-config.json` and moves
+`~/.agents/agent-memory` to the configured global path. The legacy memory path
+becomes a compatibility symlink and the original directory is retained as a
+timestamped backup.
 
 Without an API key, model-gated writes and semantic search are disabled. Memory still falls back to keyword/FTS plus graph relations where possible.
 
 ## Usage
 
-At conversation start, the bundled skill tells the agent to read global lite memory first with the canonical list tool:
+At conversation start or before non-trivial repository work, the bundled skill first decides whether durable context can change the task. It uses one focused query for a specific question or a recap for broader recovery:
 
 ```text
-memory_list({ scope: "global", index_only: true })
+memory_query(scope="project", workspace_root="/path/to/repo", query="What prior decisions affect this change?")
+memory_recap(scope="project", workspace_root="/path/to/repo", topic="release and deployment context")
 ```
 
 When a repository should use project memory, save or mutate project memory normally. The first write/mutation call initializes the local `.memory/` store automatically. Read calls against a repo with no project memory return empty results and leave the repo untouched. After a repo root is known, pass an absolute `workspace_root` on project-scoped reads/writes if the MCP server may have launched from another directory.
@@ -213,7 +236,7 @@ Or, if the package is installed, use the `agent-memory` bin directly:
 ```bash
 agent-memory view                 # current directory's ./.memory
 agent-memory view ./some/project  # that project's .memory
-agent-memory view global          # the global store (~/.agents/agent-memory)
+agent-memory view global          # the configured global store
 ```
 
 Options:
@@ -245,7 +268,7 @@ the MCP server never pays for the UI. Nothing is sent off the machine.
 Requirements:
 
 - Node.js 22.5+
-- optional `OPENAI_API_KEY` or `~/.agents/.wiolett/auth-config.json` for model-gated writes, semantic search, and AI-generated memory slugs
+- optional provider credentials in `~/.agents/.wiolett/config/ai-providers.yml` for model-gated writes, semantic search, and AI-generated memory slugs
 
 Useful commands:
 

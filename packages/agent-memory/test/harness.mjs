@@ -466,6 +466,10 @@ async function runMcp() {
   await transport.close();
 
   return {
+    startupConfig: {
+      providers: existsSync(path.join(process.env.PROJECT_MEMORY_AGENTS_HOME, '.wiolett', 'config', 'ai-providers.yml')),
+      mcp: existsSync(path.join(process.env.PROJECT_MEMORY_AGENTS_HOME, '.wiolett', 'config', 'mcp-config.yml')),
+    },
     toolNames,
     toolSchemas: tools.tools,
     setup,

@@ -37,7 +37,7 @@ function fallbackSlug(content: string, tags: string[]): string {
 }
 
 async function aiSlug(content: string, tags: string[]): Promise<string | null> {
-  const model = await getModelClient();
+  const model = await getModelClient('gate');
   if (!model) {
     return null;
   }

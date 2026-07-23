@@ -16,8 +16,8 @@ export function isSemanticSearchEnabled(): boolean {
   return hasEmbeddingProviderConfig();
 }
 
-export async function getModelClient(): Promise<ModelClient | null> {
-  return (await getProvider()).modelClient;
+export async function getModelClient(role: 'gate' | 'synthesis' = 'synthesis'): Promise<ModelClient | null> {
+  return (await getProvider()).modelClients[role];
 }
 
 export async function getEmbeddingClient(): Promise<EmbeddingClient | null> {

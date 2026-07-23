@@ -78,6 +78,67 @@ test('workflow session hook emits recovery context for active plans', () => {
   assert.match(output.hookSpecificOutput.additionalContext, /mr_review_complete/);
 });
 
+test('workflow hook follows configured Workflow and MR Review artifact roots', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-configured-hook-'));
+  const agentsHome = mkdtempSync(path.join(os.tmpdir(), 'workflow-configured-home-'));
+  const configDir = path.join(agentsHome, '.wiolett', 'config');
+  const workflowRoot = path.join(workspace, '.agent-artifacts', 'workflow');
+  const reviewRoot = path.join(workspace, '.agent-artifacts', 'reviews');
+  mkdirSync(configDir, { recursive: true });
+  mkdirSync(path.join(workflowRoot, 'plans', 'configured-plan'), { recursive: true });
+  mkdirSync(reviewRoot, { recursive: true });
+  writeFileSync(path.join(configDir, 'mcp-config.yml'), `version: 1
+mcp:
+  workflow:
+    artifacts:
+      root: .agent-artifacts/workflow
+  merge-request-review:
+    artifacts:
+      root: .agent-artifacts/reviews
+`, 'utf8');
+  writeFileSync(path.join(workflowRoot, 'state.json'), JSON.stringify({ active_plan: 'plans/configured-plan' }), 'utf8');
+  writeFileSync(path.join(reviewRoot, 'state.json'), JSON.stringify({ active_review: 'mr-reviews/configured-review' }), 'utf8');
+
+  const output = runHookWithEnv(
+    { hook_event_name: 'SessionStart', cwd: workspace },
+    { PROJECT_MEMORY_AGENTS_HOME: agentsHome },
+    workspace,
+  );
+  assert.match(output.hookSpecificOutput.additionalContext, /Active workflow plan: \.agent-artifacts\/workflow\/plans\/configured-plan/);
+  assert.match(output.hookSpecificOutput.additionalContext, /Active merge request review: \.agent-artifacts\/reviews\/configured-review/);
+});
+
+test('workflow hook follows configured roots in YAML flow mappings', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-flow-config-hook-'));
+  const agentsHome = mkdtempSync(path.join(os.tmpdir(), 'workflow-flow-config-home-'));
+  const configDir = path.join(agentsHome, '.wiolett', 'config');
+  const workflowRoot = path.join(workspace, '.flow-workflow');
+  const reviewRoot = path.join(workspace, '.flow-reviews');
+  const memoryRoot = path.join(workspace, '.flow-memory');
+  mkdirSync(configDir, { recursive: true });
+  mkdirSync(path.join(workflowRoot, 'plans', 'flow-plan'), { recursive: true });
+  mkdirSync(reviewRoot, { recursive: true });
+  mkdirSync(memoryRoot, { recursive: true });
+  writeFileSync(path.join(configDir, 'mcp-config.yml'), `version: 1
+mcp:
+  workflow: { artifacts: { root: .flow-workflow, plans: plans, audits: audits } }
+  merge-request-review: { artifacts: { root: .flow-reviews } }
+  agent-memory: { storage: { memory: { project: .flow-memory } } }
+`, 'utf8');
+  writeFileSync(path.join(workflowRoot, 'state.json'), JSON.stringify({ active_plan: 'plans/flow-plan' }), 'utf8');
+  writeFileSync(path.join(reviewRoot, 'state.json'), JSON.stringify({ active_review: 'mr-reviews/flow-review' }), 'utf8');
+
+  const output = runHookWithEnv(
+    { hook_event_name: 'SessionStart', cwd: workspace },
+    { PROJECT_MEMORY_AGENTS_HOME: agentsHome },
+    workspace,
+  );
+  const context = output.hookSpecificOutput.additionalContext;
+  assert.match(context, /Active workflow plan: \.flow-workflow\/plans\/flow-plan/);
+  assert.match(context, /Active merge request review: \.flow-reviews\/flow-review/);
+  assert.match(context, /Project Agent Memory `\.flow-memory\/` exists/);
+});
+
 test('workflow session hook omits companion context when companion plugins are absent', () => {
   const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-no-companion-workspace-'));
   const isolatedPluginRoot = path.join(mkdtempSync(path.join(os.tmpdir(), 'workflow-no-companion-plugin-')), 'workflow');

@@ -56,7 +56,7 @@ export async function compileRecall(args: {
     .sort((left, right) => Number(left.superseded) - Number(right.superseded));
 
   const deterministic = buildDeterministicAnswer(primary, related, args.detail ?? 'normal');
-  const model = await getModelClient();
+  const model = await getModelClient('synthesis');
   if (!model) {
     return deterministic;
   }

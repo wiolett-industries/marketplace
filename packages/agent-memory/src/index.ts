@@ -3,7 +3,7 @@
 import { runInitCommand } from './cli/init.js';
 import { isCliAbortError } from './cli/prompts.js';
 
-const VERSION = '0.4.3';
+const VERSION = '0.4.4';
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
@@ -32,6 +32,12 @@ async function main(): Promise<void> {
 }
 
 async function startMcpServer(): Promise<void> {
+  const { ensureConfigAndStorageMigrated } = await import('./migration.js');
+  await ensureConfigAndStorageMigrated({
+    trigger: 'mcp-startup',
+    log: (message) => process.stderr.write(`${message}\n`),
+  });
+
   const [{ McpServer }, { StdioServerTransport }, { registerMemoryTools }] = await Promise.all([
     import('@modelcontextprotocol/sdk/server/mcp.js'),
     import('@modelcontextprotocol/sdk/server/stdio.js'),
@@ -59,7 +65,7 @@ function printHelp(): void {
   console.log([
     'Usage:',
     '  agent-memory                    Start MCP stdio server',
-    '  agent-memory init [opts]        Configure OpenAI API key',
+    '  agent-memory init [opts]        Configure providers, routing, and storage',
     '  agent-memory view [path|global] Open the local memory dashboard',
     '',
     'view options: --port <n>, --no-open. Defaults to ./.memory; pass a',
