@@ -71,6 +71,21 @@ Agent Memory auth:
 npx -y @wiolett/agent-memory@latest init
 ```
 
+## Interactive CLI
+
+After installation, Agent Memory can be configured and maintained from one
+interactive terminal UI:
+
+```bash
+npx -y @wiolett/agent-memory@latest
+```
+
+On a new machine, this command starts the initialization flow first and does
+not write files until the final confirmation. Once providers and enabled model
+routes are configured, it opens a menu for configuration, memory
+consolidation, model-usage reporting, and Doctor diagnostics. Direct shortcuts
+such as `config`, `consolidate`, `usage`, and `doctor` remain available.
+
 ## Plugins
 
 - [`agent-memory`](./plugins/agent-memory) - persistent scoped memory with

@@ -1,3 +1,4 @@
+import { runInitCommand, needsInteractiveInitialization } from './init.js';
 import { runConsolidateCommand, getEligibleConsolidationScopes } from './consolidate-command.js';
 import { runConfigCommand } from './config-command.js';
 import { createConfigCliUi } from './config-ui.js';
@@ -5,6 +6,11 @@ import { runDoctorCommand } from './doctor-command.js';
 import { runUsageCommand } from './usage-command.js';
 
 export async function runInteractiveRootCommand(): Promise<void> {
+  if (needsInteractiveInitialization()) {
+    await runInitCommand([], { commandName: 'agent-memory' });
+    return;
+  }
+
   const ui = createConfigCliUi();
   ui.intro('Agent Memory');
   let consolidationAvailable = await refreshConsolidationAvailability(ui);

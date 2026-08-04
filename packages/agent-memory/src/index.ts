@@ -116,7 +116,7 @@ async function startMcpServer(): Promise<void> {
 function printHelp(): void {
   console.log([
     'Usage:',
-    '  agent-memory                    Open the interactive menu in a terminal; start MCP stdio when piped',
+    '  agent-memory                    Start interactive setup if needed, otherwise open the menu; start MCP stdio when piped',
     '  agent-memory init [opts]        Bootstrap providers, routing, and storage',
     '  agent-memory config [opts]      Shortcut to interactive configuration',
     '  agent-memory consolidate        Shortcut to interactive memory consolidation',

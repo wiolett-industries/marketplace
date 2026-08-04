@@ -39,6 +39,20 @@ export interface InitCommandOptions {
   ui?: ConfigCliUi;
 }
 
+export function needsInteractiveInitialization(env: NodeJS.ProcessEnv = process.env): boolean {
+  const paths = getConfigPaths(env);
+  try {
+    const mcp = readMcpConfig(paths.mcpConfig);
+    if (!readAiProvidersConfig(paths.aiProviders) || !mcp) return true;
+    return (['gate', 'synthesis', 'embeddings'] as const).some((role) => {
+      if (mcp.mcp['agent-memory']?.routing?.[role] === null) return false;
+      return !resolveOpenAIProviderConfig({ providersConfigPath: paths.aiProviders, mcpConfigPath: paths.mcpConfig, role });
+    });
+  } catch {
+    return true;
+  }
+}
+
 export async function runInitCommand(argv: string[], options: InitCommandOptions = {}): Promise<void> {
   const commandName = options.commandName ?? 'agent-memory init';
   const args = parseInitArgs(argv, commandName);

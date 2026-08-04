@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from '@jest/globals';
-import { runInitCommand } from '../dist/cli/init.js';
+import { needsInteractiveInitialization, runInitCommand } from '../dist/cli/init.js';
 import { formatMaskedPasswordLine, isCliAbortError } from '../dist/cli/prompts.js';
 
 const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -99,6 +99,18 @@ describe('agent-memory init', () => {
     expect(config).toContain('text: gpt-interactive');
     expect(config).toContain('embeddings: embed-interactive');
     expect(ui.notes.at(-1)).toContain('npx -y @wiolett/agent-memory');
+  });
+
+  test('requires interactive initialization until every enabled route resolves', () => {
+    const agentsHome = tempAgentsHome();
+    const env = { PROJECT_MEMORY_AGENTS_HOME: agentsHome, OPENAI_API_KEY: '' };
+    expect(needsInteractiveInitialization(env)).toBe(true);
+
+    runCli([
+      'init', '--key', 'sk-test', '--response-model', 'gpt-test', '--embedding-model', 'embed-test', '--non-interactive', '--force',
+    ], { agentsHome });
+
+    expect(needsInteractiveInitialization(env)).toBe(false);
   });
 
   test('prints the resolved config path', () => {
