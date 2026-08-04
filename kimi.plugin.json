@@ -1,6 +1,6 @@
 {
   "name": "wiolett-industries",
-  "version": "0.2.12",
+  "version": "1.0.0",
   "description": "Wiolett Industries workflow, memory, and GitLab merge request review plugins for Kimi Code.",
   "keywords": [
     "workflow",

@@ -1,6 +1,6 @@
 {
   "name": "workflow",
-  "version": "0.4.7",
+  "version": "1.0.0",
   "description": "Lean, risk-budgeted workflows for Kimi Code with one primary path, focused context, selective subagents, single-pass verification, and explicit completion gates.",
   "keywords": [
     "kimi",

@@ -1,6 +1,6 @@
 {
   "name": "@wiolett/workflow",
-  "version": "0.2.9",
+  "version": "1.0.0",
   "type": "module",
   "description": "Workflow MCP runtime for custom-agent sync plus filesystem-backed plan, audit, handoff, and UI contract artifacts.",
   "license": "MIT",

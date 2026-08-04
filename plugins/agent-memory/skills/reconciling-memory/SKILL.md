@@ -19,7 +19,7 @@ Use this skill only for an explicit user request or an accepted overdue-reconcil
 2. Inspect the candidates for stale, duplicated, contradictory, overly broad, secret-bearing, or wrongly scoped content. Preserve ownership, negation, uncertainty, and project/global boundaries.
 3. Update an existing canonical memory when it can absorb the correction. Save only a truly new reusable lesson. Never invent facts from chat history or a recap.
 4. Do not delete memories, prune graph edges, or re-embed content unless the user explicitly asks for that extra maintenance. Explain unresolved conflicts rather than silently choosing a side.
-5. After the scoped work is complete, call `memory_reconciliation_record` for each reconciled scope. For project memory, include the resulting `.memory/maintenance/` change in the intended repository diff.
+5. After the scoped work is complete, call `memory_reconciliation_record` for each reconciled scope with a concise secret-free `summary`, `reviewed` count when known, `changes` entries for every save/update (`action`, `memory_id`, `summary`), and `unresolved` conflicts/follow-ups. Use empty arrays when there were none. For project memory, include the resulting `.memory/maintenance/` change in the intended repository diff.
 
 ## Completion
 

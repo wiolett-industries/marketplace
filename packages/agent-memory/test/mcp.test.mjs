@@ -98,10 +98,10 @@ describe('MCP launcher smoke test', () => {
     expect(result.canonicalList.content[0].text).toContain('Smoke test memory from MCP launcher');
     expect(result.canonicalIndexList.content[0].text).toContain('Canonical smoke memory');
     expect(JSON.parse(result.reconciliationBefore.content[0].text)).toEqual(expect.objectContaining({ due: true, last_reconciled_at: null }));
-    expect(JSON.parse(result.reconciliationRecord.content[0].text)).toEqual(expect.objectContaining({ due: false, last_reconciled_at: expect.any(String) }));
+    expect(JSON.parse(result.reconciliationRecord.content[0].text)).toEqual(expect.objectContaining({ due: false, last_reconciled_at: expect.any(String), report: expect.objectContaining({ summary: 'Project smoke reconciliation.' }) }));
     expect(JSON.parse(result.reconciliationAfter.content[0].text)).toEqual(expect.objectContaining({ due: false, last_reconciled_at: expect.any(String) }));
     expect(JSON.parse(result.globalReconciliationBefore.content[0].text)).toEqual(expect.objectContaining({ scope: 'global', due: true, last_reconciled_at: null }));
-    expect(JSON.parse(result.globalReconciliationRecord.content[0].text)).toEqual(expect.objectContaining({ scope: 'global', due: false, last_reconciled_at: expect.any(String) }));
+    expect(JSON.parse(result.globalReconciliationRecord.content[0].text)).toEqual(expect.objectContaining({ scope: 'global', due: false, last_reconciled_at: expect.any(String), report: expect.objectContaining({ summary: 'Global smoke reconciliation.' }) }));
     expect(JSON.parse(result.globalReconciliationAfter.content[0].text)).toEqual(expect.objectContaining({ scope: 'global', due: false, last_reconciled_at: expect.any(String) }));
     expect(result.globalLite.content[0].text).not.toContain('Smoke global preference');
   }, 30000);

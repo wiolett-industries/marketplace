@@ -38,12 +38,12 @@ test('extracts output text from response shapes', () => {
   }), 'hello\nworld');
 });
 
-test('OpenAI responses client defaults to gpt-5-mini', async () => {
+test('OpenAI responses client defaults to gpt-5.6-luna', async () => {
   const previousFetch = globalThis.fetch;
   globalThis.fetch = async (_url, init) => {
     assert.equal(init.headers.Authorization, 'Bearer sk-test');
     const body = JSON.parse(String(init.body));
-    assert.equal(body.model, 'gpt-5-mini');
+    assert.equal(body.model, 'gpt-5.6-luna');
     assert.equal(body.store, false);
     return new Response(JSON.stringify({ output_text: 'hi' }), { status: 200 });
   };
@@ -187,6 +187,7 @@ mcp:
         provider: chat
         api: chat_completions
         model: gate-model
+        reasoning_effort: high
 `, 'utf8');
 
   const previousFetch = globalThis.fetch;
@@ -199,6 +200,7 @@ mcp:
       { role: 'user', content: 'hello' },
     ]);
     assert.equal(body.response_format.type, 'json_schema');
+    assert.equal(body.reasoning_effort, 'high');
     return new Response(JSON.stringify({ choices: [{ message: { content: '{"ok":true}' } }] }), { status: 200 });
   };
   try {
@@ -246,7 +248,7 @@ mcp:
   agent-memory:
     routing:
       embeddings: { provider: cheap, api: embeddings, model: embed-cheap }
-      gate: { provider: cheap, api: chat_completions, model: gate-cheap }
+      gate: { provider: cheap, api: chat_completions, model: gate-cheap, reasoning_effort: low }
       synthesis: { provider: primary, api: responses, model: synth-primary }
 `, 'utf8');
 
@@ -260,6 +262,7 @@ mcp:
   assert.equal(gate?.providerId, 'cheap');
   assert.equal(gate?.textApi, 'chat_completions');
   assert.equal(gate?.model, 'gate-cheap');
+  assert.equal(gate?.reasoningEffort, 'low');
   assert.equal(synthesis?.providerId, 'primary');
   assert.equal(synthesis?.textApi, 'responses');
   assert.equal(synthesis?.model, 'synth-primary');

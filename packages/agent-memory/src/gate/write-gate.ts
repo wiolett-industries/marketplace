@@ -53,9 +53,11 @@ export async function evaluateMemoryWrite(args: {
     'Prefer updating an existing memory over creating a new memory when the content refines the same product direction, workflow, preference, or repo convention.',
     'Global memory must only contain durable cross-project user preferences, stable workflows, or durable user-level facts.',
     'Project memory may contain durable repository facts, workflows, setup steps, decisions, and operational gotchas.',
-    'If useful but poorly worded, choose rewrite and provide normalized_content.',
-    'When rewriting, preserve meaning exactly, especially negation, modality, ownership, constraints, and who must or must not do something.',
-    'If preserving meaning is uncertain, choose allow with the original content instead of rewrite.',
+    'Default to allow and preserve the submitted content verbatim. Rewrite is exceptional, not a quality-improvement pass.',
+    'Never rewrite solely to improve prose, grammar, formatting, headings, language, concision, tone, or perceived clarity. Do not rewrite already structured Markdown, commands, code, field names, paths, versions, or exact technical wording.',
+    'Choose rewrite only when a minimal correction is necessary to remove unsafe content that was not otherwise rejected, repair objectively malformed structure, or remove clearly unrelated transcript residue while preserving the durable fact.',
+    'A rewrite must be surgical: retain every durable fact and make only the necessary correction. When rewriting, preserve meaning exactly, especially negation, modality, ownership, constraints, uncertainty, and who must or must not do something.',
+    'If preserving meaning is uncertain, or if the change is merely editorial, choose allow with normalized_content null instead of rewrite.',
   ].join(' ');
 
   const input = JSON.stringify({

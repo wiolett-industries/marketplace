@@ -23,6 +23,7 @@ export type OpenAIProviderConfig = {
   providerId: string;
   baseUrl: string;
   model?: string;
+  reasoningEffort?: string;
   embeddingModel?: string;
   headers?: Record<string, string>;
   textApi: TextApi;
@@ -91,6 +92,7 @@ export function resolveOpenAIProviderConfig(options: OpenAIProviderConfigOptions
   if (!apiKey) return null;
 
   const routeTextApi = route?.api === 'responses' || route?.api === 'chat_completions' ? route.api : undefined;
+  const routeReasoningEffort = route && 'reasoning_effort' in route ? route.reasoning_effort : undefined;
   const textApi: TextApi = role === 'embeddings'
     ? 'responses'
     : options.textApi ?? routeTextApi ?? provider?.defaults?.text_api ?? 'responses';
@@ -119,6 +121,7 @@ export function resolveOpenAIProviderConfig(options: OpenAIProviderConfigOptions
     providerId,
     baseUrl: options.baseUrl ?? provider?.base_url ?? resolveLegacyBaseUrl(legacy),
     ...(model ? { model } : {}),
+    ...(role !== 'embeddings' && routeReasoningEffort ? { reasoningEffort: routeReasoningEffort } : {}),
     ...(embeddingModel ? { embeddingModel } : {}),
     ...(headers ? { headers } : {}),
     textApi,

@@ -146,6 +146,9 @@ describe('memory write gate', () => {
       expect(requestBody.instructions).toContain('Allow distilled durable lessons from completed work');
       expect(requestBody.instructions).toContain('Reject planning-stage product decisions');
       expect(requestBody.instructions).toContain('Prefer updating an existing memory');
+      expect(requestBody.instructions).toContain('Default to allow and preserve the submitted content verbatim');
+      expect(requestBody.instructions).toContain('Never rewrite solely to improve prose, grammar, formatting');
+      expect(requestBody.instructions).toContain('A rewrite must be surgical');
       expect(requestBody.instructions).toContain('preserve meaning exactly, especially negation');
       expect(requestBody.instructions).toContain('raw transcripts');
       expect(requestBody.text.format.schema.required).toEqual([

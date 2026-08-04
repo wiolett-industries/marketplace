@@ -37,7 +37,7 @@ Before a new save, check whether an existing canonical memory should be updated.
 ## Reconciliation Cadence
 
 - `memory_reconciliation_status`: read the stored reconciliation timestamp for one initialized scope and report whether the 30-day cadence is due. It does not create a memory store.
-- `memory_reconciliation_record`: persist the current timestamp only after an explicit, user-approved reconciliation was completed. It is a durable mutation, not an acknowledgement button.
+- `memory_reconciliation_record`: persist the current timestamp plus a concise secret-free outcome report only after an explicit, user-approved reconciliation was completed. Include each save/update and unresolved conflict so callers can show a reliable result; it is a durable mutation, not an acknowledgement button.
 - Use the `reconciling-memory` skill for the bounded project/global process. Do not perform graph pruning, delete memories, or record a reconciliation just because the status is due.
 
 ## Project Artifacts

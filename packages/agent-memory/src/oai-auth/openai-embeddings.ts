@@ -1,6 +1,7 @@
 import type { EmbeddingClient } from './types.js';
 import { DEFAULT_EMBEDDING_MODEL, resolveOpenAIProviderConfig, type OpenAIProviderConfigOptions } from './openai-provider-config.js';
 import { isJsonObject, sanitizeErrorText } from './utils.js';
+import { recordProviderUsage } from '../usage.js';
 
 export type OpenAIEmbeddingsOptions = OpenAIProviderConfigOptions;
 
@@ -12,6 +13,7 @@ export class OpenAIEmbeddingsClient implements EmbeddingClient {
   private readonly headers: Record<string, string>;
   private readonly apiPath: string;
   private readonly timeoutMs: number;
+  private readonly providerId: string;
 
   constructor(options: OpenAIEmbeddingsOptions = {}) {
     const config = resolveOpenAIProviderConfig({ ...options, role: 'embeddings' });
@@ -22,6 +24,7 @@ export class OpenAIEmbeddingsClient implements EmbeddingClient {
     this.headers = config?.headers ?? {};
     this.apiPath = config?.apiPath ?? '/embeddings';
     this.timeoutMs = config?.timeoutMs ?? 30_000;
+    this.providerId = config?.providerId ?? options.providerId ?? 'openai';
   }
 
   async createEmbedding(input: string, options: { signal?: AbortSignal } = {}): Promise<number[]> {
@@ -49,6 +52,7 @@ export class OpenAIEmbeddingsClient implements EmbeddingClient {
     }
 
     const body = JSON.parse(text) as unknown;
+    recordProviderUsage({ provider: this.providerId, model: this.model, role: 'embeddings', api: 'embeddings', response: body });
     if (!isJsonObject(body) || !Array.isArray(body.data)) return [];
     const first = body.data[0];
     if (!isJsonObject(first) || !Array.isArray(first.embedding)) return [];

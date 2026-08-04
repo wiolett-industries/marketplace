@@ -3,12 +3,59 @@
 import { runInitCommand } from './cli/init.js';
 import { isCliAbortError } from './cli/prompts.js';
 
-const VERSION = '0.4.6';
+const VERSION = '1.0.0';
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
   if (command === 'init') {
     await runInitCommand(args);
+    return;
+  }
+
+  if (command === 'config') {
+    const { runConfigCommand } = await import('./cli/config-command.js');
+    await runConfigCommand(args);
+    return;
+  }
+
+  if (command === 'consolidate') {
+    const [{ runConsolidateCommand }, { createConfigCliUi }] = await Promise.all([
+      import('./cli/consolidate-command.js'),
+      import('./cli/config-ui.js'),
+    ]);
+    const ui = createConfigCliUi();
+    ui.intro('Agent Memory · Consolidate');
+    await runConsolidateCommand({ ui });
+    ui.outro('Consolidation command complete.');
+    return;
+  }
+
+  if (command === 'usage') {
+    const [{ runUsageCommand }, { createConfigCliUi }] = await Promise.all([
+      import('./cli/usage-command.js'),
+      import('./cli/config-ui.js'),
+    ]);
+    const ui = createConfigCliUi();
+    ui.intro('Agent Memory · Usage');
+    runUsageCommand({ ui });
+    ui.outro('Usage summary complete.');
+    return;
+  }
+
+  if (command === 'doctor') {
+    const [{ runDoctorCommand }, { createConfigCliUi }] = await Promise.all([
+      import('./cli/doctor-command.js'),
+      import('./cli/config-ui.js'),
+    ]);
+    const ui = createConfigCliUi();
+    ui.intro('Agent Memory · Doctor');
+    await runDoctorCommand({ ui });
+    ui.outro('Doctor complete.');
+    return;
+  }
+
+  if (command === 'mcp') {
+    await startMcpServer();
     return;
   }
 
@@ -28,7 +75,12 @@ async function main(): Promise<void> {
     throw new Error(`Unknown command: ${command}`);
   }
 
-  await startMcpServer();
+  if (process.stdin.isTTY && process.stdout.isTTY) {
+    const { runInteractiveRootCommand } = await import('./cli/root-command.js');
+    await runInteractiveRootCommand();
+  } else {
+    await startMcpServer();
+  }
 }
 
 async function startMcpServer(): Promise<void> {
@@ -64,8 +116,13 @@ async function startMcpServer(): Promise<void> {
 function printHelp(): void {
   console.log([
     'Usage:',
-    '  agent-memory                    Start MCP stdio server',
-    '  agent-memory init [opts]        Configure providers, routing, and storage',
+    '  agent-memory                    Open the interactive menu in a terminal; start MCP stdio when piped',
+    '  agent-memory init [opts]        Bootstrap providers, routing, and storage',
+    '  agent-memory config [opts]      Shortcut to interactive configuration',
+    '  agent-memory consolidate        Shortcut to interactive memory consolidation',
+    '  agent-memory usage              Show recent model token and provider-reported cost usage',
+    '  agent-memory doctor             Check GitHub releases, local plugins, and Codex MCP targets',
+    '  agent-memory mcp                Start MCP stdio server explicitly',
     '  agent-memory view [path|global] Open the local memory dashboard',
     '',
     'view options: --port <n>, --no-open. Defaults to ./.memory; pass a',

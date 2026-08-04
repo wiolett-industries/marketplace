@@ -156,6 +156,27 @@ Model access uses Agent Memory's built-in OpenAI-compatible auth resolver. Confi
 npx -y @wiolett/agent-memory@latest init
 ```
 
+For a guided configuration UI, including multiple providers and independent
+model routes, run:
+
+```bash
+npx -y @wiolett/agent-memory@latest config
+```
+
+`config` uses an interactive terminal flow to add or edit OpenAI and
+OpenAI-compatible providers, set their base URL, credential, default models,
+and timeout, then independently route **Gate**, **Synthesis**, and
+**Embeddings**. It can also update the shared Agent Memory, Workflow, and MR
+review storage paths. Changes are shown for confirmation before they are
+written; status screens show only whether a credential is configured, never
+its value. Use `agent-memory config --config-dir <path>` to target a different
+configuration directory. For Gate and Synthesis, the UI loads the selected
+provider's authenticated `/models` catalog before saving a route, so only
+available models can be selected. Gateway-style catalogs that advertise
+`supported_reasoning_levels` also offer the matching reasoning level; ordinary
+OpenAI-compatible catalogs that do not expose those capabilities use no
+reasoning override.
+
 The init command creates English-commented YAML under:
 
 ```text
@@ -199,6 +220,35 @@ Without an API key, model-gated writes and semantic search are disabled. Memory 
 
 ## Usage
 
+In a normal terminal, `agent-memory` opens one interactive menu. It includes
+configuration, recent model usage, and, when eligible, memory consolidation. When the same binary is
+started with stdin/stdout pipes, it preserves MCP stdio-server behavior. The
+older entry points remain direct shortcuts:
+
+```bash
+agent-memory                 # interactive terminal menu
+agent-memory config          # configuration shortcut
+agent-memory consolidate     # consolidation shortcut
+agent-memory usage           # model usage shortcut
+agent-memory mcp             # force MCP stdio server mode
+```
+
+Successful model and embedding responses that include a `usage` object are
+recorded locally in `~/.agents/.wiolett/usage.jsonl` (or under the configured
+`PROJECT_MEMORY_AGENTS_HOME`). Each record contains only timestamp, provider,
+model, role, token counts, and a provider-reported USD cost when present—never
+prompts, model outputs, credentials, or project memory. `agent-memory usage`
+shows a 30-day token/cost summary grouped by provider and model plus a compact
+14-day calls graph. Cost remains unavailable unless the provider includes it in
+its response; Agent Memory does not guess prices from a model name.
+
+Consolidation is shown only when the local `codex` executable advertises
+`gpt-5.6-terra` with `high` reasoning through `codex debug models`, and an
+initialized project or global memory scope has not been reconciled in the last
+24 hours. It asks for scope when both are eligible, starts a bounded local
+Codex reconciliation under a spinner, and accepts success only after the
+Codex run records a fresh reconciliation timestamp.
+
 At conversation start or before non-trivial repository work, the bundled skill first decides whether durable context can change the task. It uses one focused query for a specific question or a recap for broader recovery:
 
 ```text
@@ -219,7 +269,7 @@ memory_query(query="How do releases work?")
 memory_recap(topic="release and deployment context")
 memory_list(scope="project", workspace_root="/path/to/repo", index_only=true)
 memory_recall(memory_id="abc123xy")
-memory_reconciliation_record(scope="project", workspace_root="/path/to/repo") # only after a completed user-approved reconciliation
+memory_reconciliation_record(scope="project", workspace_root="/path/to/repo", summary="Reconciled current project memory.", changes=[], unresolved=[]) # only after a completed user-approved reconciliation
 memory_inspect(view="all")
 ```
 
@@ -268,6 +318,21 @@ Panels:
 The dashboard is read-only and live: editing a `.md` or graph file on disk
 refreshes the open panel automatically. The server is lazy-loaded, so running
 the MCP server never pays for the UI. Nothing is sent off the machine.
+
+## Doctor
+
+`agent-memory doctor` compares the Wiolett plugin versions advertised by
+GitHub `main` with locally installed Codex and Claude plugins. It also verifies
+that configured Codex MCP servers use the expected
+`npx -y @wiolett/...@latest` launch command.
+
+```bash
+npx -y @wiolett/agent-memory@latest doctor
+```
+
+The same read-only check is available from the interactive `agent-memory`
+menu. It never upgrades plugins or rewrites MCP configuration itself; each
+mismatch includes a reviewable suggested fix.
 
 ## Development
 

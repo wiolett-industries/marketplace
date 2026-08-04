@@ -152,17 +152,25 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_reconciliation_record',
     {
       title: 'Record Memory Reconciliation',
-      description: mutationDescription('Record that the user-approved project or global memory reconciliation was actually completed now. This mutates durable metadata; never call it merely to clear an overdue recommendation.'),
+      description: mutationDescription('Record a completed user-approved project or global reconciliation with a concise, secret-free report. This mutates durable metadata; never call it merely to clear an overdue recommendation.'),
       annotations: localMutationAnnotations,
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
+        summary: z.string().trim().min(1).max(1_200).describe('Secret-free summary of the reconciliation outcome.'),
+        reviewed: z.number().int().min(0).max(10_000).optional().describe('Number of memories reviewed, when known.'),
+        changes: z.array(z.object({
+          action: z.enum(['saved', 'updated']),
+          memory_id: z.string().min(1).optional(),
+          summary: z.string().trim().min(1).max(400),
+        }).strict()).max(50).default([]).describe('Durable memory changes made during this reconciliation.'),
+        unresolved: z.array(z.string().trim().min(1).max(400)).max(20).default([]).describe('Conflicts or follow-ups deliberately left unresolved.'),
       }),
     },
-    async ({ scope, workspace_root }) => withProjectRootAsync(workspace_root, async () => {
+    async ({ scope, workspace_root, summary, reviewed, changes, unresolved }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
       ensureMemoryReady(resolvedScope);
-      return asTextResult(recordReconciliation(resolvedScope));
+      return asTextResult(recordReconciliation(resolvedScope, { summary, ...(reviewed !== undefined ? { reviewed } : {}), changes, unresolved }));
     })
   );
 

@@ -182,7 +182,7 @@ npx -y @wiolett/agent-memory@latest init \
   --key "sk-proj-..." \
   --endpoint "https://api.openai.com/v1" \
   --text-api responses \
-  --response-model "gpt-5-mini" \
+  --response-model "gpt-5.6-luna" \
   --embedding-model "text-embedding-3-small"
 ```
 
@@ -233,7 +233,7 @@ endpoints. Depending on role routing, Agent Memory calls:
 - `POST /chat/completions` with Chat Completions request/response conversion
 - `POST /embeddings` returning numeric embedding vectors
 - the configured embedding model, or the default `text-embedding-3-small`
-- the configured response model, or Agent Memory's default `gpt-5-mini`, or a provider
+- the configured response model, or Agent Memory's default `gpt-5.6-luna`, or a provider
   alias that accepts that model name
 
 Without a key, durable memory files still work, but model-gated writes,

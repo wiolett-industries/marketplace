@@ -1,6 +1,6 @@
 {
   "name": "@wiolett/marketplace",
-  "version": "0.2.12",
+  "version": "1.0.0",
   "type": "module",
   "description": "Unified Codex and Claude Code plugin marketplace for Wiolett Industries MCP-backed workflow, memory, and review plugins.",
   "license": "MIT",

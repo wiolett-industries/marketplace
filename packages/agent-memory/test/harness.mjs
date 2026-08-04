@@ -444,7 +444,10 @@ async function runMcp() {
     },
   });
   const globalReconciliationBefore = await client.callTool({ name: 'memory_reconciliation_status', arguments: { scope: 'global' } });
-  const globalReconciliationRecord = await client.callTool({ name: 'memory_reconciliation_record', arguments: { scope: 'global' } });
+  const globalReconciliationRecord = await client.callTool({
+    name: 'memory_reconciliation_record',
+    arguments: { scope: 'global', summary: 'Global smoke reconciliation.', changes: [], unresolved: [] },
+  });
   const globalReconciliationAfter = await client.callTool({ name: 'memory_reconciliation_status', arguments: { scope: 'global' } });
   const lite = await client.callTool({ name: 'memory_read_lite', arguments: {} });
   const globalLite = await client.callTool({ name: 'global_memory_read_lite', arguments: {} });
@@ -461,7 +464,10 @@ async function runMcp() {
   const canonicalList = await client.callTool({ name: 'memory_list', arguments: {} });
   const canonicalIndexList = await client.callTool({ name: 'memory_list', arguments: { index_only: true } });
   const reconciliationBefore = await client.callTool({ name: 'memory_reconciliation_status', arguments: {} });
-  const reconciliationRecord = await client.callTool({ name: 'memory_reconciliation_record', arguments: {} });
+  const reconciliationRecord = await client.callTool({
+    name: 'memory_reconciliation_record',
+    arguments: { summary: 'Project smoke reconciliation.', changes: [], unresolved: [] },
+  });
   const reconciliationAfter = await client.callTool({ name: 'memory_reconciliation_status', arguments: {} });
   const query = await client.callTool({
     name: 'memory_query',

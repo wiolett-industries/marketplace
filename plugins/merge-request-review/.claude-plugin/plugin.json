@@ -1,6 +1,6 @@
 {
   "name": "merge-request-review",
-  "version": "0.3.7",
+  "version": "1.0.0",
   "description": "A risk-budgeted ready GitLab MR review for Claude Code with discussions first, CI-first evidence, zero-agent normal review by default, bounded high-risk agents, focused delta re-review, and one clean-pass approval. Requires an external GitLab MCP for GitLab reads/writes.",
   "author": {
     "name": "Wiolett Industries",

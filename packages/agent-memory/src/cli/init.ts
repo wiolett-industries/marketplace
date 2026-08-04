@@ -1,5 +1,4 @@
-import { chmodSync, copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { parseDocument } from 'yaml';
+import { chmodSync, copyFileSync, existsSync } from 'node:fs';
 import {
   DEFAULT_EMBEDDING_MODEL,
   DEFAULT_OPENAI_ENDPOINT,
@@ -9,11 +8,12 @@ import {
   getConfigPaths,
   readAiProvidersConfig,
   readMcpConfig,
+  updateYamlFile,
   writeGeneratedYaml,
 } from '../config.js';
 import { ensureConfigAndStorageMigrated } from '../migration.js';
 import { resolveOpenAIProviderConfig } from '../oai-auth/index.js';
-import { promptConfirm, promptPassword, promptText, renderInitFooter, renderInitHeader } from './prompts.js';
+import { createConfigCliUi, type ConfigCliUi } from './config-ui.js';
 
 type InitArgs = {
   check: boolean;
@@ -33,12 +33,16 @@ type InitArgs = {
   mrReviewArtifacts?: string;
 };
 
-interface InitCommandOptions { commandName?: string }
+export interface InitCommandOptions {
+  commandName?: string;
+  env?: NodeJS.ProcessEnv;
+  ui?: ConfigCliUi;
+}
 
 export async function runInitCommand(argv: string[], options: InitCommandOptions = {}): Promise<void> {
   const commandName = options.commandName ?? 'agent-memory init';
   const args = parseInitArgs(argv, commandName);
-  const env = { ...process.env, ...(args.configDir ? { WIOLETT_CONFIG_DIR: args.configDir } : {}) };
+  const env = { ...process.env, ...options.env, ...(args.configDir ? { WIOLETT_CONFIG_DIR: args.configDir } : {}) };
   const paths = getConfigPaths(env);
 
   if (args.printPath) {
@@ -52,15 +56,27 @@ export async function runInitCommand(argv: string[], options: InitCommandOptions
     return;
   }
 
-  prepareExplicitMcpPaths(paths.mcpConfig, paths.agentsHome, args);
-  await ensureConfigAndStorageMigrated({ trigger: 'init', env, log: (message) => console.log(message) });
-
   if (args.check) {
     checkConfig(paths.aiProviders, paths.mcpConfig, commandName);
     return;
   }
 
-  await initConfig(paths.aiProviders, paths.mcpConfig, args);
+  if (!args.nonInteractive) {
+    await collectAndConfirmInit(paths.aiProviders, paths.mcpConfig, paths.agentsHome, args, options.ui ?? createConfigCliUi(), env);
+    return;
+  }
+
+  prepareExplicitMcpPaths(paths.mcpConfig, paths.agentsHome, args);
+  await ensureConfigAndStorageMigrated({ trigger: 'init', env, log: (message) => console.log(message) });
+  const migratedExisting = readAiProvidersConfig(paths.aiProviders)?.providers.openai;
+  await writeInitConfig(paths.aiProviders, paths.mcpConfig, args, {
+    apiKey: args.key ?? migratedExisting?.auth?.api_key ?? '',
+    endpoint: args.endpoint ?? migratedExisting?.base_url ?? DEFAULT_OPENAI_ENDPOINT,
+    textApi: args.textApi ?? migratedExisting?.defaults?.text_api ?? 'responses',
+    responseModel: args.responseModel ?? migratedExisting?.defaults?.models?.text ?? DEFAULT_RESPONSE_MODEL,
+    embeddingModel: args.embeddingModel ?? migratedExisting?.defaults?.models?.embeddings ?? DEFAULT_EMBEDDING_MODEL,
+  });
+  if (hasExplicitProviderArgs(args)) console.log(`Saved ${paths.aiProviders}`);
 }
 
 function parseInitArgs(argv: string[], commandName: string): InitArgs {
@@ -122,47 +138,123 @@ function checkConfig(providersPath: string, mcpPath: string, commandName: string
   printEmbeddingRole(roles.embeddings, mcp?.mcp['agent-memory']?.routing?.embeddings === null);
 }
 
-async function initConfig(configPath: string, mcpConfigPath: string, args: InitArgs): Promise<void> {
+type InitDraft = {
+  apiKey: string;
+  endpoint: string;
+  textApi: 'responses' | 'chat_completions';
+  responseModel: string;
+  embeddingModel: string;
+};
+
+async function collectAndConfirmInit(
+  configPath: string,
+  mcpConfigPath: string,
+  agentsHome: string,
+  args: InitArgs,
+  ui: ConfigCliUi,
+  env: NodeJS.ProcessEnv,
+): Promise<void> {
   const providersConfig = readAiProvidersConfig(configPath);
   const existing = providersConfig?.providers.openai;
-  if (existing?.auth?.api_key && !args.force && !hasExplicitProviderArgs(args) && !args.nonInteractive) {
-    console.log(`Agent Memory auth is already configured via ${configPath}.`);
-    const overwrite = await promptConfirm('Update the existing YAML configuration?', false);
-    if (!overwrite) return;
-  }
-  if (args.nonInteractive && !hasExplicitProviderArgs(args)) return;
+  ui.intro('Agent Memory · Initialize');
+  if (existing?.auth?.api_key) ui.info(`Existing OpenAI settings from ${configPath} will be used as defaults.`);
 
-  renderInitHeader();
-  try {
-    const apiKey = args.key ?? existing?.auth?.api_key ?? (args.nonInteractive ? '' : await promptRequiredPassword('OpenAI API key'));
-    const endpoint = args.endpoint ?? existing?.base_url ?? (args.nonInteractive ? DEFAULT_OPENAI_ENDPOINT : await promptText('Endpoint', DEFAULT_OPENAI_ENDPOINT));
-    const textApi = args.textApi ?? existing?.defaults?.text_api ?? 'responses';
-    const responseModel = args.responseModel ?? existing?.defaults?.models?.text
-      ?? (args.nonInteractive ? DEFAULT_RESPONSE_MODEL : await promptText('Response model', DEFAULT_RESPONSE_MODEL));
-    const embeddingModel = args.embeddingModel ?? existing?.defaults?.models?.embeddings
-      ?? (args.nonInteractive ? DEFAULT_EMBEDDING_MODEL : await promptText('Embedding model', DEFAULT_EMBEDDING_MODEL));
-    if (args.force && existsSync(configPath)) backupFile(configPath);
-    if (args.force && existsSync(mcpConfigPath)) backupFile(mcpConfigPath);
-    if (existing) {
-      updateYaml(configPath, [
-        [['providers', 'openai', 'auth', 'api_key'], apiKey],
-        [['providers', 'openai', 'base_url'], endpoint],
-        [['providers', 'openai', 'defaults', 'text_api'], textApi],
-        [['providers', 'openai', 'defaults', 'models', 'text'], responseModel],
-        [['providers', 'openai', 'defaults', 'models', 'embeddings'], embeddingModel],
-      ]);
-    } else {
-      const definition = createDefaultAiProvidersConfig().providers.openai;
-      definition.auth = { api_key: apiKey };
-      definition.base_url = endpoint;
-      definition.defaults = { text_api: textApi, models: { text: responseModel, embeddings: embeddingModel } };
-      updateYaml(configPath, [[['providers', 'openai'], definition]]);
-    }
-    updateYaml(mcpConfigPath, routeUpdates(readMcpConfig(mcpConfigPath), textApi, responseModel, embeddingModel));
-    process.stdout.write(`\x1b[36m│\x1b[0m Saved ${configPath}\n`);
-  } finally {
-    renderInitFooter();
+  const apiKey = args.key ?? existing?.auth?.api_key ?? await ui.password('OpenAI API key', {
+    validate: (value) => value?.trim() ? undefined : 'OpenAI API key is required.',
+  });
+  if (apiKey === null) return cancelInit(ui);
+  const endpoint = args.endpoint ?? await ui.text('Endpoint', {
+    initialValue: existing?.base_url ?? DEFAULT_OPENAI_ENDPOINT,
+    validate: validUrl,
+  });
+  if (endpoint === null) return cancelInit(ui);
+  const textApi = args.textApi ?? await ui.select('Text API', [
+    { value: 'responses', label: 'Responses' },
+    { value: 'chat_completions', label: 'Chat Completions' },
+  ], existing?.defaults?.text_api ?? 'responses') as InitDraft['textApi'] | null;
+  if (textApi === null) return cancelInit(ui);
+  const responseModel = args.responseModel ?? await ui.text('Response model', {
+    initialValue: existing?.defaults?.models?.text ?? DEFAULT_RESPONSE_MODEL,
+    validate: nonEmpty('Response model is required.'),
+  });
+  if (responseModel === null) return cancelInit(ui);
+  const embeddingModel = args.embeddingModel ?? await ui.text('Embedding model', {
+    initialValue: existing?.defaults?.models?.embeddings ?? DEFAULT_EMBEDDING_MODEL,
+    validate: nonEmpty('Embedding model is required.'),
+  });
+  if (embeddingModel === null) return cancelInit(ui);
+
+  const draft: InitDraft = { apiKey: apiKey.trim(), endpoint, textApi, responseModel, embeddingModel };
+  ui.note(renderInitSummary(draft, configPath, mcpConfigPath, args), 'Ready to initialize');
+  const confirmed = await ui.confirm('Write this Agent Memory configuration?', false);
+  if (confirmed !== true) return cancelInit(ui);
+
+  // Bootstrap may create or migrate files, so it intentionally happens only after confirmation.
+  prepareExplicitMcpPaths(mcpConfigPath, agentsHome, args);
+  await ensureConfigAndStorageMigrated({ trigger: 'init', env, log: (message) => ui.info(message) });
+  await writeInitConfig(configPath, mcpConfigPath, args, draft);
+  ui.info(`Saved ${configPath}`);
+  ui.info([
+    'Continue configuration and access additional commands with:',
+    'npx -y @wiolett/agent-memory',
+    '',
+    'This opens the interactive menu. Direct shortcuts include config, consolidate, usage, doctor, and view.',
+  ].join('\n'));
+  ui.outro('Agent Memory initialization complete.');
+}
+
+async function writeInitConfig(configPath: string, mcpConfigPath: string, args: InitArgs, draft: InitDraft): Promise<void> {
+  const providersConfig = readAiProvidersConfig(configPath);
+  const existing = providersConfig?.providers.openai;
+  if (args.nonInteractive && !hasExplicitProviderArgs(args)) return;
+  if (args.force && existsSync(configPath)) backupFile(configPath);
+  if (args.force && existsSync(mcpConfigPath)) backupFile(mcpConfigPath);
+  if (existing) {
+    updateYaml(configPath, [
+      [['providers', 'openai', 'auth', 'api_key'], draft.apiKey],
+      [['providers', 'openai', 'base_url'], draft.endpoint],
+      [['providers', 'openai', 'defaults', 'text_api'], draft.textApi],
+      [['providers', 'openai', 'defaults', 'models', 'text'], draft.responseModel],
+      [['providers', 'openai', 'defaults', 'models', 'embeddings'], draft.embeddingModel],
+    ]);
+  } else {
+    const definition = createDefaultAiProvidersConfig().providers.openai;
+    definition.auth = { api_key: draft.apiKey };
+    definition.base_url = draft.endpoint;
+    definition.defaults = { text_api: draft.textApi, models: { text: draft.responseModel, embeddings: draft.embeddingModel } };
+    updateYaml(configPath, [[['providers', 'openai'], definition]]);
   }
+  updateYaml(mcpConfigPath, routeUpdates(readMcpConfig(mcpConfigPath), draft.textApi, draft.responseModel, draft.embeddingModel));
+}
+
+function cancelInit(ui: ConfigCliUi): void {
+  ui.cancel('Initialization cancelled. No configuration was written.');
+}
+
+function renderInitSummary(draft: InitDraft, configPath: string, mcpConfigPath: string, args: InitArgs): string {
+  return [
+    `Endpoint: ${draft.endpoint}`,
+    `Text API: ${draft.textApi === 'chat_completions' ? 'Chat Completions' : 'Responses'}`,
+    `Response model: ${draft.responseModel}`,
+    `Embedding model: ${draft.embeddingModel}`,
+    `Providers file: ${configPath}`,
+    `MCP file: ${mcpConfigPath}`,
+    ...(args.globalMemory ? [`Global memory: ${args.globalMemory}`] : []),
+    ...(args.projectMemory ? [`Project memory: ${args.projectMemory}`] : []),
+  ].join('\n');
+}
+
+function validUrl(value: string | undefined): string | undefined {
+  try {
+    new URL(value ?? '');
+    return undefined;
+  } catch {
+    return 'Enter a valid absolute URL.';
+  }
+}
+
+function nonEmpty(message: string): (value: string | undefined) => string | undefined {
+  return (value) => value?.trim() ? undefined : message;
 }
 
 function routeUpdates(
@@ -228,11 +320,7 @@ function prepareExplicitMcpPaths(configPath: string, agentsHome: string, args: I
 }
 
 function updateYaml(configPath: string, updates: Array<[Array<string>, unknown]>): void {
-  const document = parseDocument(readFileSync(configPath, 'utf8'), { schema: 'core', uniqueKeys: true });
-  if (document.errors.length) throw new Error(`Invalid YAML in ${configPath}: ${document.errors[0]?.message ?? 'parse error'}`);
-  for (const [path, value] of updates) document.setIn(path, value);
-  writeFileSync(configPath, document.toString({ lineWidth: 0 }), { mode: 0o600 });
-  chmodSync(configPath, 0o600);
+  updateYamlFile(configPath, updates.map(([path, value]) => ({ type: 'set', path, value })));
 }
 
 function backupFile(configPath: string): void {
@@ -243,12 +331,6 @@ function backupFile(configPath: string): void {
 
 function hasExplicitProviderArgs(args: InitArgs): boolean {
   return Boolean(args.key || args.endpoint || args.textApi || args.responseModel || args.embeddingModel);
-}
-
-async function promptRequiredPassword(message: string): Promise<string> {
-  const value = (await promptPassword(message)).trim();
-  if (!value) throw new Error('OpenAI API key is required.');
-  return value;
 }
 
 function printInitHelp(commandName: string): void {

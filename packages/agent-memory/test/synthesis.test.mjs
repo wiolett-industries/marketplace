@@ -6,7 +6,7 @@ describe('multi-memory synthesis and recap', () => {
 
   test('query synthesis receives the original query and multiple ranked memories', () => {
     const input = JSON.parse(result.responseRequest.input);
-    expect(result.responseRequest.model).toBe('gpt-5-mini');
+    expect(result.responseRequest.model).toBe('gpt-5.6-luna');
     expect(result.responseRequest.reasoning).toEqual({ effort: 'medium' });
     expect(input.query).toBe('deploy health release');
     expect(input.memories.map((item) => item.memory.id)).toEqual(

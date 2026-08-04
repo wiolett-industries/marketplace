@@ -1,9 +1,10 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from '@jest/globals';
+import { runInitCommand } from '../dist/cli/init.js';
 import { formatMaskedPasswordLine, isCliAbortError } from '../dist/cli/prompts.js';
 
 const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -33,6 +34,23 @@ function providersPath(agentsHome) {
   return path.join(agentsHome, '.wiolett', 'config', 'ai-providers.yml');
 }
 
+function interactiveUi({ password = 'sk-interactive', texts = [], selections = ['responses'], confirmed = true } = {}) {
+  const notes = [];
+  return {
+    notes,
+    intro() {},
+    info(message) { notes.push(message); },
+    note(message) { notes.push(message); },
+    cancel() {},
+    outro() {},
+    async password() { return password; },
+    async text() { return texts.shift() ?? null; },
+    async select() { return selections.shift() ?? null; },
+    async confirm() { return confirmed; },
+    spinner() { return { stop() {}, error() {} }; },
+  };
+}
+
 describe('agent-memory init', () => {
   test('caps masked password rendering to one terminal line', () => {
     const line = formatMaskedPasswordLine('OpenAI API key: ', 200, 40);
@@ -43,6 +61,44 @@ describe('agent-memory init', () => {
 
   test('recognizes readline Ctrl-C abort errors', () => {
     expect(isCliAbortError({ code: 'ABORT_ERR' })).toBe(true);
+  });
+
+  test('collects interactive input before any bootstrap writes and leaves no files on final cancellation', async () => {
+    const agentsHome = tempAgentsHome();
+    const ui = interactiveUi({
+      texts: ['https://interactive.test/v1', 'gpt-interactive', 'embed-interactive'],
+      confirmed: false,
+    });
+
+    await runInitCommand([], {
+      env: { PROJECT_MEMORY_AGENTS_HOME: agentsHome, OPENAI_API_KEY: '' },
+      ui,
+    });
+
+    expect(existsSync(providersPath(agentsHome))).toBe(false);
+    expect(existsSync(path.join(agentsHome, '.wiolett', 'config', 'mcp-config.yml'))).toBe(false);
+    expect(existsSync(path.join(agentsHome, '.wiolett', 'migration', 'agent-memory-v1.json'))).toBe(false);
+    expect(ui.notes).toHaveLength(1);
+    expect(ui.notes[0]).not.toContain('sk-interactive');
+    expect(ui.notes[0]).toContain('gpt-interactive');
+  });
+
+  test('writes the collected interactive draft only after the final confirmation', async () => {
+    const agentsHome = tempAgentsHome();
+    const ui = interactiveUi({
+      texts: ['https://interactive.test/v1', 'gpt-interactive', 'embed-interactive'],
+    });
+
+    await runInitCommand([], {
+      env: { PROJECT_MEMORY_AGENTS_HOME: agentsHome, OPENAI_API_KEY: '' },
+      ui,
+    });
+
+    const config = readFileSync(providersPath(agentsHome), 'utf8');
+    expect(config).toContain('base_url: https://interactive.test/v1');
+    expect(config).toContain('text: gpt-interactive');
+    expect(config).toContain('embeddings: embed-interactive');
+    expect(ui.notes.at(-1)).toContain('npx -y @wiolett/agent-memory');
   });
 
   test('prints the resolved config path', () => {
@@ -74,6 +130,7 @@ describe('agent-memory init', () => {
         'gpt-provider',
         '--embedding-model',
         'embed-test',
+        '--non-interactive',
         '--force',
       ],
       { agentsHome }
@@ -94,7 +151,7 @@ describe('agent-memory init', () => {
     expect(checkOutput).toContain('Embeddings: provider=openai model=embed-test endpoint=https://provider.test/v1');
 
     writeFileSync(configPath, config.replace('providers:', '# User comment must survive init updates.\nproviders:'), 'utf8');
-    runCli(['init', '--response-model', 'gpt-updated', '--force'], { agentsHome });
+    runCli(['init', '--response-model', 'gpt-updated', '--non-interactive', '--force'], { agentsHome });
     const updated = readFileSync(configPath, 'utf8');
     expect(updated).toContain('# User comment must survive init updates.');
     expect(updated).toContain('text: gpt-updated');
