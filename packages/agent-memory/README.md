@@ -174,8 +174,10 @@ configuration directory. For Gate and Synthesis, the UI loads the selected
 provider's authenticated `/models` catalog before saving a route, so only
 available models can be selected. Gateway-style catalogs that advertise
 `supported_reasoning_levels` also offer the matching reasoning level; ordinary
-OpenAI-compatible catalogs that do not expose those capabilities use no
-reasoning override.
+OpenAI-compatible catalogs that do not expose those capabilities offer a
+clearly-labelled manual override: `low`, `medium`, `high`, or a custom value
+such as `xhigh`. The provider validates an unadvertised override when the
+route is used.
 
 The init command creates English-commented YAML under:
 

@@ -346,8 +346,17 @@ async function loadModels(
 
 async function selectReasoningEffort(ui: ConfigCliUi, model: CatalogModel): Promise<string | null> {
   if (!model.reasoningEfforts.length) {
-    ui.info(`The catalog does not advertise reasoning levels for "${model.id}"; no reasoning override will be sent.`);
-    return '';
+    ui.info(`The catalog does not advertise reasoning levels for "${model.id}". You can still send a standard or custom override; the provider will validate it when the route is used.`);
+    const fallback = await ui.select('Reasoning effort', [
+      { value: '', label: 'No reasoning override', hint: 'Do not send a reasoning effort for this route' },
+      ...FALLBACK_REASONING_EFFORTS.map((value) => ({ value, label: value, hint: 'Not advertised by this provider' })),
+      { value: 'custom', label: 'Custom value', hint: 'For provider-specific levels such as xhigh' },
+    ]);
+    if (fallback !== 'custom') return fallback;
+    const custom = await ui.text('Custom reasoning effort', {
+      validate: (value) => value?.trim() ? undefined : 'Reasoning effort is required.',
+    });
+    return custom?.trim() || null;
   }
   const effort = await ui.select('Reasoning effort', [
     { value: '', label: 'No reasoning override', hint: 'Do not send a reasoning effort for this route' },
@@ -355,6 +364,8 @@ async function selectReasoningEffort(ui: ConfigCliUi, model: CatalogModel): Prom
   ]);
   return effort;
 }
+
+const FALLBACK_REASONING_EFFORTS = ['low', 'medium', 'high'];
 
 async function confirmSave(ui: ConfigCliUi, message: string): Promise<boolean> {
   const confirmed = await ui.confirm(message, false);

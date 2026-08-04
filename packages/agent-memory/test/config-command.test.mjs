@@ -103,4 +103,36 @@ describe('agent-memory config', () => {
     });
     expect(config?.mcp['agent-memory']?.routing?.synthesis).toMatchObject({ provider: 'openai' });
   });
+
+  test('allows a reasoning override when the provider catalog omits reasoning metadata', async () => {
+    const providerUi = createUi({
+      selects: ['provider', 'add', 'openai-compatible', 'responses', 'exit'],
+      texts: ['gateway', 'https://gateway.test/v1', 'gateway-default', 'gateway-embed', '30000'],
+      passwords: ['sk-route-secret'],
+      confirms: [true, true],
+    });
+    const { agentsHome, input } = createInput(providerUi);
+    await runConfigCommand([], input);
+
+    const routeUi = createUi({
+      selects: ['routing', 'gate', 'set', 'gateway', 'responses', 'model-without-metadata', 'high', 'exit'],
+      confirms: [true],
+    });
+    await runConfigCommand([], {
+      ...input,
+      ui: routeUi,
+      fetch: async () => new Response(JSON.stringify({
+        data: [{ id: 'model-without-metadata' }],
+      }), { status: 200 }),
+    });
+
+    const route = readMcpConfig(configPaths(agentsHome).mcp)?.mcp['agent-memory']?.routing?.gate;
+    expect(route).toEqual({
+      provider: 'gateway',
+      api: 'responses',
+      model: 'model-without-metadata',
+      reasoning_effort: 'high',
+    });
+    expect(routeUi.messages.join('\n')).toContain('does not advertise reasoning levels');
+  });
 });
