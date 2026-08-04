@@ -22,9 +22,12 @@ The runtime package is [`@wiolett/agent-memory`](../../packages/agent-memory).
 - Global memory lives under `~/.agents/.wiolett/global-memory/` by default and follows the user
   across repositories.
 - Project memory lives under `<repo>/.memory/` and belongs to that repository.
-- Canonical project `.memory/` markdown, index, embedding, and graph files are
-  team knowledge artifacts and should be committed.
-- Generated SQLite cache files, `.memory/memory.db*`, should stay ignored.
+- Canonical project files under `.memory/memories/`, `.memory/index/`,
+  `.memory/embeddings/`, `.memory/graph/`, and `.memory/maintenance/` are
+  repository-owned team knowledge and **must be committed**, including
+  embeddings, graph edges, and reconciliation metadata.
+- Never ignore `.memory/` wholesale. Ignore only `.memory/memory.db*`, covering
+  the generated SQLite cache plus its `-shm` and `-wal` sidecars.
 
 ## MCP Tools
 
@@ -35,6 +38,8 @@ Canonical tools include:
 - `memory_query`
 - `memory_recap`
 - `memory_recall`
+- `memory_reconciliation_status`
+- `memory_reconciliation_record`
 - `memory_save`
 - `memory_update`
 - `memory_inspect`
@@ -49,9 +54,12 @@ Compatibility aliases remain available for older skills, but new instructions
 should prefer the canonical names.
 
 The startup skill chooses one task-appropriate read: `memory_query` for a focused
-question or `memory_recap` for broad recovery across several memories. It treats
-memory writes as state changes: read-only/no-edits work does not save or update
-memory unless remembering is explicitly requested.
+question or `memory_recap` for broad recovery across several memories.
+`memory_recall` is only for a non-empty id already returned by a read or named by
+the user. For recurring or multi-memory work, the skill can offer a user-approved
+reconciliation when `memory_reconciliation_status` reports a due scope. It treats
+memory writes as state changes: read-only/no-edits work does not save, update, or
+record reconciliation unless that maintenance is explicitly requested.
 
 ## Model Access
 

@@ -18,6 +18,24 @@ import {
 const workspaceRoot = z.string().min(1).optional();
 const operation = z.object({ type: z.string().min(1) }).catchall(z.unknown());
 const changeClass = z.enum(['L0', 'L1', 'L2', 'L3']);
+const localReadOnlyAnnotations = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+} as const;
+const localMutationAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: false,
+} as const;
+const localDestructiveAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: false,
+  openWorldHint: false,
+} as const;
 const stateOperationHint = [
   'Supported operations include set_phase, set_open_findings, upsert_task, complete_task, set_active_chunk,',
   'clear_active_chunk, upsert_chunk, set_chunk_status, complete_chunk, cancel_chunk, wait_chunk,',
@@ -42,6 +60,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Workflow Status',
       description: 'Read active workflow plan/audit state and latest filesystem-backed workflow runs.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: {
         workspace_root: workspaceRoot,
       },
@@ -54,6 +73,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Create Workflow Plan',
       description: 'Create a durable .workflow plan run with manifest, state, markdown files, artifacts, and chunks directory.',
+      annotations: localMutationAnnotations,
       inputSchema: {
         workspace_root: workspaceRoot,
         title: z.string().min(1),
@@ -75,6 +95,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Update Workflow Plan',
       description: `Apply structured state operations to the active or named workflow plan run. ${stateOperationHint}`,
+      annotations: localMutationAnnotations,
       inputSchema: {
         workspace_root: workspaceRoot,
         plan_run: z.string().min(1).optional(),
@@ -89,6 +110,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Propose Plan Commitment',
       description: 'Record a material plan or handoff candidate and return one bounded shrink-first same-model reflection prompt. This portable tool never launches an agent or requires a lifecycle hook.',
+      annotations: localMutationAnnotations,
       inputSchema: {
         workspace_root: workspaceRoot,
         plan_run: z.string().min(1).optional(),
@@ -114,6 +136,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Confirm Plan Commitment',
       description: 'Record the result of the bounded same-model reflection. KEEP preserves the candidate, SHRINK narrows it, ASK pauses for one material user decision, and REPLAN requires another proposal.',
+      annotations: localMutationAnnotations,
       inputSchema: {
         workspace_root: workspaceRoot,
         plan_run: z.string().min(1).optional(),
@@ -133,6 +156,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Complete Workflow Plan',
       description: 'Mark the active or named workflow plan run complete and clear active_plan when it points to that run.',
+      annotations: localMutationAnnotations,
       inputSchema: {
         workspace_root: workspaceRoot,
         plan_run: z.string().min(1).optional(),
@@ -146,6 +170,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Write Plan Artifact',
       description: 'Write allowed files inside the active or named workflow plan run without allowing path escape.',
+      annotations: localDestructiveAnnotations,
       inputSchema: {
         workspace_root: workspaceRoot,
         plan_run: z.string().min(1).optional(),
@@ -162,6 +187,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Create Workflow Audit',
       description: 'Create a durable .workflow audit run with prompts, reviews, sanity, findings, and master audit files.',
+      annotations: localMutationAnnotations,
       inputSchema: {
         workspace_root: workspaceRoot,
         title: z.string().min(1),
@@ -182,6 +208,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Update Workflow Audit',
       description: `Apply structured state operations to the active or named workflow audit run. ${stateOperationHint}`,
+      annotations: localMutationAnnotations,
       inputSchema: {
         workspace_root: workspaceRoot,
         audit_run: z.string().min(1).optional(),
@@ -196,6 +223,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Complete Workflow Audit',
       description: 'Mark the active or named workflow audit run complete and clear active_audit when it points to that run.',
+      annotations: localMutationAnnotations,
       inputSchema: {
         workspace_root: workspaceRoot,
         audit_run: z.string().min(1).optional(),
@@ -209,6 +237,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Write Audit Artifact',
       description: 'Write allowed files inside the active or named workflow audit run without allowing path escape.',
+      annotations: localDestructiveAnnotations,
       inputSchema: {
         workspace_root: workspaceRoot,
         audit_run: z.string().min(1).optional(),
@@ -225,6 +254,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Write Workflow Handoff',
       description: 'Write a structured module handoff into the active or named plan/audit run and update state.json.',
+      annotations: localDestructiveAnnotations,
       inputSchema: {
         workspace_root: workspaceRoot,
         kind: z.enum(['plan', 'audit']),
@@ -250,6 +280,7 @@ export function registerWorkflowTools(server: McpServer): void {
     {
       title: 'Normalize Findings',
       description: 'Normalize review or audit findings into severity-sorted workflow findings with stable IDs and evidence arrays.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: {
         findings: z.unknown().optional(),
         payload: z.unknown().optional(),

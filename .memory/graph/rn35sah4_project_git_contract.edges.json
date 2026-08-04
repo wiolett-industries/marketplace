@@ -1,0 +1,25 @@
+{
+  "file_name": "rn35sah4_project_git_contract",
+  "edges": [
+    {
+      "from_id": "rn35sah4",
+      "to_id": "e87wrzeg",
+      "relation": "depends_on",
+      "weight": 0.9,
+      "reason": "Describes resolving project memory via absolute workspace_root and stopping at .git boundaries, which directly affects how .memory canonical files are discovered and should be committed.",
+      "source": "auto",
+      "created_at": 1785531533610,
+      "updated_at": 1785531533610
+    },
+    {
+      "from_id": "rn35sah4",
+      "to_id": "t7wcxn2n",
+      "relation": "same_area",
+      "weight": 0.8,
+      "reason": "Both cover Agent Memory generation/usage and durable fixes for memory synthesis; reinforces that canonical .memory artifacts must be tracked and handled by workflows/tools.",
+      "source": "auto",
+      "created_at": 1785531533610,
+      "updated_at": 1785531533610
+    }
+  ]
+}

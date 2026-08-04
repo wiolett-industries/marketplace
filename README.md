@@ -240,6 +240,22 @@ Without a key, durable memory files still work, but model-gated writes,
 semantic search, embeddings, AI slugs, and graph-link review are disabled or
 fall back to cheaper local behavior where possible.
 
+## Project Memory Belongs In Git
+
+Project `.memory/` is repository-owned team knowledge, not a generated cache
+directory. Commit memories, indexes, embeddings, graph edges, and reconciliation
+metadata under
+`.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, and
+`.memory/graph/`, and `.memory/maintenance/`. Never ignore `.memory/` wholesale.
+
+Only the local SQLite cache and its sidecars should be ignored:
+
+```gitignore
+.memory/memory.db*
+```
+
+That single pattern covers `memory.db`, `memory.db-shm`, and `memory.db-wal`.
+
 ## Agent Memory Dashboard
 
 Inspect a project or global memory store visually:

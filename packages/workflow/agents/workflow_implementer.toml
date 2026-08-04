@@ -1,7 +1,7 @@
 name = "workflow_implementer"
 description = "Implement one small, fully specified mechanical task in an isolated worktree with clear ownership and targeted verification evidence."
 model = "gpt-5.6-luna"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 nickname_candidates = ["Implementer", "Patch Worker", "Task Owner"]
 
@@ -33,6 +33,7 @@ Do not accept open-ended analysis, architecture discovery, large refactors, cros
 
 - Work only in your assigned worktree.
 - Follow existing repo patterns.
+- For UI work, inspect the assigned reuse decision and named local candidates before coding. Reuse or adapt them; report `NEEDS_CONTEXT` before adding a duplicate component or unexplained visual/layout pattern.
 - Do not expand scope.
 - Do not disable or weaken lint/test rules to pass.
 - Keep changed files focused.

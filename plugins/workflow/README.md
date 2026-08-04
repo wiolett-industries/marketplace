@@ -50,7 +50,9 @@ Companion plugins keep their skills and MCP servers, but they do not register se
 
 Material plans use a portable same-model commitment reflection before execution: compare the original request with the expected change class and surfaces, try to remove unsupported abstractions/contracts, then record `KEEP`, `SHRINK`, `ASK`, or `REPLAN`. Codex has a Stop hook that blocks a missing reflection once and respects `stop_hook_active`; Claude Code intentionally has no matching Stop hook in this version. The shared skills and MCP contract are complete without either hook, so clients must never search for or wait on one.
 
-Subagent authorization is permission, not a launch trigger. Agents run only when independent parallel work, noisy-context isolation, independent high-risk judgment, or an explicit requested split provides concrete benefit. The selected task-wide profile caps launches across every module: `fast` uses 0 agents, `standard` at most 1 total, and `assurance` a declared total (default 3) with at most 2 reviewers per round. Parent Max/Ultra does not increase these budgets. Verification also has one task-wide budget: unchanged checks are not rerun, and completion stops once scoped acceptance, evidence, and material-risk gates pass.
+Subagent authorization is a deliberate routing decision, not a rare exception. Once diagnosis, exploration, or review is no longer a small direct lookup, the parent should consider one focused explorer or reviewer for independent evidence and context isolation. The selected task-wide profile caps launches across every module: `fast` uses 0 agents, `standard` budgets 1 by default (a second only for a disjoint role with a concrete payoff), and `assurance` a declared total (default 3) with at most 2 reviewers per round. Parent Max/Ultra does not increase these budgets. Verification also has one task-wide budget: unchanged checks are not rerun, and completion stops once scoped acceptance, evidence, and material-risk gates pass.
+
+When a user asks to split work, or authorizes task splitting, a platform-supported user-visible task/chat may be created for a standalone deliverable, isolated worktree, long-running lifecycle, or later user interaction. It is not an internal subagent and does not replace bounded internal delegation; short-lived research and review remain subagent work in the current task.
 
 ## Custom Agents
 
@@ -62,6 +64,8 @@ The workflow custom agents are committed in platform-native formats:
 Codex loads custom agents from `.codex/agents/` or `~/.codex/agents/`. The workflow MCP syncs its packaged agent definitions into the correct Codex agents directory at startup and validates that the loaded versions match the package source.
 
 Workflow skills should use the named `workflow_*` custom agents directly. Missing workflow agents are a setup problem, not a reason to silently use generic built-in agents.
+
+For substantial production UI, `ui-contract` requires a short local reuse decision before implementation: identify analogous screens, primitives, visual tokens, and responsive rules, then reuse/adapt them or justify why no suitable candidate exists. Implementer prompts enforce that decision; UI review treats unexplained duplicate primitives or visual patterns as material findings.
 
 Codex agent models are routed by role in the canonical TOML definitions:
 

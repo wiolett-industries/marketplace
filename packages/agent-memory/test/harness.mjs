@@ -443,6 +443,9 @@ async function runMcp() {
       summary: 'Smoke global preference',
     },
   });
+  const globalReconciliationBefore = await client.callTool({ name: 'memory_reconciliation_status', arguments: { scope: 'global' } });
+  const globalReconciliationRecord = await client.callTool({ name: 'memory_reconciliation_record', arguments: { scope: 'global' } });
+  const globalReconciliationAfter = await client.callTool({ name: 'memory_reconciliation_status', arguments: { scope: 'global' } });
   const lite = await client.callTool({ name: 'memory_read_lite', arguments: {} });
   const globalLite = await client.callTool({ name: 'global_memory_read_lite', arguments: {} });
   const get = await client.callTool({ name: 'memory_get', arguments: { id: JSON.parse(write.content[0].text).id } });
@@ -457,6 +460,9 @@ async function runMcp() {
   });
   const canonicalList = await client.callTool({ name: 'memory_list', arguments: {} });
   const canonicalIndexList = await client.callTool({ name: 'memory_list', arguments: { index_only: true } });
+  const reconciliationBefore = await client.callTool({ name: 'memory_reconciliation_status', arguments: {} });
+  const reconciliationRecord = await client.callTool({ name: 'memory_reconciliation_record', arguments: {} });
+  const reconciliationAfter = await client.callTool({ name: 'memory_reconciliation_status', arguments: {} });
   const query = await client.callTool({
     name: 'memory_query',
     arguments: { query: 'Canonical smoke memory', limit: 3 },
@@ -479,9 +485,15 @@ async function runMcp() {
     lite,
     globalWrite,
     globalLite,
+    globalReconciliationBefore,
+    globalReconciliationRecord,
+    globalReconciliationAfter,
     canonicalWrite,
     canonicalList,
     canonicalIndexList,
+    reconciliationBefore,
+    reconciliationRecord,
+    reconciliationAfter,
     query,
     recap,
     inspect,
@@ -550,6 +562,14 @@ async function runMcpWorkspaceRoot() {
     const rootedList = await unrelated.client.callTool({ name: 'memory_list', arguments: { workspace_root: projectDir } });
     const rootedIndexList = await unrelated.client.callTool({ name: 'memory_list', arguments: { workspace_root: projectDir, index_only: true } });
     const rootedInspect = await unrelated.client.callTool({ name: 'memory_inspect', arguments: { workspace_root: projectDir, view: 'all' } });
+    const rootedQuery = await unrelated.client.callTool({
+      name: 'memory_query',
+      arguments: { workspace_root: projectDir, query: 'Workspace root memory' },
+    });
+    const rootedRecap = await unrelated.client.callTool({
+      name: 'memory_recap',
+      arguments: { workspace_root: projectDir, topic: 'Workspace root memory' },
+    });
     let relativeRootResult = null;
     let relativeRootError = null;
     try {
@@ -570,6 +590,8 @@ async function runMcpWorkspaceRoot() {
           rootedList,
           rootedIndexList,
           rootedInspect,
+          rootedQuery,
+          rootedRecap,
           relativeRootResult,
           relativeRootError,
           ancestorList,
@@ -614,6 +636,7 @@ async function runMcpReadUninitialized() {
   const list = await client.callTool({ name: 'memory_list', arguments: {} });
   const query = await client.callTool({ name: 'memory_query', arguments: { query: 'anything' } });
   const recap = await client.callTool({ name: 'memory_recap', arguments: {} });
+  const reconciliationStatus = await client.callTool({ name: 'memory_reconciliation_status', arguments: {} });
   const get = await client.callTool({ name: 'memory_get', arguments: { id: 'missing' } });
   const inspect = await client.callTool({ name: 'memory_inspect', arguments: { view: 'all' } });
   await transport.close();
@@ -625,6 +648,7 @@ async function runMcpReadUninitialized() {
     list,
     query,
     recap,
+    reconciliationStatus,
     get,
     inspect,
   };

@@ -15,10 +15,11 @@ import { handleReadLite } from './read-lite.js';
 import { handleSave } from './save.js';
 import { handleSearch } from './search.js';
 import { handleUpdate } from './update.js';
-import { asTextResult, detailSchema, directionEnum, relationEnum, scopeSchema, workspaceRootSchema } from './registry-helpers.js';
+import { asTextResult, detailSchema, directionEnum, localDestructiveAnnotations, localMutationAnnotations, localReadOnlyAnnotations, relationEnum, scopeSchema, workspaceRootSchema } from './registry-helpers.js';
 import { registerGraphTools } from './register-graph.js';
 import type { MemoryScope } from '../scope.js';
 import { withProjectRoot, withProjectRootAsync } from '../scope.js';
+import { getReconciliationStatus, recordReconciliation } from '../reconciliation.js';
 
 function emptyQueryResult() {
   return {
@@ -38,6 +39,12 @@ function missingMemoryError(id: string): Error {
   return new Error(`Memory "${id}" does not exist.`);
 }
 
+const PROJECT_MEMORY_GIT_CONTRACT = 'For project scope, commit canonical .memory/memories, .memory/index, .memory/embeddings, .memory/graph, and .memory/maintenance changes; never ignore .memory wholesale. Only .memory/memory.db* is disposable SQLite cache.';
+
+function mutationDescription(description: string): string {
+  return `${description} ${PROJECT_MEMORY_GIT_CONTRACT}`;
+}
+
 export function registerMemoryTools(server: McpServer): void {
   registerCanonicalTools(server);
   registerGraphTools(server);
@@ -50,7 +57,8 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_setup',
     {
       title: 'Setup Memory',
-      description: 'Initialize or repair project-local memory storage for the current repo.',
+      description: mutationDescription('Initialize or repair project-local memory storage for the current repo.'),
+      annotations: localMutationAnnotations,
       inputSchema: z.object({ workspace_root: workspaceRootSchema }),
     },
     async ({ workspace_root }) => withProjectRoot(workspace_root, () => asTextResult(setupProjectMemory()))
@@ -60,7 +68,8 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_save',
     {
       title: 'Save Memory',
-      description: 'Proactively save a new durable project or global lesson after completed non-trivial work when reusable preferences, workflows, gotchas, root causes, fix patterns, or verification sequences emerged. Do not save raw progress or transcripts.',
+      description: mutationDescription('Proactively save a new durable project or global lesson after completed non-trivial work when reusable preferences, workflows, gotchas, root causes, fix patterns, or verification sequences emerged. Do not save raw progress or transcripts.'),
+      annotations: localMutationAnnotations,
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
@@ -80,7 +89,8 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_update',
     {
       title: 'Update Memory',
-      description: 'Proactively update an existing canonical memory after completed non-trivial work when the durable lesson changed or was refined; its ID and manual graph links are preserved.',
+      description: mutationDescription('Proactively update an existing canonical memory after completed non-trivial work when the durable lesson changed or was refined; its ID and manual graph links are preserved.'),
+      annotations: localMutationAnnotations,
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
@@ -100,8 +110,9 @@ function registerCanonicalTools(server: McpServer): void {
   server.registerTool(
     'memory_recall',
     {
-      title: 'Recall Memory',
-      description: 'Return compiled context for one memory and its valuable relations.',
+      title: 'Recall Known Memory',
+      description: 'Return compiled context for one known memory and its valuable relations. Requires memory_id from a prior query, recap, list, or explicit reference; do not use for an initial semantic question or broad startup recall.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
@@ -121,10 +132,46 @@ function registerCanonicalTools(server: McpServer): void {
   );
 
   server.registerTool(
+    'memory_reconciliation_status',
+    {
+      title: 'Memory Reconciliation Status',
+      description: 'Read whether project or global memory has a recorded reconciliation and whether it is overdue. This is read-only; it does not initialize a missing memory store.',
+      annotations: localReadOnlyAnnotations,
+      inputSchema: z.object({
+        scope: scopeSchema.describe('Defaults to project.'),
+        workspace_root: workspaceRootSchema,
+      }),
+    },
+    async ({ scope, workspace_root }) => withProjectRootAsync(workspace_root, async () => {
+      const resolvedScope = scope ?? 'project';
+      return asTextResult(getReconciliationStatus(resolvedScope));
+    })
+  );
+
+  server.registerTool(
+    'memory_reconciliation_record',
+    {
+      title: 'Record Memory Reconciliation',
+      description: mutationDescription('Record that the user-approved project or global memory reconciliation was actually completed now. This mutates durable metadata; never call it merely to clear an overdue recommendation.'),
+      annotations: localMutationAnnotations,
+      inputSchema: z.object({
+        scope: scopeSchema.describe('Defaults to project.'),
+        workspace_root: workspaceRootSchema,
+      }),
+    },
+    async ({ scope, workspace_root }) => withProjectRootAsync(workspace_root, async () => {
+      const resolvedScope = scope ?? 'project';
+      ensureMemoryReady(resolvedScope);
+      return asTextResult(recordReconciliation(resolvedScope));
+    })
+  );
+
+  server.registerTool(
     'memory_query',
     {
       title: 'Query Memory',
-      description: 'Answer a focused question by searching and synthesizing multiple relevant memories with source references. Use proactively when prior repository or user context could affect non-trivial work.',
+      description: 'Answer a focused question by searching and synthesizing multiple relevant memories with source references. For a user-requested other project, set scope=project and pass that project\'s absolute workspace_root. Use proactively when prior repository or user context could affect non-trivial work.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
@@ -148,7 +195,8 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_recap',
     {
       title: 'Recap Memory',
-      description: 'Synthesize a broad, multi-memory recap for non-trivial work, compaction recovery, or context handoff. Use topic to focus the recap; omit it to recover the most important current memories.',
+      description: 'Synthesize a broad, multi-memory recap for non-trivial work, compaction recovery, or context handoff. For a user-requested other project, set scope=project and pass that project\'s absolute workspace_root. Use topic to focus the recap; omit it to recover the most important current memories.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
@@ -171,6 +219,7 @@ function registerCanonicalTools(server: McpServer): void {
     {
       title: 'List Memories',
       description: 'List memory records. By default this includes deep memories and lite index records; set index_only to true for lightweight index browsing.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
@@ -194,6 +243,7 @@ function registerCanonicalTools(server: McpServer): void {
     {
       title: 'Inspect Memory',
       description: 'Raw maintenance/debug view of memory, index, and graph records, or graph health metrics.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
@@ -215,7 +265,8 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_delete',
     {
       title: 'Delete Memory',
-      description: 'Delete one memory or index record by ID.',
+      description: mutationDescription('Delete one memory or index record by ID.'),
+      annotations: localDestructiveAnnotations,
       inputSchema: z.object({
         scope: scopeSchema,
         workspace_root: workspaceRootSchema,
@@ -238,7 +289,8 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_link',
     {
       title: 'Link Memories',
-      description: 'Create a weighted manual graph edge between two graph-capable memories.',
+      description: mutationDescription('Create a weighted manual graph edge between two graph-capable memories.'),
+      annotations: localMutationAnnotations,
       inputSchema: z.object({
         scope: scopeSchema,
         workspace_root: workspaceRootSchema,
@@ -260,7 +312,8 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_unlink',
     {
       title: 'Unlink Memories',
-      description: 'Remove a graph edge between two graph-capable memories.',
+      description: mutationDescription('Remove a graph edge between two graph-capable memories.'),
+      annotations: localDestructiveAnnotations,
       inputSchema: z.object({
         scope: scopeSchema,
         workspace_root: workspaceRootSchema,
@@ -281,6 +334,7 @@ function registerCanonicalTools(server: McpServer): void {
     {
       title: 'Memory Graph',
       description: 'Read graph neighbors or a bounded subgraph for a graph-capable memory.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({
         scope: scopeSchema,
         workspace_root: workspaceRootSchema,
@@ -309,7 +363,10 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
     `${prefix}memory_write`,
     {
       title: scope === 'global' ? 'Write Global Memory' : 'Write Memory',
-      description: 'Compatibility alias for memory_save.',
+      description: scope === 'project'
+        ? mutationDescription('Compatibility alias for memory_save.')
+        : 'Compatibility alias for memory_save.',
+      annotations: localMutationAnnotations,
       inputSchema: z.object({
         content: z.string().min(1),
         workspace_root: workspaceRootSchema,
@@ -329,6 +386,7 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
     {
       title: scope === 'global' ? 'Recall Global Memory' : 'Recall Memory',
       description: 'Compatibility alias for memory_recall.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({ id: z.string().min(1), workspace_root: workspaceRootSchema }),
     },
     async ({ id, workspace_root }) => withProjectRootAsync(workspace_root, async () => {
@@ -344,6 +402,7 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
     {
       title: scope === 'global' ? 'List Global Memory Index' : 'List Memory Index',
       description: 'Compatibility alias for memory_list with index_only=true.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({ workspace_root: workspaceRootSchema }),
     },
     async ({ workspace_root }) => withProjectRootAsync(workspace_root, async () => {
@@ -359,6 +418,7 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
     {
       title: scope === 'global' ? 'Query Global Memory' : 'Query Memory',
       description: 'Compatibility alias for memory_query.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({
         query: z.string().min(1),
         workspace_root: workspaceRootSchema,
@@ -379,6 +439,7 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
       {
         title: 'Delete Global Memory',
         description: 'Compatibility alias for memory_delete.',
+        annotations: localDestructiveAnnotations,
         inputSchema: z.object({ id: z.string().min(1), workspace_root: workspaceRootSchema }),
       },
       async ({ id, workspace_root }) => withProjectRootAsync(workspace_root, async () => {
@@ -392,6 +453,7 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
       {
         title: 'Link Global Memories',
         description: 'Compatibility alias for memory_link.',
+        annotations: localMutationAnnotations,
         inputSchema: z.object({
           from_id: z.string().min(1),
           to_id: z.string().min(1),
@@ -412,6 +474,7 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
       {
         title: 'Unlink Global Memories',
         description: 'Compatibility alias for memory_unlink.',
+        annotations: localDestructiveAnnotations,
         inputSchema: z.object({
           from_id: z.string().min(1),
           to_id: z.string().min(1),
@@ -431,6 +494,7 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
     {
       title: scope === 'global' ? 'Global Memory Neighbors' : 'Memory Neighbors',
       description: 'Compatibility alias for memory_graph view=neighbors.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({
         id: z.string().min(1),
         workspace_root: workspaceRootSchema,
@@ -453,6 +517,7 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
     {
       title: scope === 'global' ? 'Global Memory Subgraph' : 'Memory Subgraph',
       description: 'Compatibility alias for memory_graph view=subgraph.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({
         id: z.string().min(1),
         workspace_root: workspaceRootSchema,
@@ -476,6 +541,7 @@ function registerCompatibilityTools(server: McpServer, scope: MemoryScope, prefi
     {
       title: scope === 'global' ? 'Inspect Global Memory' : 'Inspect Memory',
       description: 'Compatibility alias for memory_inspect view=all.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({ workspace_root: workspaceRootSchema }),
     },
     async ({ workspace_root }) => withProjectRootAsync(workspace_root, async () => {

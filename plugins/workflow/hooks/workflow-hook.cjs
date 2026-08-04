@@ -78,10 +78,10 @@ function mcpConfigPath() {
   return path.join(process.env.WIOLETT_CONFIG_DIR || path.join(agentsHome(), ".wiolett", "config"), "mcp-config.yml");
 }
 
-function readYamlScalar(keys) {
+function readYamlScalar(keys, configPath = mcpConfigPath()) {
   let source;
   try {
-    source = fs.readFileSync(mcpConfigPath(), "utf8");
+    source = fs.readFileSync(configPath, "utf8");
   } catch {
     return null;
   }
@@ -273,10 +273,12 @@ function activeWorkflowSummary(root) {
 
 function authSummary() {
   const providersFile = path.join(process.env.WIOLETT_CONFIG_DIR || path.join(agentsHome(), ".wiolett", "config"), "ai-providers.yml");
-  if (fs.existsSync(providersFile)) {
-    return "Agent Memory auth: configured.";
+  const gateProvider = readYamlScalar(["mcp", "agent-memory", "routing", "gate", "provider"]) || "openai";
+  const gateCredential = readYamlScalar(["providers", gateProvider, "auth", "api_key"], providersFile);
+  if (gateCredential) {
+    return "Agent Memory gate auth: configured.";
   }
-  return "Agent Memory auth missing for gated writes/embeddings: run `npx -y @wiolett/agent-memory@latest init`.";
+  return "Agent Memory gate auth missing: run `npx -y @wiolett/agent-memory@latest init`.";
 }
 
 function projectMemorySummary(root) {
@@ -285,6 +287,15 @@ function projectMemorySummary(root) {
     return `Project Agent Memory \`${path.relative(root, memoryRoot) || "."}/\` exists; proactively use \`memory_query\` for a focused question or \`memory_recap\` for broad recovery when durable repo context can affect non-trivial work.`;
   }
   return "No project `.memory/`: reads no-op; writes may init only for durable saves.";
+}
+
+function projectMemoryReconciliationReminder(root) {
+  const record = readJson(path.join(projectMemoryRoot(root), "maintenance", "reconciliation.json"));
+  const lastReconciledAt = record?.last_reconciled_at;
+  const timestamp = typeof lastReconciledAt === "string" ? Date.parse(lastReconciledAt) : Number.NaN;
+  const ageDays = Math.floor((Date.now() - timestamp) / (24 * 60 * 60 * 1000));
+  if (!Number.isFinite(timestamp) || ageDays < 30) return null;
+  return `Project Agent Memory reconciliation is overdue (${ageDays} days since ${lastReconciledAt}). For recurring or multi-memory work, offer the user a reconciliation; use \`memory_reconciliation_status\` and \`reconciling-memory\` only after approval. Do not record or mutate memory automatically.`;
 }
 
 function agentMemoryContext(root) {
@@ -297,6 +308,7 @@ function agentMemoryContext(root) {
     "Agent Memory writes are state changes; read-only/no-edits work does not write memory unless remembering is explicitly requested.",
     authSummary(),
     projectMemorySummary(root),
+    projectMemoryReconciliationReminder(root),
     "Before final output for completed non-trivial work, run the memory completion latch: save or update a real reusable lesson when one emerged; never save raw progress, transcripts, or secrets.",
   ];
 }

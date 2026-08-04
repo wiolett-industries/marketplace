@@ -62,6 +62,7 @@ Global memory:
   index/
   embeddings/
   graph/
+  maintenance/
   memory.db
 ```
 
@@ -73,12 +74,13 @@ Project memory:
   index/
   embeddings/
   graph/
+  maintenance/
   memory.db
   memory.db-shm
   memory.db-wal
 ```
 
-Canonical markdown memory files, index files, embedding arrays, and graph files are the source of truth and should be committed for project/team memory. SQLite is used as local cache for fast lookup, so only `.memory/memory.db*` belongs in `.gitignore`.
+Canonical files under `.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, `.memory/graph/`, and `.memory/maintenance/` are the repository source of truth and **must be committed** for project/team memory. This includes embedding arrays, graph edges, and reconciliation metadata. Never ignore `.memory/` wholesale or discard these files as generated output. SQLite is only a local lookup cache, so `.memory/memory.db*` is the sole Agent Memory pattern that belongs in `.gitignore`; it covers `memory.db`, `memory.db-shm`, and `memory.db-wal`.
 
 ## Tool Surface
 
@@ -89,6 +91,8 @@ Canonical tools:
 - `memory_recall`
 - `memory_query`
 - `memory_recap`
+- `memory_reconciliation_status`
+- `memory_reconciliation_record`
 - `memory_list`
 - `memory_inspect`
 - `memory_delete`
@@ -125,7 +129,7 @@ Compatibility aliases remain available until the bundled skills move to the new 
 
 Normal reads should use:
 
-- `memory_recall` for one compiled memory context
+- `memory_recall` for one compiled known-memory context; it requires a non-empty `memory_id` obtained from query/list/recap output or an explicit user reference
 - `memory_query` for a query-aware answer synthesized from several ranked search results
 - `memory_recap` for broad task startup or compaction recovery across several current memories
 - `memory_list({ index_only: true })` for lightweight index browsing; omit `index_only` to include deep memories as well
@@ -200,6 +204,7 @@ At conversation start or before non-trivial repository work, the bundled skill f
 ```text
 memory_query(scope="project", workspace_root="/path/to/repo", query="What prior decisions affect this change?")
 memory_recap(scope="project", workspace_root="/path/to/repo", topic="release and deployment context")
+memory_reconciliation_status(scope="project", workspace_root="/path/to/repo")
 ```
 
 When a repository should use project memory, save or mutate project memory normally. The first write/mutation call initializes the local `.memory/` store automatically. Read calls against a repo with no project memory return empty results and leave the repo untouched. After a repo root is known, pass an absolute `workspace_root` on project-scoped reads/writes if the MCP server may have launched from another directory.
@@ -214,6 +219,7 @@ memory_query(query="How do releases work?")
 memory_recap(topic="release and deployment context")
 memory_list(scope="project", workspace_root="/path/to/repo", index_only=true)
 memory_recall(memory_id="abc123xy")
+memory_reconciliation_record(scope="project", workspace_root="/path/to/repo") # only after a completed user-approved reconciliation
 memory_inspect(view="all")
 ```
 

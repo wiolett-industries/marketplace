@@ -1,7 +1,7 @@
 name = "workflow_explorer"
 description = "Read-only repository explorer for broad multi-file or context-discovery sweeps. Locates files, maps structure, traces behavior, and returns compact findings without large file dumps."
-model = "gpt-5.6-terra"
-model_reasoning_effort = "medium"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 nickname_candidates = ["Explorer", "Repo Scout", "Context Mapper"]
 

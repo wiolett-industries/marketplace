@@ -90,6 +90,23 @@ test('workflow session hook emits recovery context for active plans', () => {
   assert.match(output.hookSpecificOutput.additionalContext, /mr_review_complete/);
 });
 
+test('workflow session hook reminds only for recorded overdue project-memory reconciliation', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-memory-reconciliation-hook-'));
+  const recordPath = path.join(workspace, '.memory', 'maintenance', 'reconciliation.json');
+  mkdirSync(path.dirname(recordPath), { recursive: true });
+  writeFileSync(recordPath, JSON.stringify({ version: 1, last_reconciled_at: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString() }), 'utf8');
+
+  const overdue = runHook({ hook_event_name: 'SessionStart', cwd: workspace }, workspace);
+  assert.match(overdue.hookSpecificOutput.additionalContext, /Project Agent Memory reconciliation is overdue/);
+  assert.match(overdue.hookSpecificOutput.additionalContext, /memory_reconciliation_status/);
+  assert.match(overdue.hookSpecificOutput.additionalContext, /reconciling-memory/);
+  assert.match(overdue.hookSpecificOutput.additionalContext, /Do not record or mutate memory automatically/);
+
+  writeFileSync(recordPath, JSON.stringify({ version: 1, last_reconciled_at: new Date().toISOString() }), 'utf8');
+  const current = runHook({ hook_event_name: 'SessionStart', cwd: workspace }, workspace);
+  assert.doesNotMatch(current.hookSpecificOutput.additionalContext, /Project Agent Memory reconciliation is overdue/);
+});
+
 test('workflow hook follows configured Workflow and MR Review artifact roots', () => {
   const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-configured-hook-'));
   const agentsHome = mkdtempSync(path.join(os.tmpdir(), 'workflow-configured-home-'));
@@ -149,6 +166,45 @@ mcp:
   assert.match(context, /Active workflow plan: \.flow-workflow\/plans\/flow-plan/);
   assert.match(context, /Active merge request review: \.flow-reviews\/flow-review/);
   assert.match(context, /Project Agent Memory `\.flow-memory\/` exists/);
+});
+
+test('workflow session hook distinguishes an empty gate credential from configured auth', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-auth-summary-'));
+  const agentsHome = mkdtempSync(path.join(os.tmpdir(), 'workflow-auth-home-'));
+  const configDir = path.join(agentsHome, '.wiolett', 'config');
+  mkdirSync(configDir, { recursive: true });
+  writeFileSync(path.join(configDir, 'mcp-config.yml'), `version: 1
+mcp:
+  agent-memory:
+    routing:
+      gate: { provider: openai, api: responses }
+`, 'utf8');
+  const providersPath = path.join(configDir, 'ai-providers.yml');
+  writeFileSync(providersPath, `version: 1
+providers:
+  openai:
+    driver: openai
+    base_url: https://api.openai.com/v1
+    auth: { api_key: "" }
+    apis:
+      responses: { path: /responses }
+`, 'utf8');
+
+  const missing = runHookWithEnv(
+    { hook_event_name: 'SessionStart', cwd: workspace },
+    { PROJECT_MEMORY_AGENTS_HOME: agentsHome },
+    workspace,
+  );
+  assert.match(missing.hookSpecificOutput.additionalContext, /Agent Memory gate auth missing/);
+  assert.doesNotMatch(missing.hookSpecificOutput.additionalContext, /Agent Memory gate auth: configured/);
+
+  writeFileSync(providersPath, readFileSync(providersPath, 'utf8').replace('api_key: ""', 'api_key: sk-test'), 'utf8');
+  const configured = runHookWithEnv(
+    { hook_event_name: 'SessionStart', cwd: workspace },
+    { PROJECT_MEMORY_AGENTS_HOME: agentsHome },
+    workspace,
+  );
+  assert.match(configured.hookSpecificOutput.additionalContext, /Agent Memory gate auth: configured/);
 });
 
 test('workflow session hook omits companion context when companion plugins are absent', () => {
@@ -550,7 +606,7 @@ test('workflow skills use lowercase names, lean entrypoints, and valid direct re
     }
   }
 
-  assert.ok(totalWords < 5200, `workflow skill entrypoints are too large: ${totalWords} words`);
+  assert.ok(totalWords < 5400, `workflow skill entrypoints are too large: ${totalWords} words`);
 });
 
 test('workflow and merge request agents stay paired across Codex and Claude', () => {
@@ -568,24 +624,24 @@ test('shared workflow agent output contracts keep routing fields', () => {
   assert.match(claudeFixTriage, /agent_role: workflow_implementer \| workflow_implementer_standard \| workflow_implementer_complex \| main/);
 });
 
-test('canonical Codex agents use GPT-5.6 role routing without static extreme effort', () => {
+test('canonical Codex agents use the requested GPT-5.6 role routing', () => {
   const expected = {
-    workflow_fix_triage: ['gpt-5.6-luna', 'low'],
-    workflow_implementer: ['gpt-5.6-luna', 'medium'],
-    workflow_combined_reviewer: ['gpt-5.6-luna', 'medium'],
-    workflow_explorer: ['gpt-5.6-terra', 'medium'],
-    workflow_implementer_standard: ['gpt-5.6-terra', 'medium'],
+    workflow_fix_triage: ['gpt-5.6-luna', 'medium'],
+    workflow_implementer: ['gpt-5.6-luna', 'high'],
+    workflow_combined_reviewer: ['gpt-5.6-luna', 'max'],
+    workflow_explorer: ['gpt-5.6-luna', 'high'],
+    workflow_implementer_standard: ['gpt-5.6-luna', 'max'],
     workflow_plan_overall_reviewer: ['gpt-5.6-terra', 'medium'],
     workflow_overall_reviewer: ['gpt-5.6-terra', 'medium'],
     workflow_scope_compliance_reviewer: ['gpt-5.6-terra', 'medium'],
-    workflow_audit_prompt_writer: ['gpt-5.6-terra', 'medium'],
+    workflow_audit_prompt_writer: ['gpt-5.6-luna', 'max'],
     workflow_audit_sanity_reviewer: ['gpt-5.6-terra', 'medium'],
     workflow_sanity_reviewer: ['gpt-5.6-terra', 'high'],
     workflow_plan_sanity_reviewer: ['gpt-5.6-terra', 'high'],
     workflow_audit_reviewer: ['gpt-5.6-terra', 'high'],
     workflow_master_auditor: ['gpt-5.6-terra', 'high'],
     workflow_intent_reviewer: ['gpt-5.6-sol', 'high'],
-    workflow_implementer_complex: ['gpt-5.6-sol', 'high'],
+    workflow_implementer_complex: ['gpt-5.6-terra', 'high'],
     workflow_risk_reviewer: ['gpt-5.6-sol', 'high'],
     merge_request_discussion_auditor: ['gpt-5.6-luna', 'medium'],
     merge_request_verification_reviewer: ['gpt-5.6-luna', 'medium'],
@@ -598,15 +654,17 @@ test('canonical Codex agents use GPT-5.6 role routing without static extreme eff
     const content = readAgentFile(dir, name, '.toml');
     assert.match(content, new RegExp(`^model = "${model.replaceAll('.', '\\.')}"$`, 'm'));
     assert.match(content, new RegExp(`^model_reasoning_effort = "${effort}"$`, 'm'));
-    assert.doesNotMatch(content, /^model_reasoning_effort = "(?:xhigh|max|ultra)"$/m);
   }
 });
 
-test('Claude-compatible agents mirror lightweight, everyday, and high-assurance tiers', () => {
+test('Claude-compatible agents use the requested harness routing', () => {
   const expected = {
-    workflow_fix_triage: ['haiku', 'low'],
-    workflow_implementer: ['haiku', 'medium'],
-    workflow_implementer_standard: ['sonnet', 'medium'],
+    workflow_audit_prompt_writer: ['sonnet', 'medium'],
+    workflow_combined_reviewer: ['haiku', 'high'],
+    workflow_explorer: ['sonnet', 'medium'],
+    workflow_fix_triage: ['haiku', 'high'],
+    workflow_implementer: ['haiku', 'high'],
+    workflow_implementer_standard: ['sonnet', 'high'],
     workflow_implementer_complex: ['opus', 'high'],
     workflow_risk_reviewer: ['opus', 'high'],
     merge_request_discussion_auditor: ['haiku', 'medium'],
@@ -637,7 +695,7 @@ test('workflow skills preserve mandatory routing and MCP boundaries', () => {
   const executingPlans = readFileSync(path.join(skillDir, 'executing-plans/SKILL.md'), 'utf8');
   const finalizingPlan = readFileSync(path.join(skillDir, 'finalizing-plan/SKILL.md'), 'utf8');
 
-  assert.match(usingWorkflow, /Run a local `intent-gate` for non-trivial work/);
+  assert.match(usingWorkflow, /run a local `intent-gate` for non-trivial work/i);
   assert.match(usingWorkflow, /A skill trigger never implies an artifact, subagent, plan, or verification step/);
   assert.match(usingWorkflow, /Read-only, no-edits, without changes/);
   assert.match(intentGate, /brief local routing decision, not optional ceremony and not an automatic subagent step/);
@@ -666,13 +724,20 @@ test('workflow prompts route subagents by task shape and cap review loops', () =
   assert.match(executionReference, /Bounded Worker Prompt/);
   assert.match(executingPlans, /agent budget is global across planning, execution, and finalization/i);
   assert.match(executingPlans, /Never fan out by file count, checklist length, number of chunks, or number of applicable skills/);
+  assert.match(executingPlans, /Prefer one focused agent for nontrivial diagnosis, multi-surface review, broad read-only exploration/);
+  assert.match(contextDiscovery, /For nontrivial diagnosis or unfamiliar repository mapping, use `workflow_explorer`/);
   assert.match(finalizingPlan, /Do not chase perfection indefinitely/);
   assert.match(finalizingPlan, /finalization never creates fresh budgets/);
   assert.match(finalizingPlan, /re-review only the changed delta plus affected integration paths/i);
   assert.match(contextDiscovery, /Ask only questions whose answers can change scope, architecture, risk, acceptance criteria, or user-visible behavior/);
+  assert.match(contextDiscovery, /For production UI work, complete the `ui-contract` reuse gate/);
   assert.match(uiContract, /Mockup And Prototype Fast Path/);
   assert.match(uiContract, /use no UI review agent under `fast`/);
+  assert.match(uiContract, /## UI Reuse Gate/);
+  assert.match(uiContract, /Do not introduce one-off components, arbitrary font\/size\/spacing values/);
+  assert.match(uiContract, /flag an unapproved duplicate component, visual token, or layout pattern as `Important`/);
   assert.match(implementer, /bounded patch worker, not an architecture analyst/);
+  assert.match(implementer, /inspect the assigned reuse decision and named local candidates before coding/);
   assert.match(implementer, /report `NEEDS_CONTEXT`/);
   assert.match(fixTriage, /Stop low-value loops/);
   assert.match(fixTriage, /must_fix.*should_fix.*accept_low.*out_of_scope/s);
@@ -690,7 +755,12 @@ test('workflow skills bound context, delegation, and scope amplification portabl
   const workflowMcp = readFileSync(path.join(skillDir, 'workflow-mcp/SKILL.md'), 'utf8');
 
   assert.match(usingWorkflow, /Authorization is permission, not activation or an explicit request/);
-  assert.match(usingWorkflow, /existing-code review.*default to local work/);
+  assert.match(usingWorkflow, /diagnosis with an unclear causal chain, repository exploration spanning several surfaces, and code\/plan review/);
+  assert.match(usingWorkflow, /## Separate Task Chats/);
+  assert.match(usingWorkflow, /creating a user-visible task\/chat/);
+  const delegationReference = readFileSync(path.join(skillDir, 'using-workflow/references/delegation-and-task-chats.md'), 'utf8');
+  assert.match(delegationReference, /For a `standard` task, use one focused agent/);
+  assert.match(delegationReference, /In Codex, use the supported task\/thread API/);
   assert.match(contextDiscovery, /at most five relevant files/);
   assert.match(contextDiscovery, /twelve files or about 50 KB/);
   assert.match(contextDiscovery, /does not restart discovery/);
@@ -700,6 +770,7 @@ test('workflow skills bound context, delegation, and scope amplification portabl
   assert.match(writingPlans, /workflow_plan_commitment_propose/);
   assert.match(writingPlans, /same-model shrink-first reflection/);
   assert.match(executingPlans, /Do not perform opportunistic refactors/);
+  assert.match(executingPlans, /read the UI contract's reuse decision before writing markup or styles/);
   assert.match(finalizingPlan, /Check scope before style/);
   assert.match(workflowMcp, /Claude Code and other clients must never be instructed to find or wait for that hook/);
 

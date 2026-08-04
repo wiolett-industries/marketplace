@@ -3,7 +3,7 @@ import * as z from 'zod/v4';
 import { ensureMemoryReadable, ensureMemoryReady } from '../runtime.js';
 import { handlePath, type PathStrategy } from './path.js';
 import { handleGraphPrune } from './graph.js';
-import { asTextResult, directionEnum, relationEnum, scopeSchema, workspaceRootSchema } from './registry-helpers.js';
+import { asTextResult, directionEnum, localDestructiveAnnotations, localReadOnlyAnnotations, relationEnum, scopeSchema, workspaceRootSchema } from './registry-helpers.js';
 import type { GraphDirection, GraphRelation } from '../graph.js';
 import type { MemoryScope } from '../scope.js';
 import { withProjectRoot } from '../scope.js';
@@ -75,6 +75,7 @@ export function registerGraphTools(server: McpServer): void {
     {
       title: 'Memory Path',
       description: 'Find a path between two memories: shortest (fewest hops) or strongest (highest edge-weight product).',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({ scope: scopeSchema, workspace_root: workspaceRootSchema, ...pathFields }),
     },
     async ({ scope, ...input }) => runPath(scope ?? 'project', input)
@@ -85,6 +86,7 @@ export function registerGraphTools(server: McpServer): void {
     {
       title: 'Global Memory Path',
       description: 'Find a path between two global memories.',
+      annotations: localReadOnlyAnnotations,
       inputSchema: z.object({ workspace_root: workspaceRootSchema, ...pathFields }),
     },
     async (input) => runPath('global', input)
@@ -95,6 +97,7 @@ export function registerGraphTools(server: McpServer): void {
     {
       title: 'Prune Graph',
       description: 'Remove unhealthy AUTO edges (dangling and/or below a weight floor); manual edges are never touched. Defaults to a dry run.',
+      annotations: localDestructiveAnnotations,
       inputSchema: z.object({ scope: scopeSchema, workspace_root: workspaceRootSchema, ...pruneFields }),
     },
     async ({ scope, ...input }) => runPrune(scope ?? 'project', input)
@@ -105,6 +108,7 @@ export function registerGraphTools(server: McpServer): void {
     {
       title: 'Prune Global Graph',
       description: 'Remove unhealthy AUTO edges from the global graph. Defaults to a dry run.',
+      annotations: localDestructiveAnnotations,
       inputSchema: z.object({ workspace_root: workspaceRootSchema, ...pruneFields }),
     },
     async (input) => runPrune('global', input)

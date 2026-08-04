@@ -139,7 +139,12 @@ export function readYamlConfig<T>(configPath: string, schema: z.ZodType<T>): T |
 }
 
 export function createDefaultAiProvidersConfig(legacy: Record<string, unknown> | null = null): AiProvidersConfig {
-  const key = readString(legacy?.openAIKey) ?? readString(legacy?.openaiApiKey) ?? readString(legacy?.apiKey) ?? '';
+  const key = readString(legacy?.openAIKey)
+    ?? readString(legacy?.openaiApiKey)
+    ?? readString(legacy?.openai_api_key)
+    ?? readString(legacy?.apiKey)
+    ?? readString(legacy?.api_key)
+    ?? '';
   const baseUrl = readString(legacy?.endpoint) ?? readString(legacy?.baseUrl) ?? DEFAULT_OPENAI_ENDPOINT;
   const textModel = readString(legacy?.responseModel) ?? DEFAULT_RESPONSE_MODEL;
   const embeddingModel = readString(legacy?.embeddingModel) ?? readString(legacy?.embeddingsModel) ?? DEFAULT_EMBEDDING_MODEL;

@@ -10,7 +10,7 @@ Produce evidence-backed findings without editing the audited code. An audit is o
 ## Select Depth And Output
 
 - `quick`: bounded question, small diff, or ordinary analysis; parent works locally, writes no `.workflow` artifacts, launches 0 agents, and reports in chat.
-- `standard`: one coherent subsystem or review question; local by default, at most 1 reviewer when independence materially improves evidence. Create a durable run only when requested or needed for later planning/recovery.
+- `standard`: one coherent subsystem or review question; use 1 scoped reviewer by default when the question crosses several surfaces, has a plausible regression/risk that benefits from an independent read, or would otherwise overload the parent context. Keep a small direct diff or single-surface question local. Create a durable run only when requested or needed for later planning/recovery.
 - `deep`: several genuinely independent risk domains; create a durable run and use at most 2 scoped reviewers when the benefit gate passes.
 - `exhaustive`: explicit broad/high-risk request only; create a durable run and declare a task-wide budget, default maximum 4. Exceed it only with explicit approval.
 
@@ -20,7 +20,7 @@ Repository size, file count, checklist length, or number of possible lenses does
 
 Define the target, included/excluded paths, audit questions, non-goals, depth, and evidence standard. Inspect the real source of truth. Every material finding needs a file/line, command/output, runtime observation, or other reproducible evidence.
 
-Agents are read-only and consume the declared audit budget. Group overlapping domains. Use `workflow_audit_reviewer` only for independent evidence that changes confidence or coverage; do not assign one agent per file, prompt, or gate.
+Agents are read-only and consume the declared audit budget. Group overlapping domains. Use `workflow_audit_reviewer` for independent evidence that changes confidence or coverage; nontrivial diagnosis and review are affirmative candidates, not exceptions. Do not assign one agent per file, prompt, or gate.
 
 ## Durable Audit Path
 

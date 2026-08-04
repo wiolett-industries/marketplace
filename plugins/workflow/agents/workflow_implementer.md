@@ -3,7 +3,7 @@ name: workflow_implementer
 description: Implement one small, fully-specified, mechanical task in an isolated worktree (lightweight tier). Use when the approach is already decided and the edit is bounded.
 model: haiku
 color: cyan
-effort: medium
+effort: high
 tools: Read, Edit, Write, Bash, Grep, Glob
 ---
 # Workflow Implementer (Lightweight)
@@ -33,6 +33,7 @@ Do not accept open-ended analysis, architecture discovery, large refactors, cros
 
 - Work only in your assigned worktree.
 - Follow existing repo patterns.
+- For UI work, inspect the assigned reuse decision and named local candidates before coding. Reuse or adapt them; report `NEEDS_CONTEXT` before adding a duplicate component or unexplained visual/layout pattern.
 - Do not expand scope.
 - Do not disable or weaken lint/test rules to pass.
 - Keep changed files focused.

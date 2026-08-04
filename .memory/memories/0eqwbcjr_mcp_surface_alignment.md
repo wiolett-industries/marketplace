@@ -3,38 +3,28 @@
   "id": "0eqwbcjr",
   "file_name": "0eqwbcjr_mcp_surface_alignment",
   "tags": [
+    "agent-memory",
     "mcp",
-    "merge-request-review",
+    "reconciliation",
     "skill-surface",
     "verification",
     "workflow"
   ],
   "layer": "deep",
   "ref": null,
+  "source": "model_inferred",
+  "confidence": 0.9,
+  "importance": 0.9,
   "created_at": 1783548897136,
-  "updated_at": 1783548897136
+  "updated_at": 1785828418253
 }
 ---
-Project: agent-marketplace-next
-Scope: project
-Tags: mcp, merge-request-review, skill-surface, verification, workflow
-Summary:
-- Local MCP runtime packages (agent-marketplace-next) include: agent-memory, workflow, and merge-request-review.
-- Workflow specifics:
-  - The Workflow component registers 11 tools in source/docs/tests, including workflow_plan_complete and workflow_audit_complete.
-  - If a live installed MCP surface misses any of these complete tools, treat it as installed package drift rather than a source-contract downgrade.
-  - Behavior: Workflow.set_chunk_status clears the active_chunk for the active chunk whenever the new status is neither active nor in_progress (i.e., it may be blocked).
-- Merge Request Review specifics:
-  - The mr_review_update surface supports exactly the operations: set_phase, set_review_mode, set_ci_status, set_discussions, set_findings, set_blockers, set_review_round, set_clean_rounds, upsert_posted_note, mark_approved, and merge.
-  - The operation mark_approved transitions the run to the approved post-clean state.
-- Verification helpers:
-  - zsh -lic 'pnpm --filter @wiolett/workflow test'
-  - zsh -lic 'pnpm --filter @wiolett/merge-request-review test'
-  - git diff --check
+In agent-marketplace-next, `packages/workflow/src/tools.ts` is the Workflow MCP source of truth. It registers 13 tools: workflow_status; plan create/update/commitment propose/commitment confirm/complete/artifact write; audit create/update/complete/artifact write; handoff write; and findings normalize. The Workflow package README, plugin README, and workflow-mcp skill must list that same surface; an installed MCP missing a source tool is package/install drift.
 
-Notes on maintenance and verification:
-- If a live surface lacks complete workflow tools, prefer treating it as drift (not a source-contract downgrade).
-- The set_chunk_status rule should consistently clear active_chunk when transitioning to a non-active and non-in-progress state.
-- Ensure verification commands remain valid anchors for testing and diff checks during review.
+Agent Memory retrieval contract: use memory_query for a focused semantic question and memory_recap for broad startup/compaction recovery. memory_recall is only for a non-empty memory_id returned by query/list/recap or named explicitly; using it as the first search produces the schema min-length error.
 
-This entry should be used to inform durable repository conventions and verification workflows for MCP runtime components and their interaction with workflow and merge-request-review surfaces.
+Reconciliation contract: memory_reconciliation_status is read-only and reports project/global last_reconciled_at plus a 30-day due state without initializing a store. memory_reconciliation_record persists the current timestamp only after a user-approved reconciliation actually completes. Metadata lives in maintenance/reconciliation.json in each scope; project maintenance data is canonical .memory content and must be committed. The reconciling-memory skill bounds the maintenance pass and forbids automatic deletion, pruning, or record-only acknowledgement.
+
+Workflow SessionStart reads the project reconciliation metadata without writing it and injects a recommendation only when a valid recorded timestamp is at least 30 days old. It does not remind for missing/uninitialized metadata or reconcile automatically.
+
+Verification anchors: zsh -lic 'pnpm --filter @wiolett/agent-memory test'; zsh -lic 'pnpm --filter @wiolett/agent-memory typecheck'; zsh -lic 'pnpm --filter @wiolett/workflow test'; git diff --check.

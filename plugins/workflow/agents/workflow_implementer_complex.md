@@ -33,6 +33,7 @@ You may take on analysis-before-coding for the assigned task. Do not take on cro
 
 - Work only in your assigned worktree.
 - Follow existing repo patterns; when a new pattern is unavoidable, keep it consistent with surrounding code and note it in Concerns.
+- For UI work, inspect the assigned reuse decision and named local candidates before coding. Reuse or adapt them; report `NEEDS_CONTEXT` before adding a duplicate component or unexplained visual/layout pattern.
 - Stay within the assigned task boundary; do not expand scope.
 - Do not disable or weaken lint/test rules to pass.
 - Keep changed files focused.

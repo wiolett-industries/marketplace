@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import { existsSync, lstatSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { readAiProvidersConfig } from '../dist/config.js';
 import { ensureConfigAndStorageMigrated } from '../dist/migration.js';
 
 async function createLegacyHome() {
@@ -44,6 +45,68 @@ test('bootstrap migrates legacy config and global memory exactly once', async ()
   const second = await ensureConfigAndStorageMigrated({ trigger: 'init', env });
   assert.equal(second.configCreated.length, 0);
   assert.equal(second.memoryMigration, 'already-completed');
+});
+
+test('bootstrap preserves an empty canonical OpenAI credential even when legacy auth exists', async () => {
+  const agentsHome = await createLegacyHome();
+  const configDir = path.join(agentsHome, '.wiolett', 'config');
+  const providersPath = path.join(configDir, 'ai-providers.yml');
+  await fs.mkdir(configDir, { recursive: true });
+  await fs.writeFile(providersPath, `# Preserve this user comment.
+version: 1
+providers:
+  openai:
+    driver: openai
+    base_url: https://api.openai.com/v1
+    auth:
+      api_key: ""
+    apis:
+      responses: { path: /responses, store: false }
+      embeddings: { path: /embeddings }
+  custom:
+    driver: openai-compatible
+    base_url: https://custom.test/v1
+    auth: { api_key: sk-custom }
+    apis:
+      chat_completions: { path: /chat/completions }
+`, { mode: 0o644 });
+
+  const result = await ensureConfigAndStorageMigrated({
+    trigger: 'mcp-startup',
+    env: { PROJECT_MEMORY_AGENTS_HOME: agentsHome, OPENAI_API_KEY: '' },
+  });
+  const preserved = readFileSync(providersPath, 'utf8');
+
+  assert.equal(result.configCreated.includes(providersPath), false);
+  assert.equal(result.legacyConfigMigrated, false);
+  assert.equal(preserved.includes('# Preserve this user comment.'), true);
+  assert.equal(readAiProvidersConfig(providersPath)?.providers.openai?.auth?.api_key, '');
+  assert.equal(readAiProvidersConfig(providersPath)?.providers.custom?.auth?.api_key, 'sk-custom');
+  assert.equal(statSync(providersPath).mode & 0o777, 0o644);
+});
+
+test('bootstrap never adds an unconfigured OpenAI provider', async () => {
+  const agentsHome = await createLegacyHome();
+  const configDir = path.join(agentsHome, '.wiolett', 'config');
+  const providersPath = path.join(configDir, 'ai-providers.yml');
+  await fs.mkdir(configDir, { recursive: true });
+  await fs.writeFile(providersPath, `version: 1
+providers:
+  custom:
+    driver: openai-compatible
+    base_url: https://custom.test/v1
+    auth: { api_key: sk-custom }
+    apis:
+      chat_completions: { path: /chat/completions }
+`, 'utf8');
+
+  const result = await ensureConfigAndStorageMigrated({
+    trigger: 'mcp-startup',
+    env: { PROJECT_MEMORY_AGENTS_HOME: agentsHome, OPENAI_API_KEY: '' },
+  });
+
+  assert.equal(result.legacyConfigMigrated, false);
+  assert.equal(readFileSync(providersPath, 'utf8').includes('openai:'), false);
 });
 
 test('concurrent bootstrap calls serialize through one migration lock', async () => {
@@ -96,4 +159,29 @@ test('bootstrap ignores malformed legacy auth after canonical YAML exists', asyn
   const result = await ensureConfigAndStorageMigrated({ trigger: 'mcp-startup', env });
   assert.equal(result.configCreated.length, 0);
   assert.equal(result.memoryMigration, 'already-completed');
+});
+
+test('bootstrap preserves an empty canonical credential when legacy auth is malformed', async () => {
+  const agentsHome = await createLegacyHome();
+  const configDir = path.join(agentsHome, '.wiolett', 'config');
+  const providersPath = path.join(configDir, 'ai-providers.yml');
+  await fs.mkdir(configDir, { recursive: true });
+  await fs.writeFile(providersPath, `version: 1
+providers:
+  openai:
+    driver: openai
+    base_url: https://api.openai.com/v1
+    auth: { api_key: "" }
+    apis:
+      responses: { path: /responses }
+`, 'utf8');
+  await fs.writeFile(path.join(agentsHome, '.wiolett', 'auth-config.json'), '{broken legacy json', 'utf8');
+
+  const result = await ensureConfigAndStorageMigrated({
+    trigger: 'mcp-startup',
+    env: { PROJECT_MEMORY_AGENTS_HOME: agentsHome, OPENAI_API_KEY: '' },
+  });
+
+  assert.equal(result.legacyConfigMigrated, false);
+  assert.equal(readFileSync(providersPath, 'utf8').includes('api_key: ""'), true);
 });

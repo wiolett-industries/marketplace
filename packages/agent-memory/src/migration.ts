@@ -52,6 +52,7 @@ export async function ensureConfigAndStorageMigrated(options: BootstrapOptions):
   const paths = getConfigPaths(env);
   const release = await acquireMigrationLock(path.join(paths.agentsHome, '.wiolett', '.migration.lock'));
   try {
+    const markerPath = path.join(paths.migrationRoot, 'agent-memory-v1.json');
     const needsProviderConfig = !existsSync(paths.aiProviders);
     const legacy = needsProviderConfig ? readLegacyAuth(paths.legacyAuth) : null;
     const configCreated: string[] = [];
@@ -79,14 +80,14 @@ export async function ensureConfigAndStorageMigrated(options: BootstrapOptions):
     );
     const source = path.join(paths.agentsHome, 'agent-memory');
     const migration = migrateGlobalMemory(source, destination);
-    const markerPath = path.join(paths.migrationRoot, 'agent-memory-v1.json');
+    const legacyConfigMigrated = Boolean(legacy && configCreated.includes(paths.aiProviders));
     if (configCreated.length || migration.status === 'completed' || !existsSync(markerPath)) {
       writeMigrationMarker(paths, {
         trigger: options.trigger,
         source,
         destination,
         config_created: configCreated,
-        legacy_config_migrated: Boolean(legacy && configCreated.includes(paths.aiProviders)),
+        legacy_config_migrated: legacyConfigMigrated,
         memory_status: migration.status,
         ...(migration.backup ? { memory_backup: migration.backup } : {}),
       });
@@ -97,7 +98,7 @@ export async function ensureConfigAndStorageMigrated(options: BootstrapOptions):
 
     return {
       configCreated,
-      legacyConfigMigrated: Boolean(legacy && configCreated.includes(paths.aiProviders)),
+      legacyConfigMigrated,
       memoryMigration: migration.status,
       memorySource: existsSync(source) || migration.backup ? source : undefined,
       memoryDestination: destination,

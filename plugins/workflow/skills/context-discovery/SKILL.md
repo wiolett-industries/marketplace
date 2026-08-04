@@ -17,6 +17,10 @@ Gather only enough context for a confident execution decision or decision-comple
 
 Do not ask for discoverable facts, preferences that do not affect the result, or exhaustive edge cases outside the requested scope.
 
+## UI Discovery
+
+For production UI work, complete the `ui-contract` reuse gate before proposing new components or visual rules. Inspect the closest screen, reusable primitives, and visual source of truth; capture the candidate paths and `reuse`/`adapt`/`none` decision in the plan or handoff. This is part of normal discovery, not a separate design exercise.
+
 ## Read Budget
 
 - `fast`: inspect the diff or named surface, at most five relevant files, and at most three targeted searches.
@@ -24,6 +28,12 @@ Do not ask for discoverable facts, preferences that do not affect the result, or
 - `assurance` or explicit audit: declare the extra surface before widening and keep each pass tied to a named risk.
 
 Do not list or read the whole repository without a named unknown that requires it. Stop when the direct implementation path and affected tests are known. A small user correction reopens only the touched surface; it does not restart discovery.
+
+## Exploration Delegation
+
+For nontrivial diagnosis or unfamiliar repository mapping, use `workflow_explorer` when a compact independent search would reduce parent-context noise or establish the causal path faster. This is the normal standard-path choice once the answer is likely to cross several files, layers, or commands; the parent keeps hypothesis selection and the final decision. Keep a one-file or otherwise direct lookup local.
+
+Give the explorer a question, included/excluded surfaces, and the decision it must unblock. For UI inventory, require reusable component, analogous-screen, token, and responsive-pattern paths plus a `reuse`/`adapt`/`none` recommendation. Its report must return concrete paths/evidence and a compact recommendation, not a repository dump.
 
 ## Bounded Spike
 

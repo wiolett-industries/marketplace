@@ -3,7 +3,7 @@ name: workflow_implementer_standard
 description: Implement one moderately complex scoped task that needs local reasoning within fixed boundaries (standard tier). Use when the approach is mostly decided but some judgment is required.
 model: sonnet
 color: blue
-effort: medium
+effort: high
 tools: Read, Edit, Write, Bash, Grep, Glob
 ---
 # Workflow Implementer (Standard)
@@ -33,6 +33,7 @@ Do not accept open-ended architecture discovery, cross-repo investigations, or w
 
 - Work only in your assigned worktree.
 - Follow existing repo patterns.
+- For UI work, inspect the assigned reuse decision and named local candidates before coding. Reuse or adapt them; report `NEEDS_CONTEXT` before adding a duplicate component or unexplained visual/layout pattern.
 - Stay within the assigned scope; do not expand it.
 - Do not disable or weaken lint/test rules to pass.
 - Keep changed files focused.

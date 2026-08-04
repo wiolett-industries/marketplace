@@ -20,58 +20,37 @@ A skill trigger never implies an artifact, subagent, plan, or verification step 
 
 ## Start Or Resume
 
-1. Read the request and cheap repository facts.
-2. Run a local `intent-gate` for non-trivial work; keep it silent when intent is clear.
-3. If `.workflow/` exists or context was compacted, call `workflow_status` once and resume an active run from its state. Do not reopen an old completed run without an explicit request.
-4. Select one primary path and one assurance profile.
-5. Load only the module needed for the current phase.
-
-Read this router once per task. Re-read after context recovery/reset, a skill-version change, or a materially different request; same-task follow-ups do not restart routing.
+Read the request and cheap repository facts; run a local `intent-gate` for non-trivial work. After compaction or when `.workflow/` exists, call `workflow_status` once and resume only an active run. Select one primary path and profile, then load only its current phase. Read this router once per task; same-task follow-ups do not restart routing.
 
 ## Action Boundary
 
-- Answer, explain, diagnose, review, or discussion requests authorize inspection and reporting, not code, `.workflow/`, memory, or external writes.
-- An explicit request for a durable plan/audit authorizes its scoped `.workflow/` artifacts.
-- Change, build, or fix requests authorize in-scope local edits and relevant non-destructive validation.
-- Read-only, no-edits, without changes, or equivalent blocks code, workflow-state, memory, and external mutations unless the same request explicitly authorizes one of them.
-- Ask before destructive actions, external writes, purchases, or material scope expansion.
-
-State this boundary once. Do not repeat approval warnings in every module.
+Discussion, diagnosis, and review authorize inspection/reporting, not writes. Change/build/fix authorizes scoped edits and non-destructive validation; an explicit durable plan/audit authorizes its artifacts. Read-only, no-edits, without changes, or equivalent blocks code, workflow-state, memory, and external mutations unless separately authorized. Ask before destructive actions, external writes, purchases, or material scope expansion.
 
 ## Assurance And Agent Budget
 
 Assurance is about consequence, not implementation difficulty.
 
 - `fast`: clear, localized, reversible; 0 subagents; no durable plan or agentic final review.
-- `standard`: moderate scope or uncertainty; at most 1 subagent total, used only at the task's real bottleneck.
+- `standard`: moderate scope or uncertainty; budget 1 subagent by default and use it at the most valuable independent investigation, review, or implementation boundary. A second is allowed only when it has a disjoint role and a concrete payoff.
 - `assurance`: auth/security/permissions/payments, destructive data or migrations, infra/deploy, concurrency, public contracts, broad blast radius, or equivalent risk; declare a task-wide budget, default 3 total, with at most 2 reviewers in one round.
 - explicit audit: use the bounded audit budget selected by `audit-flow`.
 
 The budget is a ceiling, never a quota. Parent Max/Ultra does not raise it. Multiple skills, files, checklist items, or workflow phases do not create independent launch budgets.
 
-Launch only for concrete parallel speedup, noisy-context isolation, or independent high-risk judgment. Authorization is permission, not activation or an explicit request. Discussion, diagnosis, existing-code review, localized changes, and critical-path fixes default to local work. Keep bounded questions local. Reuse an agent for focused follow-up instead of launching another phase-specific agent.
+Authorization is permission, not activation or an explicit request; it is also not a reason to default every nontrivial task to local work. Beyond a small direct answer, positively consider one focused agent for parallel search, context isolation, or independent judgment. This is normally true for diagnosis with an unclear causal chain, repository exploration spanning several surfaces, and code/plan review where an independent reading can find a real regression or scope gap. Use `workflow_explorer` for broad mapping and keep final product decisions with the parent.
+
+Keep work local only when the answer is contained in a small known surface, the causal path is already clear, or the coordination cost is greater than the likely new evidence. Do not fan out merely by file count, checklist length, or applicable skills. Reuse an agent for focused follow-up instead of launching another phase-specific agent.
+
+## Separate Task Chats
+
+Read [delegation-and-task-chats.md](references/delegation-and-task-chats.md) before delegating or creating a user-visible task/chat. A task/chat is different from an internal subagent and does not consume its budget.
 
 Skills and plans route by semantic `work_class` and `agent_role`. Exact model and reasoning settings live in canonical agent TOMLs. If a named role is unavailable, continue locally unless independent review was explicitly required; do not silently upgrade models or add agents.
 
 ## Verification And Stop Contract
 
-- `fast`: one targeted verification bundle plus minimal diff/scope sanity.
-- `standard`: one targeted bundle; add one integration check only when the change crosses a real boundary.
-- `assurance`: risk-specific checks plus required integration evidence.
-
-Do not rerun the same check while the diff and relevant environment are unchanged. Repeat only after relevant edits, inconclusive evidence, or a changed external state. During active user testing, batch small corrections and verify once before completion, commit, PR, or handoff.
-
-Stop when all scoped acceptance criteria pass, required verification is green, and no material blocker remains. `LOW`, cosmetic, speculative, or out-of-scope polish does not extend the task unless requested.
+Use one targeted verification bundle for `fast`/`standard` (plus integration only across a real boundary), and risk-specific evidence for `assurance`. Do not repeat unchanged checks. Stop when scoped acceptance and verification pass; low, cosmetic, or out-of-scope polish does not extend the task.
 
 Before final output, close every realized active run: call `workflow_plan_complete` for an active completed plan or `workflow_audit_complete` for an active completed audit. A phase update is not completion and does not clear the root active pointer. Leave a run active only when it is genuinely blocked or intentionally awaiting more work, and report that state explicitly.
-
-## Shared Engineering Constraints
-
-- Never disable, weaken, suppress, or bypass lint/test rules; treat lint warnings as work.
-- Avoid unrelated refactors, placeholders, unwired artifacts, and silent scope shrink.
-- Prefer the smallest behavior-complete diff; future flexibility, architectural neatness, and adjacent cleanup are not requirements unless requested.
-- Keep touched code files focused and below 500 lines unless an explicit approved exception applies.
-- Do not claim fixed, complete, or ready without fresh relevant evidence.
-- Before drafting a PR/MR, inspect local templates or recent examples when available.
 
 Use `workflow-mcp` only when `.workflow/` state or artifacts are actually needed. Use `using-agent-memory` for the final memory completion latch; other workflow modules must not duplicate its policy.

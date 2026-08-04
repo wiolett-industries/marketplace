@@ -6,40 +6,40 @@
       "to_id": "0eqwbcjr",
       "relation": "same_workflow",
       "weight": 0.85,
-      "reason": "MCP surface alignment and workflow components share the same workflow scope and tools.",
+      "reason": "MCP workflow and merge-request-review tooling implement the same project workflow boundaries and chunk/phase semantics referenced by the routing/delegation policy.",
       "source": "auto",
-      "created_at": 1783709489774,
-      "updated_at": 1783709489774
+      "created_at": 1785830077992,
+      "updated_at": 1785830077992
     },
     {
       "from_id": "uxyyc6dd",
       "to_id": "cyeiuloe",
       "relation": "same_workflow",
-      "weight": 0.75,
-      "reason": "Workflow hooks schema adjustments are within the same project workflow context.",
+      "weight": 0.82,
+      "reason": "Workflow hook output requirements directly affect agent/subagent handoffs and tool chaining described in the delegation policy.",
       "source": "auto",
-      "created_at": 1783709489774,
-      "updated_at": 1783709489774
+      "created_at": 1785830077992,
+      "updated_at": 1785830077992
     },
     {
       "from_id": "uxyyc6dd",
-      "to_id": "btpyl4q2",
+      "to_id": "t7wcxn2n",
       "relation": "related_to",
-      "weight": 0.6,
-      "reason": "Marketplace verification and pnpm setup workflow intersect with verification routines in this project.",
+      "weight": 0.65,
+      "reason": "Memory synthesis and recap tools affect when to delegate (affirmative delegation for unclear causal chains) and how agents should surface memory evidence.",
       "source": "auto",
-      "created_at": 1783709489774,
-      "updated_at": 1783709489774
+      "created_at": 1785830077992,
+      "updated_at": 1785830077992
     },
     {
       "from_id": "uxyyc6dd",
       "to_id": "e87wrzeg",
       "relation": "related_to",
       "weight": 0.6,
-      "reason": "Agent memory MCP patterns relate to memory handling and verification in the same ecosystem.",
+      "reason": "Project-scoped agent-memory resolution and workspace-root handling influence safe delegation boundaries and multi-surface repository exploration guidance.",
       "source": "auto",
-      "created_at": 1783709489774,
-      "updated_at": 1783709489774
+      "created_at": 1785830077992,
+      "updated_at": 1785830077992
     }
   ]
 }

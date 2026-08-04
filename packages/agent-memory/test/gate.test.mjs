@@ -7,8 +7,10 @@ import { evaluateMemoryWrite } from '../dist/gate/write-gate.js';
 import { resetModelProvider } from '../dist/model-provider.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const rootReadme = path.join(repoRoot, 'README.md');
 const memorySkill = path.join(repoRoot, 'plugins/agent-memory/skills/using-agent-memory/SKILL.md');
 const memoryOperations = path.join(repoRoot, 'plugins/agent-memory/skills/using-agent-memory/references/operations.md');
+const reconciliationSkill = path.join(repoRoot, 'plugins/agent-memory/skills/reconciling-memory/SKILL.md');
 
 async function withMockedProvider(fn) {
   const previousFetch = globalThis.fetch;
@@ -62,10 +64,15 @@ describe('memory write gate', () => {
   test('memory skill keeps a focused startup and durable write contract', () => {
     const skill = readFileSync(memorySkill, 'utf8');
     const operations = readFileSync(memoryOperations, 'utf8');
+    const reconciliation = readFileSync(reconciliationSkill, 'utf8');
+    const readme = readFileSync(rootReadme, 'utf8');
 
     expect(skill).toMatch(/^name: using-agent-memory$/m);
     expect(skill).toMatch(/Do not wait for the user to explicitly ask for memory/);
     expect(skill).toMatch(/Use `memory_recap` when the task needs broad recovery/);
+    expect(skill).toMatch(/Never use `memory_recall` as the first semantic search or startup recall/);
+    expect(skill).toMatch(/memory_reconciliation_status/);
+    expect(skill).toMatch(/memory_reconciliation_record/);
     expect(skill).toMatch(/Skip the MCP read only for self-contained facts/);
     expect(skill).toMatch(/read-only, no edits, without changes/);
     expect(skill).toMatch(/run one mandatory memory completion latch/);
@@ -75,17 +82,34 @@ describe('memory write gate', () => {
     expect(skill).toMatch(/Prefer `memory_update` when an existing canonical memory/);
     expect(skill).toMatch(/Use `memory_save` only for a genuinely new durable fact/);
     expect(skill).toMatch(/Preserve negation and ownership exactly/);
+    expect(skill).toMatch(/Treat project `\.memory\/` as repository-owned team knowledge/);
+    expect(skill).toMatch(/Commit every authorized change under `\.memory\/memories\/`, `\.memory\/index\/`, `\.memory\/embeddings\/`, `\.memory\/graph\/`, and `\.memory\/maintenance\/`/);
+    expect(skill).toMatch(/Never add `\.memory\/`, `\.memory\/\*\*`/);
+    expect(skill).toMatch(/Ignore only the SQLite cache and its sidecars via `\.memory\/memory\.db\*`/);
+    expect(skill).toMatch(/git status --short \.memory/);
+    expect(skill).toMatch(/git check-ignore -v/);
     expect(skill).toMatch(/workspace_root/);
     expect(skill).toMatch(/references\/operations\.md/);
     expect(operations).toMatch(/memory_setup/);
     expect(operations).toMatch(/memory_recap/);
+    expect(operations).toMatch(/memory_reconciliation_status/);
+    expect(operations).toMatch(/memory_reconciliation_record/);
     expect(operations).toMatch(/memory_delete/);
     expect(operations).toMatch(/memory_link/);
     expect(operations).toMatch(/memory_unlink/);
     expect(operations).toMatch(/Omit `index_only` when debugging/);
-    expect(operations).toMatch(/Project `\.memory\/` files are team knowledge artifacts/);
-    expect(operations).toMatch(/Commit canonical files under `\.memory\/memories\/`, `\.memory\/index\/`, `\.memory\/embeddings\/`, and `\.memory\/graph\/`/);
-    expect(operations).toMatch(/Only `\.memory\/memory\.db\*` is generated cache/);
+    expect(operations).toMatch(/Project `\.memory\/` files are repository-owned team knowledge artifacts/);
+    expect(operations).toMatch(/Commit every authorized creation, update, or deletion under `\.memory\/memories\/`, `\.memory\/index\/`, `\.memory\/embeddings\/`, `\.memory\/graph\/`, and `\.memory\/maintenance\/`/);
+    expect(operations).toMatch(/Never ignore `\.memory\/` wholesale/);
+    expect(operations).toMatch(/Ignore only `\.memory\/memory\.db\*`/);
+    expect(reconciliation).toMatch(/^name: reconciling-memory$/m);
+    expect(reconciliation).toMatch(/memory_reconciliation_status/);
+    expect(reconciliation).toMatch(/memory_reconciliation_record/);
+    expect(reconciliation).toMatch(/Do not delete memories, prune graph edges, or re-embed content/);
+    expect(readme).toMatch(/Project Memory Belongs In Git/);
+    expect(readme).toMatch(/Commit memories, indexes, embeddings, graph edges, and reconciliation/);
+    expect(readme).toMatch(/Never ignore `\.memory\/` wholesale/);
+    expect(readme).toMatch(/\.memory\/memory\.db\*/);
   });
 
   test('uses strict structured output schema that is accepted by OpenAI-compatible providers', async () => {

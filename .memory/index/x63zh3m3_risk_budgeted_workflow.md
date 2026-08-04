@@ -3,16 +3,12 @@
   "id": "x63zh3m3",
   "file_name": "x63zh3m3_risk_budgeted_workflow",
   "tags": [
-    "marketplace",
-    "migration",
-    "gpt-5.6",
     "agents",
-    "skills",
-    "workflow",
-    "review",
-    "memory",
-    "tools",
-    "gitlab"
+    "delegation",
+    "reuse",
+    "task-chats",
+    "ui",
+    "workflow"
   ],
   "layer": "lite",
   "ref": "uxyyc6dd",
@@ -20,7 +16,7 @@
   "confidence": 0.5,
   "importance": 0.5,
   "created_at": 1783694145863,
-  "updated_at": 1783709484349
+  "updated_at": 1785830071234
 }
 ---
-[→ uxyyc6dd] GPT-5.6 marketplace orchestration uses one primary path, lean lowercase skills, task-wide agent and verification budgets, and progressive disclosure.
+[→ uxyyc6dd] Workflow now requires an evidence-backed UI reuse decision before substantial production UI implementation, with prompts and review gates across Codex and Claude implementers.

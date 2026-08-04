@@ -34,7 +34,7 @@ The plan must lock decisions that execution cannot safely infer:
 - implementation approach and dependency order;
 - tasks with allowed scope, ownership, and expected files/artifacts;
 - verification commands and acceptance checks;
-- UI contract reference when substantial production UI is in scope;
+- UI contract reference and its reuse decision when substantial production UI is in scope;
 - assurance profile, one task-wide agent budget, and finalization requirements.
 
 For delegated work, record semantic `work_class`, `agent_role`, and `delegation_reason`; exact models and reasoning effort belong only in canonical agent TOMLs. A mechanical or structured worker receives the chosen approach, exact scope, non-goals, and checks instead of rediscovering architecture.

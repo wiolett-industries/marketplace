@@ -21,6 +21,14 @@ Do not invent production state matrices, extra breakpoints, accessibility progra
 
 ## Production Define Mode
 
+## UI Reuse Gate
+
+Before writing production JSX, CSS, layout, or a new component, inspect the local UI inventory: shared primitives, analogous screens, layout/responsive patterns, tokens or theme variables, and existing typography/icon rules. Record a compact reuse decision in `ui-contract.md` (or chat when no plan exists): candidates and paths; `reuse`, `adapt`, or `none`; and why a new primitive is necessary. Treat no suitable local candidate as a conclusion that needs evidence, not a default assumption.
+
+Reuse or adapt the closest existing primitive and its visual rules. Do not introduce one-off components, arbitrary font/size/spacing values, or a parallel responsive/layout pattern when an established local pattern covers the need. A new primitive is allowed only when it has no suitable candidate or consolidates repeated behavior inside the approved scope.
+
+Read [reuse-gate.md](references/reuse-gate.md) before making the reuse decision or assigning UI work to an implementer.
+
 Before substantial undecided production UI implementation, create or update the active plan's `ui-contract.md`. Include only acceptance-relevant details:
 
 - objective and user job;
@@ -29,13 +37,14 @@ Before substantial undecided production UI implementation, create or update the 
 - accepted responsive targets;
 - relevant loading, error, empty, disabled, partial, hover, focus, and success states;
 - accessibility, overflow, and layout-stability constraints;
+- reuse decision and any justified new primitive;
 - non-goals and review acceptance criteria.
 
 Do not include vague taste language or states outside accepted scope. Execution must treat the contract as an acceptance source; update `decisions.md` before intentional drift.
 
 ## Production Review Mode
 
-Before completing substantial production UI, review once against the contract and runnable browser evidence. Check only accepted viewports and states. Record `UI_PASS` or `UI_REVISE` plus concrete `Important`, `Minor`, or `Polish` findings under `artifacts/ui-review/` when a plan exists; otherwise report in chat.
+Before completing substantial production UI, review once against the contract and runnable browser evidence. Check accepted viewports/states and verify that the reuse decision was followed; flag an unapproved duplicate component, visual token, or layout pattern as `Important`. Record `UI_PASS` or `UI_REVISE` plus concrete `Important`, `Minor`, or `Polish` findings under `artifacts/ui-review/` when a plan exists; otherwise report in chat.
 
 An independent UI reviewer is optional, consumes the existing task-wide budget, and requires the same benefit gate as any other agent. Screenshots do not replace relevant code verification, and code checks do not replace the scoped visual pass.
 

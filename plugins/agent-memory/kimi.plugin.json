@@ -1,6 +1,6 @@
 {
   "name": "agent-memory",
-  "version": "0.4.4",
+  "version": "0.4.6",
   "description": "Persistent scoped Agent Memory with focused startup recall, explicit write boundaries, graph tools, and a local dashboard.",
   "keywords": [
     "kimi",

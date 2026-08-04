@@ -25,6 +25,7 @@ Read [references/execution-state.md](references/execution-state.md) only when up
 - Do not write workflow state after every tool call or tiny edit.
 - Execute tasks within their allowed scope and record any approved scope change before editing outside it.
 - Do not perform opportunistic refactors. A new API/schema/protocol/shared abstraction/layer or a higher change class requires an approved plan update and a renewed commitment reflection before implementation continues.
+- For production UI, read the UI contract's reuse decision before writing markup or styles. Reuse/adapt its named candidates; stop for parent direction before creating a duplicate primitive or deviating from local typography, layout, spacing, or responsive patterns without recorded justification.
 - For a small user correction, inspect and edit only the touched surface plus directly affected tests; do not restart repository discovery.
 - For chunks, root owns dependency order and integration. Never create nested chunks.
 
@@ -42,7 +43,7 @@ Do not launch analysis to restate a decision-complete plan.
 
 ## Delegation Gate
 
-Authorization is permission, not activation. Delegate only when independent execution can materially reduce wall time, isolate noisy context, or provide necessary high-risk independence. Never fan out by file count, checklist length, number of chunks, or number of applicable skills.
+At each meaningful task boundary, choose local execution or the best bounded agent role deliberately. Prefer one focused agent for nontrivial diagnosis, multi-surface review, broad read-only exploration, or an implementation task that can proceed independently; these are normal standard-path uses, not exceptional escalation. Keep tiny direct fixes and already-decided single-surface work local. Never fan out by file count, checklist length, number of chunks, or number of applicable skills.
 
 All delegated write work uses a worktree. The worker receives goal, chosen approach, allowed scope, exact edits, non-goals, verification, stop-if-unclear behavior, and report format. If a required named role is unavailable, execute locally unless that independent role was explicitly required.
 

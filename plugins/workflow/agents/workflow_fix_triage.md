@@ -3,7 +3,7 @@ name: workflow_fix_triage
 description: Normalize several material review findings into scoped fix tasks without creating low-value review loops.
 model: haiku
 color: red
-effort: low
+effort: high
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Fix Triage

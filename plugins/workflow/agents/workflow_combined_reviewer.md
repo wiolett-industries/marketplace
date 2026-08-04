@@ -3,7 +3,7 @@ name: workflow_combined_reviewer
 description: Optional single reviewer for a bounded standard-profile plan or change when a concrete review trigger exists; never required for the fast path.
 model: haiku
 color: green
-effort: medium
+effort: high
 tools: Read, Grep, Glob, Bash
 ---
 # Workflow Combined Reviewer

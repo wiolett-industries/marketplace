@@ -12,18 +12,20 @@ Agent Memory is the MCP-backed durable memory system. It is separate from Codex 
 At conversation start, after compaction, or before non-trivial repository work, decide whether durable knowledge can change the answer or execution path. Do not wait for the user to explicitly ask for memory.
 
 - For non-trivial repository work, run one memory read after the repo root is known whenever prior decisions, conventions, failures, setup, architecture, or user preferences could affect the result.
-- Use `memory_recap` when the task needs broad recovery across several memories; use `memory_query` for a focused question; use `memory_recall` only after a known memory id is identified.
+- Use `memory_recap` when the task needs broad recovery across several memories; use `memory_query` for a focused question; use `memory_recall` only with a non-empty `memory_id` already returned by query/list/recap or named explicitly by the user. Never use `memory_recall` as the first semantic search or startup recall.
 - Query `global` only when a cross-project user preference or stable work habit could matter.
 - Skip the MCP read only for self-contained facts, trivial formatting, translation, or work whose outcome cannot reasonably depend on durable context.
 - Escalate to `memory_recall`, `memory_list`, or `memory_inspect` only when the focused query identifies a relevant entry, the index appears stale, or memory health itself is under investigation.
 
-Pass the absolute `workspace_root` for project reads and writes whenever server cwd may differ from the repo. An empty project result is not proof that memory is absent until the root and index/deep view have been checked.
+Pass the absolute `workspace_root` for project reads and writes whenever server cwd may differ from the repo. When the user explicitly asks about another project or names its path, keep `scope: project` and pass that other project's absolute root to `memory_query` (focused) or `memory_recap` (broad); this reads only that project's store and never initializes it. Do not scan sibling projects or write to another root unless the user explicitly authorizes that operation. An empty project result is not proof that memory is absent until the root and index/deep view have been checked.
+
+For recurring repository work, work resumed after compaction, or work that depends on several related memories, call `memory_reconciliation_status` once after the task-appropriate read. Check `global` only when global memory is relevant. If an initialized scope is `due`, briefly offer the user a project or global reconciliation; do not interrupt small work, automatically reconcile, or record it merely because it is overdue. Use `memory_reconciliation_record` only after the user-approved reconciliation was actually completed.
 
 ## Action Boundary
 
 Memory reads are read-only. Memory writes are durable state changes.
 
-- If the user says read-only, no edits, without changes, or equivalent, do not call `memory_save`, `memory_update`, or other mutation tools unless the same request explicitly asks to remember or correct memory.
+- If the user says read-only, no edits, without changes, or equivalent, do not call `memory_save`, `memory_update`, `memory_reconciliation_record`, or other mutation tools unless the same request explicitly asks to remember, correct, or reconcile memory.
 - Before the final response for completed non-trivial work, run one mandatory memory completion latch: inspect the finished outcome for a reusable preference, workflow, convention, root cause, fix pattern, setup gotcha, or verification sequence. If one exists, save or update it without waiting for an explicit "remember this" request; if none exists, do not write.
 - Planning discussion, speculative direction, raw progress, and one-off edits normally produce no memory write.
 - Other skills may point to this decision but must not restate or expand it.
@@ -35,6 +37,15 @@ Use `global` only for durable cross-project preferences, communication habits, t
 Never save secrets, credentials, private webhook values, raw session summaries, obvious code facts, temporary progress, speculative plans, or project facts in global memory. Preserve negation and ownership exactly when updating constraints.
 
 Prefer `memory_update` when an existing canonical memory covers the same decision or workflow. Use `memory_save` only for a genuinely new durable fact. The memory gate remains authoritative; do not bypass it.
+
+## Project Memory Git Contract
+
+Treat project `.memory/` as repository-owned team knowledge, not as a generated cache directory.
+
+- Commit every authorized change under `.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, `.memory/graph/`, and `.memory/maintenance/`, including newly created files. Embeddings, graph edges, and reconciliation metadata are canonical project artifacts, not disposable build output.
+- Never add `.memory/`, `.memory/**`, or any canonical subdirectory above to `.gitignore`. Never discard or omit those files merely because Agent Memory generated them.
+- Ignore only the SQLite cache and its sidecars via `.memory/memory.db*`; this covers `memory.db`, `memory.db-shm`, and `memory.db-wal`.
+- Before commit or handoff after a project-memory mutation, check `git status --short .memory` and ensure canonical `.memory/` changes are included in the intended repository diff. If `git check-ignore -v` reports a canonical file, remove the offending broad ignore rule instead of ignoring the artifact.
 
 ## Recovery And Completion
 
