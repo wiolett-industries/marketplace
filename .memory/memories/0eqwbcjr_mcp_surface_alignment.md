@@ -5,11 +5,9 @@
   "tags": [
     "agent-memory",
     "cli",
-    "graph",
     "maintenance",
     "registry",
-    "ui",
-    "view"
+    "release"
   ],
   "layer": "deep",
   "ref": null,
@@ -17,7 +15,13 @@
   "confidence": 0.99,
   "importance": 0.9,
   "created_at": 1783548897136,
-  "updated_at": 1785966341582
+  "updated_at": 1785967874524
 }
 ---
-Agent Memory conventions: project memory tools use absolute workspace_root; memory_recall is ID-only, while memory_query/memory_recap are retrieval entrypoints. Project `.memory` canonical artifacts are committed; only `.memory/memory.db*` is disposable cache. Consolidation is an approved full maintenance run: it first performs deterministic structural repair (delete dead index pointers, orphan graph files, and structurally impossible edges, including a manual edge whose source/target/relation/weight is invalid) and rebuilds AUTO links while preserving valid manual links. Then Codex model reasoning performs semantic maintenance: merge, split, create, update, or remove proven redundant/stale memories and decide any non-structural relationship changes. Ambiguous canonical memories remain. A local cross-project registry is stored at `~/.agents/.wiolett/agent-memory/projects.json`: startup registers a project only when it already has persisted memory, and the first successful project write registers it. The interactive CLI exposes `Open memory view`; it launches the project dashboard in a child process with Node `--no-warnings`, filters only `[agent-memory]` diagnostics from child stderr, and reports the URL plus `Press Ctrl+C to stop.` as the interactive CLI's formatted `outro`, not raw stdout. Direct `agent-memory view` remains the detailed diagnostic command. The View Graph panel uses the existing react-force-graph simulation and, for legibility in dense stores, sets its link force distance to 64 and charge strength to -80 after canvas sizing; retain that effect dependency on both graph data and canvas dimensions so it applies on first mount. The View filesystem watcher is best-effort: later watcher errors such as EMFILE must disable automatic refresh without crashing the dashboard; manual refresh remains available.
+Agent Memory maintenance and release safeguards:
+
+- Full maintenance is two-stage: deterministic repair removes only dead index pointers, orphan graph files, and structurally impossible edges; semantic Codex reconciliation may merge, split, create, update, or remove memories only with explicit evidence. Ambiguous canonical memories remain.
+- Manual graph edges are authoritative. AUTO links with the same tuple are omitted; replacement is transactional. Duplicate canonical tuples resolve deterministically in both cold SQLite rebuild and maintenance: manual beats auto, then the most recently updated manual revision wins. No-op automatic refresh preserves graph bytes and timestamps.
+- The cross-project registry is auxiliary metadata at ~/.agents/.wiolett/agent-memory/projects.json. It is populated only by existing project memory at MCP startup or a successful project write; help/view remain side-effect-free, and registry locks never fail or delay durable writes/MCP startup.
+- Interactive Open memory view runs quietly with Node warnings and agent-memory diagnostics suppressed, prints its URL and Ctrl+C instruction through the CLI outro, and uses wider graph spacing. Filesystem watch failures disable automatic refresh rather than crashing the view.
+- Release 1.1.0 aligns root marketplace, all npm packages, runtime versions, and Claude/Codex/Kimi manifests. Canonical .memory artifacts are committed; only .memory/memory.db* is cache.

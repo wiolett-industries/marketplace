@@ -3,43 +3,13 @@
   "edges": [
     {
       "from_id": "0eqwbcjr",
-      "to_id": "e87wrzeg",
-      "relation": "same_workflow",
-      "weight": 0.9,
-      "reason": "Both define MCP memory-tool behavior around absolute workspace roots, project discovery, and canonical listing semantics.",
-      "source": "auto",
-      "created_at": 1785966346626,
-      "updated_at": 1785966346626
-    },
-    {
-      "from_id": "0eqwbcjr",
       "to_id": "rn35sah4",
       "relation": "same_area",
-      "weight": 0.82,
-      "reason": "Both establish repository contracts for committed canonical .memory artifacts versus disposable SQLite cache files.",
+      "weight": 0.84,
+      "reason": "Both define durable project-memory maintenance rules, including authoritative canonical graph artifacts and repository-safe handling.",
       "source": "auto",
-      "created_at": 1785966346626,
-      "updated_at": 1785966346626
-    },
-    {
-      "from_id": "0eqwbcjr",
-      "to_id": "6dj2jocx",
-      "relation": "same_area",
-      "weight": 0.68,
-      "reason": "Both describe Agent Memory maintenance contracts, including Codex reasoning and preservation rules for memory writes.",
-      "source": "auto",
-      "created_at": 1785966346626,
-      "updated_at": 1785966346626
-    },
-    {
-      "from_id": "0eqwbcjr",
-      "to_id": "t7wcxn2n",
-      "relation": "same_workflow",
-      "weight": 0.57,
-      "reason": "Both cover aligned memory retrieval and maintenance entrypoints, including query-aware synthesis and recap behavior.",
-      "source": "auto",
-      "created_at": 1785966346626,
-      "updated_at": 1785966346626
+      "created_at": 1785967879570,
+      "updated_at": 1785967879570
     }
   ]
 }

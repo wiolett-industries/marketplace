@@ -5,11 +5,9 @@
   "tags": [
     "agent-memory",
     "cli",
-    "graph",
     "maintenance",
     "registry",
-    "ui",
-    "view"
+    "release"
   ],
   "layer": "lite",
   "ref": "0eqwbcjr",
@@ -17,7 +15,7 @@
   "confidence": 0.5,
   "importance": 0.5,
   "created_at": 1783548897136,
-  "updated_at": 1785966341582
+  "updated_at": 1785967874524
 }
 ---
-[→ 0eqwbcjr] Agent Memory CLI, View, and full-maintenance conventions
+[→ 0eqwbcjr] Agent Memory maintenance, registry, view, and release safeguards
