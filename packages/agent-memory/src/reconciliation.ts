@@ -7,7 +7,7 @@ const RECONCILIATION_DUE_AFTER_DAYS = 30;
 const RECONCILIATION_FILE = 'reconciliation.json';
 
 export type ReconciliationChange = {
-  action: 'saved' | 'updated';
+  action: 'saved' | 'updated' | 'deleted' | 'repaired';
   memory_id?: string;
   summary: string;
 };
@@ -123,7 +123,7 @@ function parseReport(value: unknown): ReconciliationReport | null {
   const changes = report.changes.flatMap((change) => {
     if (!change || typeof change !== 'object' || Array.isArray(change)) return [];
     const item = change as Partial<ReconciliationChange>;
-    return (item.action === 'saved' || item.action === 'updated') && typeof item.summary === 'string' && item.summary.trim()
+    return (item.action === 'saved' || item.action === 'updated' || item.action === 'deleted' || item.action === 'repaired') && typeof item.summary === 'string' && item.summary.trim()
       ? [{ action: item.action, ...(typeof item.memory_id === 'string' && item.memory_id.trim() ? { memory_id: item.memory_id } : {}), summary: item.summary }]
       : [];
   });

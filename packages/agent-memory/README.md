@@ -22,7 +22,7 @@ This package backs the standalone Agent Memory plugin.
 - automatic graph-link suggestions on save/update without touching manual links
 - graph-expanded `memory_query`: surfaces edge-connected memories the query text missed
 - supersede/duplicate detection on save: contradicting memories get a `supersedes` edge and are downranked (never deleted)
-- pathfinding between two memories and read-only graph health metrics + auto-edge pruning
+- pathfinding between two memories, graph health metrics, and an explicit safe graph-maintenance pass
 - sanity-gated saves and stable in-place memory updates
 - compiled recall/query answers and broad multi-memory recaps with source references
 - automatic project-memory setup on write/mutation use; reads stay no-op when project memory is absent
@@ -93,6 +93,7 @@ Canonical tools:
 - `memory_recap`
 - `memory_reconciliation_status`
 - `memory_reconciliation_record`
+- `memory_project_registry`
 - `memory_list`
 - `memory_inspect`
 - `memory_delete`
@@ -101,9 +102,12 @@ Canonical tools:
 - `memory_graph`
 - `memory_path`
 - `memory_graph_prune`
+- `memory_graph_maintain`
 - `memory_setup`
 
 Every canonical tool except `memory_setup` accepts an optional `scope` of `project` or `global`; project is the default. Project-scoped canonical tools and project compatibility aliases also accept an absolute `workspace_root` so callers can target a repo when the MCP server cwd differs from the workspace. `memory_setup` initializes or repairs project memory for the current repo or supplied `workspace_root`.
+
+Agent Memory keeps a local cross-project registry at `~/.agents/.wiolett/agent-memory/projects.json` (or the configured runtime home). Starting the MCP server records an existing project only when its memory store already contains an entry; the first successful project-memory write also records it. Empty setup directories are intentionally excluded. `memory_project_registry` exposes this index without reading project memory contents.
 
 Graph tools:
 
@@ -111,8 +115,9 @@ Graph tools:
 - `memory_path` finds a path between two memories (`strategy: shortest | strongest`)
 - `memory_inspect` with `view: "health"` returns graph metrics (orphans, dangling edges, hubs, relation distribution, weight histogram, dead pointers)
 - `memory_graph_prune` removes unhealthy auto edges (dangling and/or below a weight floor); manual edges are never touched and it defaults to a dry run
+- `memory_graph_maintain` removes dead index pointers, orphan graph files, and structurally impossible edges, then rebuilds automatic links. Valid manual edges and canonical memories are preserved; a manual edge is removed only when its source, target, relation, or weight is no longer structurally valid. It defaults to a dry run
 
-`memory_path` and `memory_graph_prune` also have `global_`-prefixed variants bound to global scope.
+`memory_path`, `memory_graph_prune`, and `memory_graph_maintain` also have `global_`-prefixed variants bound to global scope.
 
 Compatibility aliases remain available until the bundled skills move to the new names:
 
@@ -223,7 +228,7 @@ Without an API key, model-gated writes and semantic search are disabled. Memory 
 ## Usage
 
 In a normal terminal, `agent-memory` opens one interactive menu. It includes
-configuration, recent model usage, and, when eligible, memory consolidation. When the same binary is
+configuration, the local memory dashboard, recent model usage, and, when eligible, memory consolidation. When the same binary is
 started with stdin/stdout pipes, it preserves MCP stdio-server behavior. The
 older entry points remain direct shortcuts:
 
@@ -247,9 +252,13 @@ its response; Agent Memory does not guess prices from a model name.
 Consolidation is shown only when the local `codex` executable advertises
 `gpt-5.6-terra` with `high` reasoning through `codex debug models`, and an
 initialized project or global memory scope has not been reconciled in the last
-24 hours. It asks for scope when both are eligible, starts a bounded local
-Codex reconciliation under a spinner, and accepts success only after the
-Codex run records a fresh reconciliation timestamp.
+24 hours. It asks for scope when both are eligible, then asks for a full
+maintenance confirmation. A confirmed run consolidates and, when evidence
+supports it, splits, creates, or removes canonical memories; repairs dead
+index pointers; and rebuilds automatic graph links. It never removes an
+ambiguous canonical memory or a manual graph edge. It accepts success only
+after the Codex run records a fresh reconciliation timestamp and structured
+report.
 
 At conversation start or before non-trivial repository work, the bundled skill first decides whether durable context can change the task. It uses one focused query for a specific question or a recap for broader recovery:
 
@@ -272,6 +281,7 @@ memory_recap(topic="release and deployment context")
 memory_list(scope="project", workspace_root="/path/to/repo", index_only=true)
 memory_recall(memory_id="abc123xy")
 memory_reconciliation_record(scope="project", workspace_root="/path/to/repo", summary="Reconciled current project memory.", changes=[], unresolved=[]) # only after a completed user-approved reconciliation
+memory_graph_maintain(scope="project", workspace_root="/path/to/repo", dry_run=true) # inspect safe structural repairs first
 memory_inspect(view="all")
 ```
 

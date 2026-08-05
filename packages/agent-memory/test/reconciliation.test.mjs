@@ -21,7 +21,12 @@ test('records and returns the structured result of a reconciliation', () => with
   const report = {
     summary: 'Consolidated current CLI conventions.',
     reviewed: 7,
-    changes: [{ action: 'updated', memory_id: 'cli-conventions', summary: 'Added the usage command convention.' }],
+    changes: [
+      { action: 'updated', memory_id: 'cli-conventions', summary: 'Added the usage command convention.' },
+      { action: 'saved', memory_id: 'release-policy', summary: 'Split a durable release policy from mixed notes.' },
+      { action: 'deleted', memory_id: 'legacy-cli', summary: 'Removed a superseded duplicate after preserving its value.' },
+      { action: 'repaired', summary: 'Removed dead pointers and rebuilt automatic graph links.' },
+    ],
     unresolved: ['Confirm provider cost fields for every gateway.'],
   };
   const status = recordReconciliation('project', report, new Date('2026-08-04T12:00:00.000Z'));

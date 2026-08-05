@@ -59,7 +59,7 @@ export async function runConsolidateCommand(input: ConsolidationCommandInput): P
     ? scopes[0]
     : await selectScope(input.ui, scopes);
   if (!selected) return;
-  const confirmed = await input.ui.confirm(`Consolidate ${selected.scope} memory with local Codex? It may update durable memory files.`, false);
+  const confirmed = await input.ui.confirm(`Run full maintenance for ${selected.scope} memory with local Codex? It may update, split, create, or remove redundant durable memories and repair automatic graph artifacts; manual links stay protected.`, false);
   if (confirmed !== true) return;
 
   const startedAt = (input.now?.() ?? new Date()).getTime();
@@ -105,12 +105,14 @@ async function selectScope(ui: ConfigCliUi, scopes: ConsolidationScopeOption[]):
 
 export function buildCodexArgs(scope: ConsolidationScopeOption): string[] {
   const prompt = [
-    `Perform exactly one user-approved Agent Memory reconciliation for the ${scope.scope} scope.`,
+    `Perform exactly one user-approved full Agent Memory maintenance reconciliation for the ${scope.scope} scope.`,
     `Target memory root: ${scope.memoryRoot}.`,
-    'Follow the installed reconciling-memory skill exactly: read reconciliation status, run one broad memory recap, inspect for stale/duplicate/conflicting/wrongly-scoped or secret-bearing durable memories, then make only justified memory_save or memory_update changes.',
-    'Do not delete memories, prune graph edges, re-embed content, alter unrelated repository files, or invent facts.',
-    'After the scoped work is actually complete, call memory_reconciliation_record for this exact scope with a concise secret-free summary, reviewed count when known, each saved/updated memory in changes, and every unresolved conflict in unresolved. This structured report is required for CLI success and will be shown to the user.',
-    'For project memory, inspect the resulting .memory changes. Give a concise final report with the same changes and unresolved conflicts.',
+    'The CLI confirmation explicitly authorizes the Full Maintenance mode in the installed reconciling-memory skill. Do not stop after one easy update: complete every safe, evidence-backed maintenance action in this scope.',
+    'Read reconciliation status, run one broad memory recap, inspect all durable records and graph health before making changes. Consolidate duplicates and superseded records into canonical memories; split mixed memories or save a new canonical memory when this preserves distinct durable facts or reveals a stable cross-memory pattern.',
+    'Delete a canonical memory only after its durable value has been preserved elsewhere and it is proven duplicate, superseded, stale, wrongly scoped, or secret-bearing. Do not delete ambiguous memories, invent facts, alter unrelated repository files, re-embed content, or remove structurally valid manual graph edges.',
+    'First call memory_graph_maintain with dry_run=false for deterministic cleanup: delete dead index pointers, orphan graph files, and structurally impossible edges, then rebuild AUTO links. It preserves valid manual links. Inspect graph health afterwards. Use your model reasoning for semantic maintenance—deciding which memories or remaining healthy relationships should be merged, split, created, updated, or removed—rather than treating structural repair as a substitute for that review.',
+    'After the scoped work is actually complete, call memory_reconciliation_record for this exact scope with a concise secret-free summary, reviewed count when known, every saved/updated/deleted/repaired result in changes, and every unresolved conflict in unresolved. This structured report is required for CLI success and will be shown to the user.',
+    'For project memory, inspect the resulting .memory changes. Give a concise final report with the same changes, post-maintenance graph health, and unresolved conflicts.',
   ].join('\n');
   return [
     '--ask-for-approval', 'never', 'exec', '--ephemeral', '--model', CODEX_MODEL,

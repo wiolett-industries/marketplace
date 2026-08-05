@@ -46,6 +46,17 @@ describe('Codex-backed memory consolidation', () => {
     expect(args).not.toContain('--ask-for-approval never');
   });
 
+  test('authorizes complete maintenance rather than a one-change-only review', () => {
+    const args = buildCodexArgs({ scope: 'project', memoryRoot: '/tmp/memory', workingDirectory: '/tmp/project', status: {} });
+    const prompt = args.at(-1);
+    expect(prompt).toContain('full Agent Memory maintenance reconciliation');
+    expect(prompt).toContain('memory_graph_maintain with dry_run=false');
+    expect(prompt).toContain('orphan graph files');
+    expect(prompt).toContain('model reasoning for semantic maintenance');
+    expect(prompt).toContain('saved/updated/deleted/repaired');
+    expect(prompt).not.toContain('Do not delete memories, prune graph edges');
+  });
+
   test('does not offer a run when Codex capability discovery fails', async () => {
     const ui = createUi();
     await runConsolidateCommand({

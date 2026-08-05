@@ -12,6 +12,11 @@ interface ViewArgs {
   open: boolean;
 }
 
+export interface ViewCommandOptions {
+  /** Keep the interactive-menu launch limited to the URL and shutdown hint. */
+  quiet?: boolean;
+}
+
 function parseArgs(args: string[]): ViewArgs {
   let scope: MemoryScope = 'project';
   let port: number | undefined;
@@ -77,7 +82,11 @@ function printViewHelp(): void {
   ].join('\n'));
 }
 
-export async function runViewCommand(args: string[], version: string): Promise<void> {
+export function formatQuietViewStarted(url: string): string {
+  return `Memory view started: ${url}\nPress Ctrl+C to stop.`;
+}
+
+export async function runViewCommand(args: string[], version?: string, options: ViewCommandOptions = {}): Promise<void> {
   if (args.includes('--help') || args.includes('-h')) {
     printViewHelp();
     return;
@@ -87,19 +96,23 @@ export async function runViewCommand(args: string[], version: string): Promise<v
 
   const state = detectMemoryState(scope);
   const label = scope === 'global' ? 'global' : getMemoryRoot('project');
-  if (!state.enabled) {
+  if (!state.enabled && !options.quiet) {
     console.error(`! No memory store found for scope "${scope}" (${label}).`);
     console.error('  The dashboard will open in an empty state. Create memories first, or pass a project path.');
   }
 
   const handle = await startViewServer({ scope, port, version });
 
-  console.log('');
-  console.log(`  Agent Memory View — ${scope} scope`);
-  console.log(`  ${scope === 'global' ? getMemoryRoot('global') : getMemoryRoot('project')}`);
-  console.log(`  ${handle.url}`);
-  console.log('');
-  console.log('  Press Ctrl+C to stop.');
+  if (options.quiet) {
+    console.log(formatQuietViewStarted(handle.url));
+  } else {
+    console.log('');
+    console.log(`  Agent Memory View — ${scope} scope`);
+    console.log(`  ${scope === 'global' ? getMemoryRoot('global') : getMemoryRoot('project')}`);
+    console.log(`  ${handle.url}`);
+    console.log('');
+    console.log('  Press Ctrl+C to stop.');
+  }
 
   if (open) openBrowser(handle.url);
 

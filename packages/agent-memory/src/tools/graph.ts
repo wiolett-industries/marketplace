@@ -1,20 +1,32 @@
-import { getAllEntries, getEdgeSummaries, getEntryById, getFilteredEdgeRows, getNeighborSummaries, getOutgoingEdgeRecords, replaceOutgoingEdges } from '../db.js';
-import { deleteGraphFile, listGraphFileNames, readGraphFile, readEntryFileByFileName, writeGraphFile } from '../files.js';
+import { deleteEntryFromDb, getAllEntries, getDeepEntries, getEdgeSummaries, getEntryById, getFilteredEdgeRows, getLiteEntries, getNeighborSummaries, getOutgoingEdgeRecords, replaceOutgoingEdges } from '../db.js';
+import { deleteEntryFile, deleteGraphFile, listGraphFileNames, readGraphFile, readEntryFileByFileName, writeGraphFile } from '../files.js';
+import { refreshAutoLinks } from '../auto-link.js';
 import { type EntryRecord, type EntryWithLinks, withoutEmbedding } from '../entry.js';
-import { assertGraphNode, type GraphDirection, type GraphEdgeRecord, type GraphRelation, type GraphSubgraph, isSymmetricRelation, normalizeWeight } from '../graph.js';
+import { assertGraphNode, type GraphDirection, type GraphEdgeRecord, type GraphRelation, type GraphSubgraph, isGraphRelation, isSymmetricRelation, normalizeWeight, shouldPreferGraphEdge } from '../graph.js';
 import type { MemoryScope } from '../scope.js';
 
 function now(): number {
   return Date.now();
 }
 
-function persistOutgoingEdges(owner: EntryRecord, edges: GraphEdgeRecord[], scope: MemoryScope): void {
-  const normalized = edges
-    .map((edge) => ({
+function persistOutgoingEdges(owner: Pick<EntryRecord, 'id' | 'file_name'>, edges: GraphEdgeRecord[], scope: MemoryScope): void {
+  const byTuple = new Map<string, GraphEdgeRecord>();
+  for (const edge of edges) {
+    const normalizedEdge = {
       ...edge,
       weight: normalizeWeight(edge.weight),
       source: edge.source === 'auto' ? 'auto' as const : 'manual' as const,
-    }))
+    };
+    const key = `${normalizedEdge.to_id}:${normalizedEdge.relation}`;
+    const previous = byTuple.get(key);
+    // A manually maintained relation is the canonical answer if a damaged
+    // source file contains both variants of the same tuple.
+    if (!previous || shouldPreferGraphEdge(previous, normalizedEdge)) {
+      byTuple.set(key, normalizedEdge);
+    }
+  }
+
+  const normalized = [...byTuple.values()]
     .sort((left, right) =>
       left.to_id.localeCompare(right.to_id) ||
       left.relation.localeCompare(right.relation)
@@ -126,6 +138,166 @@ export function handleGraphPrune(args: GraphPruneArgs) {
     },
     affected_owners: affectedOwners,
     samples,
+  };
+}
+
+export interface GraphMaintenanceArgs {
+  scope?: MemoryScope;
+  dry_run?: boolean;
+}
+
+interface GraphRepairSummary {
+  orphan_graph_files: number;
+  invalid_edges: {
+    dangling_target: number;
+    invalid_source: number;
+    invalid_relation_or_weight: number;
+    duplicate_tuple: number;
+    total: number;
+    manual: number;
+    auto: number;
+  };
+}
+
+type StoredEntry = Omit<EntryRecord, 'embedding'>;
+type StoredGraphEntry = StoredEntry & ({ layer: 'deep' } | { layer: 'lite'; ref: null });
+
+function isGraphEntry(entry: StoredEntry | null): entry is StoredGraphEntry {
+  return Boolean(entry && (entry.layer === 'deep' || (entry.layer === 'lite' && entry.ref === null)));
+}
+
+/**
+ * The SQLite cache deliberately skips broken graph records during rebuild, but
+ * the source JSON would otherwise remain and trigger the same warning forever.
+ * Reconcile those source files here, preserving every structurally valid manual
+ * edge and leaving semantic judgments to the full Codex reconciliation.
+ */
+function repairCanonicalGraphFiles(scope: MemoryScope, dryRun: boolean): GraphRepairSummary {
+  const entries = getAllEntries(scope);
+  const entriesByFileName = new Map(entries.map((entry) => [entry.file_name, entry]));
+  const nodeIds = new Set(entries.filter(isGraphEntry).map((entry) => entry.id));
+  const summary: GraphRepairSummary = {
+    orphan_graph_files: 0,
+    invalid_edges: { dangling_target: 0, invalid_source: 0, invalid_relation_or_weight: 0, duplicate_tuple: 0, total: 0, manual: 0, auto: 0 },
+  };
+
+  for (const fileName of listGraphFileNames(scope)) {
+    const owner = entriesByFileName.get(fileName) ?? null;
+    if (!isGraphEntry(owner)) {
+      summary.orphan_graph_files += 1;
+      if (!dryRun) {
+        deleteGraphFile(fileName, scope);
+        if (owner) replaceOutgoingEdges(owner.id, [], scope);
+      }
+      continue;
+    }
+
+    const keptByTuple = new Map<string, GraphEdgeRecord>();
+    for (const edge of readGraphFile(fileName, scope)) {
+      let reason: 'dangling_target' | 'invalid_source' | 'invalid_relation_or_weight' | null = null;
+      if (edge.from_id !== owner.id || edge.to_id === owner.id) {
+        reason = 'invalid_source';
+      } else if (!nodeIds.has(edge.to_id)) {
+        reason = 'dangling_target';
+      } else if (!isGraphRelation(edge.relation)) {
+        reason = 'invalid_relation_or_weight';
+      } else {
+        try {
+          normalizeWeight(edge.weight);
+        } catch {
+          reason = 'invalid_relation_or_weight';
+        }
+      }
+
+      if (reason) {
+        summary.invalid_edges[reason] += 1;
+        summary.invalid_edges.total += 1;
+        summary.invalid_edges[edge.source === 'auto' ? 'auto' : 'manual'] += 1;
+      } else {
+        const key = `${edge.to_id}:${edge.relation}`;
+        const previous = keptByTuple.get(key);
+        if (previous) {
+          const keepCurrent = shouldPreferGraphEdge(previous, edge);
+          const discarded = keepCurrent ? previous : edge;
+          if (keepCurrent) keptByTuple.set(key, edge);
+          summary.invalid_edges.duplicate_tuple += 1;
+          summary.invalid_edges.total += 1;
+          summary.invalid_edges[discarded.source === 'auto' ? 'auto' : 'manual'] += 1;
+        } else {
+          keptByTuple.set(key, edge);
+        }
+      }
+    }
+
+    const kept = [...keptByTuple.values()];
+    if (kept.length !== readGraphFile(fileName, scope).length && !dryRun) {
+      persistOutgoingEdges(owner, kept, scope);
+    }
+  }
+
+  // Rebuild normally clears these rows too, but make the repair idempotent even
+  // when a caller runs maintenance against an already-open cache.
+  if (!dryRun) {
+    const graphFiles = new Set(listGraphFileNames(scope));
+    for (const entry of entries.filter(isGraphEntry)) {
+      if (!graphFiles.has(entry.file_name)) replaceOutgoingEdges(entry.id, [], scope);
+    }
+  }
+
+  return summary;
+}
+
+
+/**
+ * Repair deterministic structural graph failures, including broken graph source
+ * files, then rebuild every automatic edge from the current canonical records.
+ * Structurally valid manual edges remain untouched; semantic consolidation is a
+ * separate model-backed decision during the approved reconciliation.
+ */
+export async function handleGraphMaintenance(args: GraphMaintenanceArgs) {
+  const scope = args.scope ?? 'project';
+  const dryRun = args.dry_run ?? true;
+  const entries = getAllEntries(scope);
+  const nodeIds = new Set(entries.map((entry) => entry.id));
+  const deadPointers = entries.filter((entry) => entry.layer === 'lite' && entry.ref !== null && !nodeIds.has(entry.ref));
+  const graphNodes = entries.filter((entry) => entry.layer === 'deep' || (entry.layer === 'lite' && entry.ref === null));
+  const plannedRepair = repairCanonicalGraphFiles(scope, true);
+
+  if (dryRun) {
+    return {
+      scope,
+      dry_run: true,
+      dead_pointers: { would_delete: deadPointers.length, ids: deadPointers.slice(0, 50).map((entry) => entry.id) },
+      deterministic_graph_repair: plannedRepair,
+      auto_graph: { would_rebuild_for: graphNodes.length },
+      valid_manual_edges_preserved: true,
+    };
+  }
+
+  for (const pointer of deadPointers) {
+    deleteEntryFile(pointer, scope);
+    deleteEntryFromDb(pointer.id, scope);
+  }
+
+  const repairedGraph = repairCanonicalGraphFiles(scope, false);
+  const survivingGraphNodes = [...getDeepEntries(scope), ...getLiteEntries(scope)]
+    .filter((entry) => entry.layer === 'deep' || (entry.layer === 'lite' && entry.ref === null));
+  let automaticLinks = 0;
+  for (const entry of survivingGraphNodes) {
+    const result = await refreshAutoLinks(entry, scope, { useModel: false });
+    automaticLinks += result.linked;
+  }
+
+  return {
+    scope,
+    dry_run: false,
+    dead_pointers: { deleted: deadPointers.length, ids: deadPointers.slice(0, 50).map((entry) => entry.id) },
+    auto_graph: {
+      rebuilt_for: survivingGraphNodes.length,
+      automatic_links: automaticLinks,
+    },
+    deterministic_graph_repair: repairedGraph,
+    valid_manual_edges_preserved: true,
   };
 }
 

@@ -77,7 +77,7 @@ const BROAD_TAGS = new Set([
 export async function refreshAutoLinks(
   entry: EntryRecord,
   scope: MemoryScope = 'project',
-  options: { pruneIncoming?: boolean } = {}
+  options: { pruneIncoming?: boolean; useModel?: boolean } = {}
 ): Promise<{ linked: number; candidates: number; pruned_incoming: number; supersedes: string[]; duplicate_of: string[] }> {
   if (!canParticipateInGraph(entry)) {
     return { linked: 0, candidates: 0, pruned_incoming: 0, supersedes: [], duplicate_of: [] };
@@ -93,14 +93,16 @@ export async function refreshAutoLinks(
     .sort((left, right) => right.score - left.score || left.entry.file_name.localeCompare(right.entry.file_name))
     .slice(0, 12);
 
-  const modelDecisions = await refineWithModel(entry, scored, scope);
+  const modelDecisions = options.useModel === false ? [] : await refineWithModel(entry, scored, scope);
   const timestamp = Date.now();
 
   // B1: detect supersession/duplication on the highest-similarity candidates and
   // fold the resulting `supersedes` edges into the auto set, so they survive the
   // replaceAutoOutgoingEdges replace (a post-write edge would be clobbered).
   const highSimilarity = scored.filter((candidate) => candidate.cosine >= SUPERSEDE_COSINE_THRESHOLD);
-  const { supersedeEdges, duplicateOf } = await detectSupersession(entry, highSimilarity, timestamp);
+  const { supersedeEdges, duplicateOf } = options.useModel === false
+    ? { supersedeEdges: [], duplicateOf: [] }
+    : await detectSupersession(entry, highSimilarity, timestamp);
   const supersededIds = new Set(supersedeEdges.map((edge) => edge.to_id));
   const duplicateIds = new Set(duplicateOf);
 
@@ -122,14 +124,29 @@ export async function refreshAutoLinks(
       updated_at: timestamp,
     }));
 
-  const edges = dedupeEdges([...linkEdges, ...supersedeEdges]);
+  const existingOutgoing = getOutgoingEdgeRecords(entry.id, scope);
+  const manualKeys = new Set(
+    existingOutgoing
+      .filter((edge) => edge.source === 'manual')
+      .map((edge) => `${edge.to_id}:${edge.relation}`)
+  );
+  // A user-authored relation wins over the same inferred tuple. This avoids a
+  // source-independent primary-key collision and, more importantly, prevents
+  // maintenance from replacing a durable manual decision.
+  const edges = dedupeEdges([...linkEdges, ...supersedeEdges])
+    .filter((edge) => !manualKeys.has(`${edge.to_id}:${edge.relation}`));
+  const existingAutoEdges = existingOutgoing.filter((edge) => edge.source === 'auto');
 
-  replaceAutoOutgoingEdges(entry.id, edges, scope);
-  const outgoing = getOutgoingEdgeRecords(entry.id, scope);
-  if (outgoing.length) {
-    writeGraphFile(entry.file_name, outgoing, scope);
-  } else {
-    deleteGraphFile(entry.file_name, scope);
+  // Preserve timestamps and the canonical graph artifact during a no-op
+  // refresh. This makes deterministic maintenance byte-idempotent.
+  if (!equivalentAutoEdges(existingAutoEdges, edges)) {
+    replaceAutoOutgoingEdges(entry.id, edges, scope);
+    const outgoing = getOutgoingEdgeRecords(entry.id, scope);
+    if (outgoing.length) {
+      writeGraphFile(entry.file_name, outgoing, scope);
+    } else {
+      deleteGraphFile(entry.file_name, scope);
+    }
   }
 
   return {
@@ -367,6 +384,24 @@ function dedupeEdges(edges: GraphEdgeRecord[]): GraphEdgeRecord[] {
     out.push(edge);
   }
   return out;
+}
+
+function equivalentAutoEdges(existing: GraphEdgeRecord[], next: GraphEdgeRecord[]): boolean {
+  if (existing.length !== next.length) return false;
+  const comparable = (edge: GraphEdgeRecord) => [
+    edge.from_id,
+    edge.to_id,
+    edge.relation,
+    normalizeWeight(edge.weight),
+    edge.reason ?? null,
+  ] as const;
+  const left = existing.map(comparable).sort(compareAutoEdges);
+  const right = next.map(comparable).sort(compareAutoEdges);
+  return left.every((edge, index) => edge.every((value, valueIndex) => value === right[index][valueIndex]));
+}
+
+function compareAutoEdges(left: readonly (string | number | null)[], right: readonly (string | number | null)[]): number {
+  return left.map(String).join('\u0000').localeCompare(right.map(String).join('\u0000'));
 }
 
 function summarizeEntry(entry: EntryRecord) {

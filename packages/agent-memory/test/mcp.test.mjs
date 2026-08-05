@@ -15,13 +15,16 @@ describe('MCP launcher smoke test', () => {
         'memory_recap',
         'memory_reconciliation_status',
         'memory_reconciliation_record',
+        'memory_project_registry',
         'memory_list',
         'memory_inspect',
         'memory_graph',
         'memory_path',
         'memory_graph_prune',
+        'memory_graph_maintain',
         'global_memory_path',
         'global_memory_graph_prune',
+        'global_memory_graph_maintain',
         'memory_write',
         'memory_get',
         'memory_read_lite',
@@ -53,9 +56,11 @@ describe('MCP launcher smoke test', () => {
     const memoryRecall = result.toolSchemas.find((tool) => tool.name === 'memory_recall');
     const reconciliationStatus = result.toolSchemas.find((tool) => tool.name === 'memory_reconciliation_status');
     const reconciliationRecord = result.toolSchemas.find((tool) => tool.name === 'memory_reconciliation_record');
+    const projectRegistry = result.toolSchemas.find((tool) => tool.name === 'memory_project_registry');
     const memoryQuery = result.toolSchemas.find((tool) => tool.name === 'memory_query');
     const memoryDelete = result.toolSchemas.find((tool) => tool.name === 'memory_delete');
     const memoryGraphPrune = result.toolSchemas.find((tool) => tool.name === 'memory_graph_prune');
+    const memoryGraphMaintain = result.toolSchemas.find((tool) => tool.name === 'memory_graph_maintain');
     expect(JSON.stringify(memorySave)).not.toContain('bypass_gate');
     expect(JSON.stringify(memoryUpdate)).not.toContain('bypass_gate');
     expect(JSON.stringify(memorySave)).toContain('commit canonical .memory/memories, .memory/index, .memory/embeddings, .memory/graph, and .memory/maintenance changes');
@@ -67,6 +72,7 @@ describe('MCP launcher smoke test', () => {
     expect(JSON.stringify(memoryRecall)).toContain('do not use for an initial semantic question or broad startup recall');
     expect(JSON.stringify(reconciliationStatus)).toContain('does not initialize a missing memory store');
     expect(JSON.stringify(reconciliationRecord)).toContain('never call it merely to clear an overdue recommendation');
+    expect(projectRegistry.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false, openWorldHint: false });
     expect(JSON.stringify(memoryList)).toContain('workspace_root');
     expect(JSON.stringify(memoryReadLite)).toContain('workspace_root');
     expect(JSON.stringify(memoryList)).toContain('By default this includes deep memories and lite index records');
@@ -77,7 +83,9 @@ describe('MCP launcher smoke test', () => {
     expect(memorySave.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: false });
     expect(memoryDelete.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: false });
     expect(memoryGraphPrune.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: false });
+    expect(memoryGraphMaintain.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: false });
     expect(result.setup.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
+    expect(JSON.parse(result.projectRegistryBeforeWrite.content[0].text)).toEqual({ projects: [] });
     expect(result.write.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.globalWrite.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(JSON.parse(result.globalWrite.content[0].text)).toEqual(
@@ -95,6 +103,9 @@ describe('MCP launcher smoke test', () => {
     expect(result.inspect.content[0]).toEqual(expect.objectContaining({ type: 'text' }));
     expect(result.lite.content[0].text).toContain('Smoke memory');
     expect(result.canonicalList.content[0].text).toContain('Canonical smoke memory');
+    expect(JSON.parse(result.projectRegistry.content[0].text)).toEqual({
+      projects: [expect.objectContaining({ project_path: expect.stringMatching(/pm-mcp-[^/]+$/), memory_root: expect.stringMatching(/pm-mcp-[^/]+\/\.memory$/) })],
+    });
     expect(result.canonicalList.content[0].text).toContain('Smoke test memory from MCP launcher');
     expect(result.canonicalIndexList.content[0].text).toContain('Canonical smoke memory');
     expect(JSON.parse(result.reconciliationBefore.content[0].text)).toEqual(expect.objectContaining({ due: true, last_reconciled_at: null }));

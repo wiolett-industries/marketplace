@@ -33,13 +33,32 @@ export function replaceOutgoingEdges(fromId: string, edges: GraphEdgeRecord[], s
 
 export function replaceAutoOutgoingEdges(fromId: string, edges: GraphEdgeRecord[], scope: MemoryScope = 'project'): void {
   const db = getDb(scope);
-  db.prepare("DELETE FROM memory_edges WHERE from_id = ? AND source = 'auto'").run(fromId);
+  // The tuple primary key deliberately does not include `source`: a manual
+  // relationship is authoritative over an automatically inferred one. Filter
+  // before deleting any current auto edges so a bad or stale candidate cannot
+  // turn a manual collision into a partially-applied refresh.
+  const manualKeys = new Set(
+    (db.prepare("SELECT to_id, relation FROM memory_edges WHERE from_id = ? AND source = 'manual'").all(fromId) as Array<{ to_id: string; relation: string }>)
+      .map((edge) => `${edge.to_id}:${edge.relation}`)
+  );
+  const safeEdges = edges.filter((edge) => !manualKeys.has(`${edge.to_id}:${edge.relation}`));
   const insert = db.prepare(`
     INSERT INTO memory_edges (from_id, to_id, relation, weight, reason, source, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, 'auto', ?, ?)
   `);
-  for (const edge of edges) {
-    insert.run(edge.from_id, edge.to_id, edge.relation, edge.weight, edge.reason, edge.created_at, edge.updated_at);
+
+  // SQLite is the cache, but it must not be left halfway through a refresh if
+  // an unexpected constraint or I/O failure occurs.
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    db.prepare("DELETE FROM memory_edges WHERE from_id = ? AND source = 'auto'").run(fromId);
+    for (const edge of safeEdges) {
+      insert.run(edge.from_id, edge.to_id, edge.relation, edge.weight, edge.reason, edge.created_at, edge.updated_at);
+    }
+    db.exec('COMMIT');
+  } catch (error) {
+    try { db.exec('ROLLBACK'); } catch { /* The transaction may already be closed. */ }
+    throw error;
   }
 }
 

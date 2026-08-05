@@ -3,43 +3,43 @@
   "edges": [
     {
       "from_id": "0eqwbcjr",
-      "to_id": "t7wcxn2n",
-      "relation": "related_to",
-      "weight": 0.9,
-      "reason": "Both entries describe fixes to Agent Memory behavior (memory_query, memory_recap, synthesis) and reconciliation contracts—highly relevant to the source surface and reconciliation notes.",
-      "source": "auto",
-      "created_at": 1785828423778,
-      "updated_at": 1785828423778
-    },
-    {
-      "from_id": "0eqwbcjr",
       "to_id": "e87wrzeg",
-      "relation": "related_to",
-      "weight": 0.8,
-      "reason": "Covers MCP memory_list, workspace_root, and cwd drift which directly affect MCP surface correctness and reconciliation described in the source.",
+      "relation": "same_workflow",
+      "weight": 0.9,
+      "reason": "Both define MCP memory-tool behavior around absolute workspace roots, project discovery, and canonical listing semantics.",
       "source": "auto",
-      "created_at": 1785828423778,
-      "updated_at": 1785828423778
+      "created_at": 1785966346626,
+      "updated_at": 1785966346626
     },
     {
       "from_id": "0eqwbcjr",
       "to_id": "rn35sah4",
-      "relation": "related_to",
-      "weight": 0.6,
-      "reason": "Repository-level project memory ownership and .memory commit policy informs reconciliation and verification steps for MCP and memory tooling.",
+      "relation": "same_area",
+      "weight": 0.82,
+      "reason": "Both establish repository contracts for committed canonical .memory artifacts versus disposable SQLite cache files.",
       "source": "auto",
-      "created_at": 1785828423778,
-      "updated_at": 1785828423778
+      "created_at": 1785966346626,
+      "updated_at": 1785966346626
     },
     {
       "from_id": "0eqwbcjr",
-      "to_id": "cyeiuloe",
-      "relation": "same_workflow",
-      "weight": 0.5,
-      "reason": "Workflow hook output schema (continue:true) is part of the same workflow verification and hook surface that the source references.",
+      "to_id": "6dj2jocx",
+      "relation": "same_area",
+      "weight": 0.68,
+      "reason": "Both describe Agent Memory maintenance contracts, including Codex reasoning and preservation rules for memory writes.",
       "source": "auto",
-      "created_at": 1785828423778,
-      "updated_at": 1785828423778
+      "created_at": 1785966346626,
+      "updated_at": 1785966346626
+    },
+    {
+      "from_id": "0eqwbcjr",
+      "to_id": "t7wcxn2n",
+      "relation": "same_workflow",
+      "weight": 0.57,
+      "reason": "Both cover aligned memory retrieval and maintenance entrypoints, including query-aware synthesis and recap behavior.",
+      "source": "auto",
+      "created_at": 1785966346626,
+      "updated_at": 1785966346626
     }
   ]
 }

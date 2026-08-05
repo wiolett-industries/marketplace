@@ -3,16 +3,6 @@
   "edges": [
     {
       "from_id": "uxyyc6dd",
-      "to_id": "0eqwbcjr",
-      "relation": "same_workflow",
-      "weight": 0.85,
-      "reason": "MCP workflow and merge-request-review tooling implement the same project workflow boundaries and chunk/phase semantics referenced by the routing/delegation policy.",
-      "source": "auto",
-      "created_at": 1785830077992,
-      "updated_at": 1785830077992
-    },
-    {
-      "from_id": "uxyyc6dd",
       "to_id": "cyeiuloe",
       "relation": "same_workflow",
       "weight": 0.82,

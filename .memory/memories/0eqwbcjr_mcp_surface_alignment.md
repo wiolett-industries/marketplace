@@ -4,27 +4,20 @@
   "file_name": "0eqwbcjr_mcp_surface_alignment",
   "tags": [
     "agent-memory",
-    "mcp",
-    "reconciliation",
-    "skill-surface",
-    "verification",
-    "workflow"
+    "cli",
+    "graph",
+    "maintenance",
+    "registry",
+    "ui",
+    "view"
   ],
   "layer": "deep",
   "ref": null,
   "source": "model_inferred",
-  "confidence": 0.9,
+  "confidence": 0.99,
   "importance": 0.9,
   "created_at": 1783548897136,
-  "updated_at": 1785828418253
+  "updated_at": 1785966341582
 }
 ---
-In agent-marketplace-next, `packages/workflow/src/tools.ts` is the Workflow MCP source of truth. It registers 13 tools: workflow_status; plan create/update/commitment propose/commitment confirm/complete/artifact write; audit create/update/complete/artifact write; handoff write; and findings normalize. The Workflow package README, plugin README, and workflow-mcp skill must list that same surface; an installed MCP missing a source tool is package/install drift.
-
-Agent Memory retrieval contract: use memory_query for a focused semantic question and memory_recap for broad startup/compaction recovery. memory_recall is only for a non-empty memory_id returned by query/list/recap or named explicitly; using it as the first search produces the schema min-length error.
-
-Reconciliation contract: memory_reconciliation_status is read-only and reports project/global last_reconciled_at plus a 30-day due state without initializing a store. memory_reconciliation_record persists the current timestamp only after a user-approved reconciliation actually completes. Metadata lives in maintenance/reconciliation.json in each scope; project maintenance data is canonical .memory content and must be committed. The reconciling-memory skill bounds the maintenance pass and forbids automatic deletion, pruning, or record-only acknowledgement.
-
-Workflow SessionStart reads the project reconciliation metadata without writing it and injects a recommendation only when a valid recorded timestamp is at least 30 days old. It does not remind for missing/uninitialized metadata or reconcile automatically.
-
-Verification anchors: zsh -lic 'pnpm --filter @wiolett/agent-memory test'; zsh -lic 'pnpm --filter @wiolett/agent-memory typecheck'; zsh -lic 'pnpm --filter @wiolett/workflow test'; git diff --check.
+Agent Memory conventions: project memory tools use absolute workspace_root; memory_recall is ID-only, while memory_query/memory_recap are retrieval entrypoints. Project `.memory` canonical artifacts are committed; only `.memory/memory.db*` is disposable cache. Consolidation is an approved full maintenance run: it first performs deterministic structural repair (delete dead index pointers, orphan graph files, and structurally impossible edges, including a manual edge whose source/target/relation/weight is invalid) and rebuilds AUTO links while preserving valid manual links. Then Codex model reasoning performs semantic maintenance: merge, split, create, update, or remove proven redundant/stale memories and decide any non-structural relationship changes. Ambiguous canonical memories remain. A local cross-project registry is stored at `~/.agents/.wiolett/agent-memory/projects.json`: startup registers a project only when it already has persisted memory, and the first successful project write registers it. The interactive CLI exposes `Open memory view`; it launches the project dashboard in a child process with Node `--no-warnings`, filters only `[agent-memory]` diagnostics from child stderr, and reports the URL plus `Press Ctrl+C to stop.` as the interactive CLI's formatted `outro`, not raw stdout. Direct `agent-memory view` remains the detailed diagnostic command. The View Graph panel uses the existing react-force-graph simulation and, for legibility in dense stores, sets its link force distance to 64 and charge strength to -80 after canvas sizing; retain that effect dependency on both graph data and canvas dimensions so it applies on first mount. The View filesystem watcher is best-effort: later watcher errors such as EMFILE must disable automatic refresh without crashing the dashboard; manual refresh remains available.

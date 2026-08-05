@@ -105,7 +105,9 @@ describe('memory write gate', () => {
     expect(reconciliation).toMatch(/^name: reconciling-memory$/m);
     expect(reconciliation).toMatch(/memory_reconciliation_status/);
     expect(reconciliation).toMatch(/memory_reconciliation_record/);
-    expect(reconciliation).toMatch(/Do not delete memories, prune graph edges, or re-embed content/);
+    expect(reconciliation).toMatch(/For an ordinary reconciliation, do not delete memories, prune graph edges, or re-embed content/);
+    expect(reconciliation).toMatch(/## Full Maintenance/);
+    expect(reconciliation).toMatch(/memory_graph_maintain/);
     expect(readme).toMatch(/Project Memory Belongs In Git/);
     expect(readme).toMatch(/Commit memories, indexes, embeddings, graph edges, and reconciliation/);
     expect(readme).toMatch(/Never ignore `\.memory\/` wholesale/);

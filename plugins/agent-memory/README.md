@@ -40,6 +40,7 @@ Canonical tools include:
 - `memory_recall`
 - `memory_reconciliation_status`
 - `memory_reconciliation_record`
+- `memory_project_registry`
 - `memory_save`
 - `memory_update`
 - `memory_inspect`
@@ -49,6 +50,7 @@ Canonical tools include:
 - `memory_graph`
 - `memory_path`
 - `memory_graph_prune`
+- `memory_graph_maintain`
 
 Compatibility aliases remain available for older skills, but new instructions
 should prefer the canonical names.

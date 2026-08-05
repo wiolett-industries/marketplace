@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
-import ForceGraph2D from 'react-force-graph-2d';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import ForceGraph2D, { type ForceGraphMethods } from 'react-force-graph-2d';
 import { api } from '../api/client';
 import { useResource } from '../api/useResource';
 import { FilterBar } from '../components/FilterBar';
@@ -11,6 +11,8 @@ import { useStore } from '../state/store';
 import type { GraphEdge, GraphNode, GraphPayload, Relation } from '../types';
 
 const NODE_REL_SIZE = 4;
+const LINK_DISTANCE = 64;
+const CHARGE_STRENGTH = -80;
 const nodeValOf = (node: SimNode): number => 1 + node.degree * 0.4;
 const nodeRadiusOf = (node: SimNode): number => NODE_REL_SIZE * Math.sqrt(nodeValOf(node));
 
@@ -30,10 +32,15 @@ interface SimLink {
   symmetric: boolean;
 }
 
+interface ConfigurableForce {
+  distance?: (value: number) => void;
+  strength?: (value: number) => void;
+}
+
 function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
   const { filters, selectedId, select, pathHighlight } = useStore();
   const [ref, size] = useSize<HTMLDivElement>();
-  const fgRef = useRef<unknown>(null);
+  const fgRef = useRef<ForceGraphMethods<SimNode, SimLink>>();
   const [hover, setHover] = useState<string | null>(null);
 
   // Custom hit detection. force-graph's built-in pointer detection uses a
@@ -75,6 +82,20 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
     }));
     return { nodes, links };
   }, [payload]);
+
+  useEffect(() => {
+    const graph = fgRef.current;
+    if (!graph) return;
+
+    // The library defaults are optimized for compact generic graphs. Keep this
+    // dashboard navigable, but give memory nodes enough breathing room to read
+    // their relation lines and hover labels in dense project stores.
+    const linkForce = graph.d3Force('link') as ConfigurableForce | undefined;
+    const chargeForce = graph.d3Force('charge') as ConfigurableForce | undefined;
+    linkForce?.distance?.(LINK_DISTANCE);
+    chargeForce?.strength?.(CHARGE_STRENGTH);
+    graph.d3ReheatSimulation();
+  }, [graphData, size.width, size.height]);
 
   const relationCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -165,7 +186,7 @@ function GraphView({ payload }: { payload: GraphPayload }): JSX.Element {
       >
         {size.width > 0 ? (
           <ForceGraph2D
-            ref={fgRef as never}
+            ref={fgRef}
             width={size.width}
             height={size.height}
             graphData={graphData}

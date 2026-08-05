@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { replaceOutgoingEdges, resetDbCacheFiles, upsertEntry } from './db.js';
 import { deleteEntryFile, getEmbeddingsDir, getGraphDir, getIndexDir, getLegacyEntriesDir, getMemoriesDir, listEntryFileNames, listGraphFileNames, listMemoryFileNames, readEntryFileByFileName, readGraphFile, writeEntryFile } from './files.js';
 import type { GraphEdgeRecord } from './graph.js';
-import { canParticipateInGraph, isGraphRelation, normalizeWeight } from './graph.js';
+import { canParticipateInGraph, isGraphRelation, normalizeWeight, shouldPreferGraphEdge } from './graph.js';
 import { createLegacyFileName, remapLegacyIds } from './naming.js';
 import { hashEntry } from './entry.js';
 import type { MemoryScope } from './scope.js';
@@ -124,7 +124,7 @@ export function rebuildFromFiles(scope: MemoryScope = 'project'): void {
       continue;
     }
 
-    const validEdges: GraphEdgeRecord[] = [];
+    const validEdgesByTuple = new Map<string, GraphEdgeRecord>();
     for (const edge of readGraphFile(graphFileName, scope)) {
       if (edge.from_id !== owner.id) {
         process.stderr.write(`[agent-memory] skipping graph edge with mismatched source in "${graphFileName}".\n`);
@@ -142,16 +142,21 @@ export function rebuildFromFiles(scope: MemoryScope = 'project'): void {
       }
 
       try {
-        validEdges.push({
+        const normalizedEdge: GraphEdgeRecord = {
           ...edge,
           weight: normalizeWeight(edge.weight),
           source: edge.source === 'auto' ? 'auto' : 'manual',
-        });
+        };
+        const tuple = `${normalizedEdge.to_id}:${normalizedEdge.relation}`;
+        const previous = validEdgesByTuple.get(tuple);
+        if (!previous || shouldPreferGraphEdge(previous, normalizedEdge)) {
+          validEdgesByTuple.set(tuple, normalizedEdge);
+        }
       } catch {
         process.stderr.write(`[agent-memory] skipping graph edge with invalid weight from "${edge.from_id}" to "${edge.to_id}".\n`);
       }
     }
 
-    replaceOutgoingEdges(owner.id, validEdges, scope);
+    replaceOutgoingEdges(owner.id, [...validEdgesByTuple.values()], scope);
   }
 }

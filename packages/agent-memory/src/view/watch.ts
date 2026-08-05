@@ -29,13 +29,25 @@ export class ChangeHub {
   start(): void {
     if (this.watcher) return;
     try {
-      this.watcher = watch(this.memoryDir, { recursive: true }, (_event, filename) => {
+      const watcher = watch(this.memoryDir, { recursive: true }, (_event, filename) => {
         // Ignore our own SQLite cache writes (memory.db, -wal, -shm, -journal).
         // The DB lives inside .memory, so WAL writes on every read would otherwise
         // feed back as change events and loop the dashboard endlessly.
         if (filename && isCacheFile(filename)) return;
         this.schedule();
       });
+      watcher.on('error', () => {
+        // Watching is best-effort. A later OS resource error (for example EMFILE)
+        // must not terminate the read-only dashboard; manual refresh still works.
+        if (this.watcher !== watcher) return;
+        this.watcher = null;
+        try {
+          watcher.close();
+        } catch {
+          // The watcher can already be closed by the underlying runtime.
+        }
+      });
+      this.watcher = watcher;
     } catch {
       // Watching is best-effort; the UI still works with manual refresh.
       this.watcher = null;

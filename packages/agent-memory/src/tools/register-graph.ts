@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
 import { ensureMemoryReadable, ensureMemoryReady } from '../runtime.js';
 import { handlePath, type PathStrategy } from './path.js';
-import { handleGraphPrune } from './graph.js';
+import { handleGraphMaintenance, handleGraphPrune } from './graph.js';
 import { asTextResult, directionEnum, localDestructiveAnnotations, localReadOnlyAnnotations, relationEnum, scopeSchema, workspaceRootSchema } from './registry-helpers.js';
 import type { GraphDirection, GraphRelation } from '../graph.js';
 import type { MemoryScope } from '../scope.js';
@@ -26,6 +26,11 @@ interface PruneInput {
   dry_run?: boolean;
   drop_dangling?: boolean;
   min_weight?: number;
+}
+
+interface MaintenanceInput {
+  workspace_root?: string;
+  dry_run?: boolean;
 }
 
 const pathFields = {
@@ -69,6 +74,13 @@ function runPrune(scope: MemoryScope, input: PruneInput) {
   });
 }
 
+function runMaintenance(scope: MemoryScope, input: MaintenanceInput) {
+  return withProjectRoot(input.workspace_root, async () => {
+    ensureMemoryReady(scope);
+    return asTextResult(await handleGraphMaintenance({ ...input, scope }));
+  });
+}
+
 export function registerGraphTools(server: McpServer): void {
   server.registerTool(
     'memory_path',
@@ -104,6 +116,17 @@ export function registerGraphTools(server: McpServer): void {
   );
 
   server.registerTool(
+    'memory_graph_maintain',
+    {
+      title: 'Maintain Graph',
+      description: 'Repair dead index pointers, orphan graph files, and structurally impossible edges, then rebuild AUTO links. Valid manual edges and canonical memories are preserved. Defaults to a dry run.',
+      annotations: localDestructiveAnnotations,
+      inputSchema: z.object({ scope: scopeSchema, workspace_root: workspaceRootSchema, dry_run: z.boolean().optional().describe('Report-only when true (default).') }),
+    },
+    async ({ scope, ...input }) => runMaintenance(scope ?? 'project', input)
+  );
+
+  server.registerTool(
     'global_memory_graph_prune',
     {
       title: 'Prune Global Graph',
@@ -112,5 +135,16 @@ export function registerGraphTools(server: McpServer): void {
       inputSchema: z.object({ workspace_root: workspaceRootSchema, ...pruneFields }),
     },
     async (input) => runPrune('global', input)
+  );
+
+  server.registerTool(
+    'global_memory_graph_maintain',
+    {
+      title: 'Maintain Global Graph',
+      description: 'Repair dead pointers, orphan graph files, and structurally impossible edges, then rebuild AUTO links in the global graph. Defaults to a dry run.',
+      annotations: localDestructiveAnnotations,
+      inputSchema: z.object({ workspace_root: workspaceRootSchema, dry_run: z.boolean().optional().describe('Report-only when true (default).') }),
+    },
+    async (input) => runMaintenance('global', input)
   );
 }

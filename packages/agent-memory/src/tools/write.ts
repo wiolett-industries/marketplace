@@ -2,6 +2,8 @@ import { getDeepEntries, getLiteEntries, getPointerByRef, upsertEntry } from '..
 import { embed } from '../embeddings.js';
 import { writeEntryFile } from '../files.js';
 import { refreshAutoLinks } from '../auto-link.js';
+import { registerProjectMemoryBestEffort } from '../project-registry.js';
+import { getMemoryRoot, getProjectRoot } from '../scope.js';
 import { buildPointerContent, hashEntry, normalizeTags, type EntryRecord } from '../entry.js';
 import { createEntryIdentity } from '../naming.js';
 import type { MemoryScope } from '../scope.js';
@@ -28,6 +30,12 @@ function persist(entry: EntryRecord, scope: MemoryScope): void {
   upsertEntry(entry, hashEntry(entry), scope);
 }
 
+async function registerProjectMemoryAfterWrite(scope: MemoryScope): Promise<void> {
+  if (scope !== 'project') return;
+  const projectRoot = getProjectRoot();
+  await registerProjectMemoryBestEffort(projectRoot, getMemoryRoot('project', projectRoot));
+}
+
 export async function handleWrite(args: WriteArgs): Promise<WriteResult> {
   const content = args.content.trim();
   const layer = args.layer ?? 'deep';
@@ -52,6 +60,7 @@ export async function handleWrite(args: WriteArgs): Promise<WriteResult> {
 
     persist(entry, scope);
     const autoLinks = await refreshAutoLinks(entry, scope);
+    await registerProjectMemoryAfterWrite(scope);
     return {
       id: entry.id,
       action: existing ? 'updated' : 'created',
@@ -93,6 +102,7 @@ export async function handleWrite(args: WriteArgs): Promise<WriteResult> {
 
   persist(pointerEntry, scope);
   const autoLinks = await refreshAutoLinks(deepEntry, scope);
+  await registerProjectMemoryAfterWrite(scope);
 
   return {
     id: deepEntry.id,

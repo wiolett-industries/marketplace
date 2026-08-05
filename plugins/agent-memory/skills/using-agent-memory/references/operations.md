@@ -14,7 +14,7 @@ Layers:
 - `deep`: canonical memory text, embeddings when configured, and graph links
 - `lite`: lightweight index or pointer layer used for discovery
 
-Canonical tools: `memory_setup`, `memory_list`, `memory_query`, `memory_recap`, `memory_recall`, `memory_reconciliation_status`, `memory_reconciliation_record`, `memory_save`, `memory_update`, `memory_inspect`, `memory_delete`, `memory_link`, `memory_unlink`, `memory_graph`, `memory_path`, and `memory_graph_prune`. Use compatibility aliases only when canonical tools are unavailable.
+Canonical tools: `memory_setup`, `memory_list`, `memory_query`, `memory_recap`, `memory_recall`, `memory_reconciliation_status`, `memory_reconciliation_record`, `memory_project_registry`, `memory_save`, `memory_update`, `memory_inspect`, `memory_delete`, `memory_link`, `memory_unlink`, `memory_graph`, `memory_path`, `memory_graph_prune`, and `memory_graph_maintain`. Use compatibility aliases only when canonical tools are unavailable.
 
 ## Focused Reads
 
@@ -30,14 +30,14 @@ When project results are unexpectedly empty, retry with the absolute `workspace_
 
 ## Writes And Maintenance
 
-Use `memory_setup` only to initialize or repair a known project memory root. Use `memory_delete`, `memory_link`, `memory_unlink`, and `memory_graph_prune` only for explicit maintenance or corrective work. `memory_graph_prune` is dry-run by default and never removes manual edges.
+Use `memory_setup` only to initialize or repair a known project memory root. Use `memory_delete`, `memory_link`, `memory_unlink`, `memory_graph_prune`, and `memory_graph_maintain` only for explicit maintenance or corrective work. Both graph tools are dry-run by default. `memory_graph_prune` never removes manual edges; `memory_graph_maintain` deterministically deletes dead index pointers, orphan graph files, and structurally impossible edges before rebuilding AUTO links. It preserves every structurally valid manual edge.
 
 Before a new save, check whether an existing canonical memory should be updated. `memory_update` preserves the memory id and graph relations. Store the distilled lesson, not the transcript that produced it.
 
 ## Reconciliation Cadence
 
 - `memory_reconciliation_status`: read the stored reconciliation timestamp for one initialized scope and report whether the 30-day cadence is due. It does not create a memory store.
-- `memory_reconciliation_record`: persist the current timestamp plus a concise secret-free outcome report only after an explicit, user-approved reconciliation was completed. Include each save/update and unresolved conflict so callers can show a reliable result; it is a durable mutation, not an acknowledgement button.
+- `memory_reconciliation_record`: persist the current timestamp plus a concise secret-free outcome report only after an explicit, user-approved reconciliation was completed. Include each durable change and unresolved conflict so callers can show a reliable result; it is a durable mutation, not an acknowledgement button.
 - Use the `reconciling-memory` skill for the bounded project/global process. Do not perform graph pruning, delete memories, or record a reconciliation just because the status is due.
 
 ## Project Artifacts

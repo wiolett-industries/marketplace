@@ -20,6 +20,7 @@ import { registerGraphTools } from './register-graph.js';
 import type { MemoryScope } from '../scope.js';
 import { withProjectRoot, withProjectRootAsync } from '../scope.js';
 import { getReconciliationStatus, recordReconciliation } from '../reconciliation.js';
+import { listProjectMemoryReferences } from '../project-registry.js';
 
 function emptyQueryResult() {
   return {
@@ -53,6 +54,17 @@ export function registerMemoryTools(server: McpServer): void {
 }
 
 function registerCanonicalTools(server: McpServer): void {
+  server.registerTool(
+    'memory_project_registry',
+    {
+      title: 'Project Memory Registry',
+      description: 'List locally registered project paths that contain Agent Memory. This is the global local index for future cross-project knowledge-base discovery.',
+      annotations: localReadOnlyAnnotations,
+      inputSchema: z.object({}),
+    },
+    async () => asTextResult({ projects: listProjectMemoryReferences() })
+  );
+
   server.registerTool(
     'memory_setup',
     {
@@ -160,7 +172,7 @@ function registerCanonicalTools(server: McpServer): void {
         summary: z.string().trim().min(1).max(1_200).describe('Secret-free summary of the reconciliation outcome.'),
         reviewed: z.number().int().min(0).max(10_000).optional().describe('Number of memories reviewed, when known.'),
         changes: z.array(z.object({
-          action: z.enum(['saved', 'updated']),
+          action: z.enum(['saved', 'updated', 'deleted', 'repaired']),
           memory_id: z.string().min(1).optional(),
           summary: z.string().trim().min(1).max(400),
         }).strict()).max(50).default([]).describe('Durable memory changes made during this reconciliation.'),

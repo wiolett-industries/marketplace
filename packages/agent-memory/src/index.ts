@@ -3,10 +3,15 @@
 import { runInitCommand } from './cli/init.js';
 import { isCliAbortError } from './cli/prompts.js';
 
-const VERSION = '1.0.1';
+const VERSION = '1.1.0';
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
+  if (process.env.AGENT_MEMORY_INTERACTIVE_VIEW === '1') {
+    const { runViewCommand } = await import('./view/cli.js');
+    await runViewCommand([], VERSION, { quiet: true });
+    return;
+  }
   if (command === 'init') {
     await runInitCommand(args);
     return;
@@ -89,6 +94,7 @@ async function startMcpServer(): Promise<void> {
     trigger: 'mcp-startup',
     log: (message) => process.stderr.write(`${message}\n`),
   });
+  await registerCurrentProjectMemoryIfPresent();
 
   const [{ McpServer }, { StdioServerTransport }, { registerMemoryTools }] = await Promise.all([
     import('@modelcontextprotocol/sdk/server/mcp.js'),
@@ -111,6 +117,21 @@ async function startMcpServer(): Promise<void> {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
+}
+
+async function registerCurrentProjectMemoryIfPresent(): Promise<void> {
+  const [{ registerExistingProjectMemoryBestEffort }, { getMemoryRoot, getProjectRoot }] = await Promise.all([
+    import('./project-registry.js'),
+    import('./scope.js'),
+  ]);
+  const projectRoot = getProjectRoot();
+  // Discovery is auxiliary local metadata. It must not prevent the MCP server
+  // from serving an otherwise healthy memory store.
+  try {
+    await registerExistingProjectMemoryBestEffort(projectRoot, getMemoryRoot('project', projectRoot));
+  } catch {
+    // Retry on a later MCP startup or successful write.
+  }
 }
 
 function printHelp(): void {

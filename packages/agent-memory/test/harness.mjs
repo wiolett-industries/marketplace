@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -9,6 +10,7 @@ import { resetModelProvider } from '../dist/model-provider.js';
 import { setupProjectMemory } from '../dist/setup.js';
 import { detectMemoryState, ensureMemoryReady, resetMemoryReady } from '../dist/runtime.js';
 import { getGlobalMemoryRoot } from '../dist/scope.js';
+import { getProjectMemoryRegistryPath, listProjectMemoryReferences, registerExistingProjectMemory } from '../dist/project-registry.js';
 import { handleWrite } from '../dist/tools/write.js';
 import { handleUpdate } from '../dist/tools/update.js';
 import { handleReadLite } from '../dist/tools/read-lite.js';
@@ -16,9 +18,10 @@ import { handleReadAll } from '../dist/tools/read-all.js';
 import { handleGet } from '../dist/tools/get.js';
 import { handleSearch } from '../dist/tools/search.js';
 import { handleDelete } from '../dist/tools/delete.js';
-import { handleGraphPrune, handleLink, handleNeighbors, handleSubgraph, handleUnlink } from '../dist/tools/graph.js';
-import { getOutgoingEdgeRecords, replaceOutgoingEdges } from '../dist/db.js';
-import { writeGraphFile } from '../dist/files.js';
+import { handleGraphMaintenance, handleGraphPrune, handleLink, handleNeighbors, handleSubgraph, handleUnlink } from '../dist/tools/graph.js';
+import { deleteEntryFromDb, getOutgoingEdgeRecords, replaceOutgoingEdges, upsertEntry } from '../dist/db.js';
+import { deleteEntryFile, writeEntryFile, writeGraphFile } from '../dist/files.js';
+import { hashEntry } from '../dist/entry.js';
 import { handleInspect } from '../dist/tools/inspect.js';
 import { handleRecall } from '../dist/tools/recall.js';
 import { handleQuery } from '../dist/tools/query.js';
@@ -27,6 +30,8 @@ import { rebuildFromFiles } from '../dist/rebuild.js';
 import { spreadingActivation } from '../dist/retrieval/activation.js';
 import { handlePath } from '../dist/tools/path.js';
 import { buildSupersedeOutcome } from '../dist/auto-link.js';
+import { formatInteractiveViewOutro } from '../dist/cli/root-command.js';
+import { formatQuietViewStarted } from '../dist/view/cli.js';
 import { startViewServer } from '../dist/view/server.js';
 
 if (!process.env.PROJECT_MEMORY_AGENTS_HOME) {
@@ -427,6 +432,7 @@ async function runMcp() {
   const tools = await client.listTools();
   const toolNames = tools.tools.map((tool) => tool.name).sort();
   const setup = await client.callTool({ name: 'memory_setup', arguments: {} });
+  const projectRegistryBeforeWrite = await client.callTool({ name: 'memory_project_registry', arguments: {} });
   const write = await client.callTool({
     name: 'memory_write',
     arguments: {
@@ -462,6 +468,7 @@ async function runMcp() {
     },
   });
   const canonicalList = await client.callTool({ name: 'memory_list', arguments: {} });
+  const projectRegistry = await client.callTool({ name: 'memory_project_registry', arguments: {} });
   const canonicalIndexList = await client.callTool({ name: 'memory_list', arguments: { index_only: true } });
   const reconciliationBefore = await client.callTool({ name: 'memory_reconciliation_status', arguments: {} });
   const reconciliationRecord = await client.callTool({
@@ -485,6 +492,8 @@ async function runMcp() {
     toolNames,
     toolSchemas: tools.tools,
     setup,
+    projectRegistryBeforeWrite,
+    projectRegistry,
     write,
     get,
     search,
@@ -504,6 +513,75 @@ async function runMcp() {
     recap,
     inspect,
   };
+}
+
+async function runProjectRegistry() {
+  const projectDir = createTempProject('pm-project-registry');
+  const emptyProjectDir = createTempProject('pm-project-registry-empty');
+  const restoredProjectDir = createTempProject('pm-project-registry-restored');
+
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+    const beforeFirstWrite = listProjectMemoryReferences();
+    const written = await handleWrite({ content: 'Registry records this project after its first memory.', tags: ['registry'], summary: 'registry write' });
+    const afterFirstWrite = listProjectMemoryReferences();
+    const registryPath = getProjectMemoryRegistryPath();
+    // A busy discovery index is not allowed to turn an already-persisted
+    // memory into a failed write result.
+    writeFileSync(`${registryPath}.lock`, JSON.stringify({ pid: 'test', created_at: new Date().toISOString() }), 'utf8');
+    const lockedWrite = await handleWrite({ content: 'Registry lock must not fail this memory write.', tags: ['registry'], summary: 'locked registry write' });
+    const afterLockedWrite = listProjectMemoryReferences();
+    unlinkSync(`${registryPath}.lock`);
+
+    const empty = await registerExistingProjectMemory(emptyProjectDir, path.join(emptyProjectDir, '.memory'));
+    const restoredMemoryRoot = path.join(restoredProjectDir, '.memory');
+    mkdirSync(path.join(restoredMemoryRoot, 'memories'), { recursive: true });
+    writeFileSync(path.join(restoredMemoryRoot, 'memories', 'existing.md'), '# existing memory\n', 'utf8');
+    const restored = await registerExistingProjectMemory(restoredProjectDir, restoredMemoryRoot);
+
+    return { projectDir, restoredProjectDir, written, lockedWrite, beforeFirstWrite, afterFirstWrite, afterLockedWrite, registryPath, empty, restored, all: listProjectMemoryReferences() };
+  });
+}
+
+async function runCliHelpRegistry() {
+  const projectDir = createTempProject('pm-cli-help-registry');
+  await withProject(projectDir, async () => {
+    ensureMemoryReady();
+    await handleWrite({ content: 'Existing memory must not be registered by CLI help.', tags: ['registry'], summary: 'help registry' });
+    unlinkSync(getProjectMemoryRegistryPath());
+  });
+
+  execFileSync(process.execPath, [path.resolve('dist/index.js'), '--help'], {
+    cwd: projectDir,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      WIOLETT_AUTH_CONFIG_PATH: process.env.WIOLETT_AUTH_CONFIG_PATH ?? '',
+      PROJECT_MEMORY_AGENTS_HOME: process.env.PROJECT_MEMORY_AGENTS_HOME ?? '',
+      PROJECT_MEMORY_GLOBAL_ROOT: process.env.PROJECT_MEMORY_GLOBAL_ROOT ?? '',
+    },
+  });
+
+  return { references: listProjectMemoryReferences() };
+}
+
+async function runMcpStartupRegistry() {
+  const projectDir = createTempProject('pm-mcp-startup-registry');
+  await withProject(projectDir, async () => {
+    ensureMemoryReady();
+    await handleWrite({ content: 'Existing project memory is discovered during MCP startup.', tags: ['registry'], summary: 'startup registry' });
+  });
+
+  writeFileSync(`${getProjectMemoryRegistryPath()}.lock`, JSON.stringify({ pid: 'test', created_at: new Date().toISOString() }), 'utf8');
+  const startedAt = Date.now();
+  const { client, transport } = await connectMcp(projectDir);
+  try {
+    const registry = await client.callTool({ name: 'memory_project_registry', arguments: {} });
+    return { projectDir, registry, startupDurationMs: Date.now() - startedAt };
+  } finally {
+    await transport.close();
+    unlinkSync(`${getProjectMemoryRegistryPath()}.lock`);
+  }
 }
 
 async function connectMcp(cwd, env = {}) {
@@ -789,6 +867,78 @@ async function runPrune() {
   });
 }
 
+async function runMaintenance() {
+  const projectDir = createTempProject('pm-maintenance');
+  return withProject(projectDir, async () => {
+    ensureMemoryReady();
+
+    const stale = await handleWrite({ content: 'obsolete pointer target', tags: ['obsolete'], summary: 'obsolete' });
+    const source = await handleWrite({ content: 'alpha release workflow', tags: ['alpha', 'release'], summary: 'alpha' });
+    const target = await handleWrite({ content: 'alpha release configuration', tags: ['alpha', 'config'], summary: 'config' });
+    const sourceEntry = handleGet({ id: source.id });
+    const timestamp = 1700000000000;
+    const danglingAuto = {
+      from_id: source.id,
+      to_id: 'missing-node',
+      relation: 'related_to',
+      weight: 0.5,
+      reason: null,
+      source: 'auto',
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+    const danglingManual = { ...danglingAuto, to_id: 'missing-manual-node', source: 'manual' };
+    writeGraphFile(sourceEntry.file_name, [danglingAuto, danglingManual], 'project');
+    replaceOutgoingEdges(source.id, [danglingAuto, danglingManual], 'project');
+    writeGraphFile('orphan-graph-file', [danglingAuto], 'project');
+
+    // Simulate an interrupted deletion: the pointer remains but its canonical
+    // target is absent from both the database and canonical file tree.
+    const staleEntry = handleGet({ id: stale.id });
+    const stalePointer = handleGet({ id: stale.pointer_id });
+    deleteEntryFile(staleEntry, 'project');
+    deleteEntryFromDb(stale.id, 'project');
+    const deadPointer = { ...stalePointer, id: 'dead-pointer', file_name: 'dead-pointer', ref: 'missing-node' };
+    writeEntryFile(deadPointer, 'project');
+    upsertEntry(deadPointer, hashEntry(deadPointer), 'project');
+    // The deterministic inference also proposes this tuple. Maintenance must
+    // keep this explicit relationship and simply omit the conflicting auto edge.
+    handleLink({ from_id: source.id, to_id: target.id, relation: 'same_area', weight: 0.93, reason: 'Human-confirmed release relationship' });
+    const sourceEdges = getOutgoingEdgeRecords(source.id, 'project');
+    const manualSameArea = sourceEdges.find((edge) => edge.to_id === target.id && edge.relation === 'same_area');
+    const newestManualTimestamp = manualSameArea.updated_at + 20;
+    // Simulate a merge-created duplicate manual tuple. The deterministic repair
+    // must retain the newest user revision instead of source-file order.
+    writeGraphFile(sourceEntry.file_name, [
+      ...sourceEdges,
+      { ...manualSameArea, weight: 0.41, reason: 'Older manual revision', created_at: newestManualTimestamp - 10, updated_at: newestManualTimestamp - 10 },
+      { ...manualSameArea, weight: 0.97, reason: 'Newest manual revision', created_at: newestManualTimestamp, updated_at: newestManualTimestamp },
+    ], 'project');
+    // The cache rebuild performed on a fresh MCP process must accept the same
+    // malformed canonical source before maintenance has a chance to rewrite it.
+    closeDb();
+    resetMemoryReady();
+    ensureMemoryReady();
+    const coldStartManual = getOutgoingEdgeRecords(source.id, 'project').find((edge) => edge.to_id === target.id && edge.relation === 'same_area');
+
+    const before = handleInspect({ view: 'health' });
+    const dry = await handleGraphMaintenance({ scope: 'project', dry_run: true });
+    const afterDry = handleInspect({ view: 'health' });
+    const repaired = await handleGraphMaintenance({ scope: 'project', dry_run: false });
+    const after = handleInspect({ view: 'health' });
+    const graphAfterFirstMaintenance = Object.fromEntries(
+      listRelative(projectDir, '.memory/graph').map((file) => [file, readFileSync(path.join(projectDir, '.memory/graph', file), 'utf8')])
+    );
+    const repeated = await handleGraphMaintenance({ scope: 'project', dry_run: false });
+    const graphAfterSecondMaintenance = Object.fromEntries(
+      listRelative(projectDir, '.memory/graph').map((file) => [file, readFileSync(path.join(projectDir, '.memory/graph', file), 'utf8')])
+    );
+    const preservedManual = getOutgoingEdgeRecords(source.id, 'project').find((edge) => edge.to_id === target.id && edge.relation === 'same_area');
+
+    return { ids: { stale: stale.id, pointer: stale.pointer_id, source: source.id, target: target.id }, before, dry, afterDry, repaired, repeated, after, coldStartManual, preservedManual, graphAfterFirstMaintenance, graphAfterSecondMaintenance };
+  });
+}
+
 async function runQueryExpand() {
   const projectDir = createTempProject('pm-query-expand');
   return withProject(projectDir, async () => {
@@ -999,14 +1149,23 @@ async function runViewServer() {
   });
 }
 
+async function runViewCli() {
+  return {
+    output: formatQuietViewStarted('http://127.0.0.1:7077'),
+    outro: formatInteractiveViewOutro('http://127.0.0.1:7077'),
+  };
+}
+
 const mode = process.argv[2];
 
 const runners = {
+  'view-cli': runViewCli,
   'view-server': runViewServer,
   activation: runActivation,
   path: runPath,
   health: runHealth,
   prune: runPrune,
+  maintenance: runMaintenance,
   'query-expand': runQueryExpand,
   synthesis: runSynthesis,
   supersede: runSupersede,
@@ -1021,6 +1180,9 @@ const runners = {
   mcp: runMcp,
   'mcp-workspace-root': runMcpWorkspaceRoot,
   'mcp-read-uninitialized': runMcpReadUninitialized,
+  'project-registry': runProjectRegistry,
+  'cli-help-registry': runCliHelpRegistry,
+  'mcp-startup-registry': runMcpStartupRegistry,
 };
 
 assert(mode in runners, `Unknown mode: ${mode}`);

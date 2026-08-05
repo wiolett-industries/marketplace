@@ -82,6 +82,23 @@ export function normalizeWeight(weight: number): number {
   return Number(weight.toFixed(4));
 }
 
+/**
+ * Choose the canonical representation for an impossible duplicate edge tuple.
+ * Manual edges always override inferred ones; two manual revisions preserve the
+ * most recently recorded decision, with stable metadata tie-breakers.
+ */
+export function shouldPreferGraphEdge(current: GraphEdgeRecord, candidate: GraphEdgeRecord): boolean {
+  if (current.source !== candidate.source) return current.source === 'auto' && candidate.source === 'manual';
+  if (current.source === 'manual' && candidate.source === 'manual') {
+    if (candidate.updated_at !== current.updated_at) return candidate.updated_at > current.updated_at;
+    if (candidate.created_at !== current.created_at) return candidate.created_at > current.created_at;
+    const candidateMetadata = `${candidate.weight}\u0000${candidate.reason ?? ''}`;
+    const currentMetadata = `${current.weight}\u0000${current.reason ?? ''}`;
+    return candidateMetadata.localeCompare(currentMetadata) > 0;
+  }
+  return false;
+}
+
 export function canParticipateInGraph(entry: EntryRecord | null): entry is GraphMemoryNode {
   return Boolean(entry && (entry.layer === 'deep' || (entry.layer === 'lite' && entry.ref === null)));
 }

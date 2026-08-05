@@ -3,16 +3,6 @@
   "edges": [
     {
       "from_id": "y3t4plv3",
-      "to_id": "0eqwbcjr",
-      "relation": "same_workflow",
-      "weight": 0.5,
-      "reason": "MCP surface alignment and workflow/merge-request-review components within the same project scope.",
-      "source": "auto",
-      "created_at": 1784043369967,
-      "updated_at": 1784043369967
-    },
-    {
-      "from_id": "y3t4plv3",
       "to_id": "cyeiuloe",
       "relation": "same_workflow",
       "weight": 0.5,
