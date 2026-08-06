@@ -3,7 +3,7 @@
 import { runInitCommand } from './cli/init.js';
 import { isCliAbortError } from './cli/prompts.js';
 
-const VERSION = '1.1.0';
+const VERSION = '1.1.1';
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);

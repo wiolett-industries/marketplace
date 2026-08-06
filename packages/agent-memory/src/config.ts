@@ -218,7 +218,7 @@ export function updateYamlFile(configPath: string, updates: YamlUpdate[]): void 
 
 export function expandHome(value: string): string {
   if (value === '~') return os.homedir();
-  if (value.startsWith('~/')) return path.join(os.homedir(), value.slice(2));
+  if (value.startsWith('~/') || value.startsWith('~\\')) return path.join(os.homedir(), value.slice(2));
   return value;
 }
 

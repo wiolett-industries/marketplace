@@ -3,8 +3,8 @@ import fs from 'node:fs/promises';
 import { existsSync, lstatSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { readAiProvidersConfig } from '../dist/config.js';
-import { ensureConfigAndStorageMigrated } from '../dist/migration.js';
+import { expandHome, readAiProvidersConfig } from '../dist/config.js';
+import { ensureConfigAndStorageMigrated, legacyCompatibilityLinkType } from '../dist/migration.js';
 
 async function createLegacyHome() {
   const agentsHome = await fs.mkdtemp(path.join(os.tmpdir(), 'agent-memory-migration-'));
@@ -45,6 +45,15 @@ test('bootstrap migrates legacy config and global memory exactly once', async ()
   const second = await ensureConfigAndStorageMigrated({ trigger: 'init', env });
   assert.equal(second.configCreated.length, 0);
   assert.equal(second.memoryMigration, 'already-completed');
+});
+
+test('expands Windows-style home-relative configuration paths', () => {
+  assert.equal(expandHome('~\\.agents\\.wiolett'), path.join(os.homedir(), '.agents\\.wiolett'));
+});
+
+test('uses a Windows junction for the legacy global-memory compatibility path', () => {
+  assert.equal(legacyCompatibilityLinkType('win32'), 'junction');
+  assert.equal(legacyCompatibilityLinkType('linux'), 'dir');
 });
 
 test('bootstrap preserves an empty canonical OpenAI credential even when legacy auth exists', async () => {

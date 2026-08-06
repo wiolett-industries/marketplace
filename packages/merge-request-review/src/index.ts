@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const VERSION = '1.1.0';
+const VERSION = '1.1.1';
 
 async function main(): Promise<void> {
   const [command] = process.argv.slice(2);

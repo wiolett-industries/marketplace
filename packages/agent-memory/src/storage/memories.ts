@@ -87,7 +87,12 @@ export function getDeepEntries(scope: MemoryScope = 'project'): EntryRecord[] {
 }
 
 export function searchMemoriesFTS(query: string, scope: MemoryScope = 'project'): Map<string, number> {
-  const rows = getDb(scope)
+  const database = getDb(scope);
+  const ftsTable = database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'memories_fts'")
+    .get() as { name: string } | undefined;
+  if (!ftsTable) return new Map();
+
+  const rows = database
     .prepare(`
       SELECT m.id, bm25(memories_fts, 10.0, 5.0) AS rank
       FROM memories_fts

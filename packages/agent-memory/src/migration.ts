@@ -47,6 +47,14 @@ export interface BootstrapOptions {
   log?: (message: string) => void;
 }
 
+/**
+ * Windows directory symlinks require SeCreateSymbolicLinkPrivilege for many
+ * users. A junction preserves the legacy path without that requirement.
+ */
+export function legacyCompatibilityLinkType(platform: NodeJS.Platform = process.platform): 'dir' | 'junction' {
+  return platform === 'win32' ? 'junction' : 'dir';
+}
+
 export async function ensureConfigAndStorageMigrated(options: BootstrapOptions): Promise<BootstrapResult> {
   const env = options.env ?? process.env;
   const paths = getConfigPaths(env);
@@ -167,10 +175,10 @@ function migrateGlobalMemory(source: string, destination: string): { status: Boo
   renameSync(dataSource, backup);
   if (sourceWasSymlink) unlinkSync(source);
   try {
-    symlinkSync(destination, source, 'dir');
+    symlinkSync(destination, source, legacyCompatibilityLinkType());
   } catch (error) {
     renameSync(backup, dataSource);
-    if (sourceWasSymlink) symlinkSync(dataSource, source, 'dir');
+    if (sourceWasSymlink) symlinkSync(dataSource, source, legacyCompatibilityLinkType());
     throw new Error(`Migrated global memory but could not create the legacy compatibility symlink: ${errorMessage(error)}`);
   }
   return { status: 'completed', backup };

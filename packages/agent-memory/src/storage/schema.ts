@@ -14,6 +14,40 @@ function hasColumn(database: DatabaseSync, tableName: string, columnName: string
   return rows.some((row) => row.name === columnName);
 }
 
+function isUnavailableFts5Error(error: unknown): boolean {
+  return error instanceof Error && /no such module:\s*fts5/i.test(error.message);
+}
+
+/**
+ * FTS5 is an optional SQLite extension. Some Node distributions on Windows do
+ * not ship it, so keep the file-backed memory store usable without it. Search
+ * already combines FTS with a portable lexical scorer.
+ */
+function ensureFtsTables(database: DatabaseSync): boolean {
+  try {
+    run(database, `
+      CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
+        content,
+        tags,
+        content='memories',
+        content_rowid='rowid'
+      )
+    `);
+    run(database, `
+      CREATE VIRTUAL TABLE IF NOT EXISTS memory_index_fts USING fts5(
+        content,
+        tags,
+        content='memory_index',
+        content_rowid='rowid'
+      )
+    `);
+    return true;
+  } catch (error) {
+    if (isUnavailableFts5Error(error)) return false;
+    throw error;
+  }
+}
+
 function migrateLegacyEntries(database: DatabaseSync): void {
   if (!hasTable(database, 'entries')) return;
 
@@ -115,22 +149,10 @@ export function ensureSchema(database: DatabaseSync): void {
   run(database, 'CREATE INDEX IF NOT EXISTS memory_edges_to_idx ON memory_edges (to_id)');
   run(database, 'CREATE INDEX IF NOT EXISTS memory_index_memory_id_idx ON memory_index (memory_id)');
 
-  run(database, `
-    CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
-      content,
-      tags,
-      content='memories',
-      content_rowid='rowid'
-    )
-  `);
-  run(database, `
-    CREATE VIRTUAL TABLE IF NOT EXISTS memory_index_fts USING fts5(
-      content,
-      tags,
-      content='memory_index',
-      content_rowid='rowid'
-    )
-  `);
+  if (!ensureFtsTables(database)) {
+    migrateLegacyEntries(database);
+    return;
+  }
 
   run(database, `
     CREATE TRIGGER IF NOT EXISTS memories_ai AFTER INSERT ON memories BEGIN
