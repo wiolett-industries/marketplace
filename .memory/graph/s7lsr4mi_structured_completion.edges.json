@@ -3,23 +3,33 @@
   "edges": [
     {
       "from_id": "s7lsr4mi",
-      "to_id": "6dj2jocx",
+      "to_id": "0eqwbcjr",
       "relation": "same_workflow",
-      "weight": 0.82,
-      "reason": "Both define Agent Memory Codex reconciliation and completion contracts for CLI workflows.",
+      "weight": 0.92,
+      "reason": "Both define Agent Memory maintenance and release safeguards, including reconciliation integrity and release verification.",
       "source": "auto",
-      "created_at": 1786064972964,
-      "updated_at": 1786064972964
+      "created_at": 1786066398296,
+      "updated_at": 1786066398296
     },
     {
       "from_id": "s7lsr4mi",
-      "to_id": "0eqwbcjr",
+      "to_id": "6dj2jocx",
       "relation": "same_workflow",
-      "weight": 0.68,
-      "reason": "Both address staged maintenance, Codex reconciliation, and safeguards around persistence and completion.",
+      "weight": 0.8,
+      "reason": "Both establish contracts for Codex invocation, reconciliation reporting, and preserving the due state when validation fails.",
       "source": "auto",
-      "created_at": 1786064972964,
-      "updated_at": 1786064972964
+      "created_at": 1786066398296,
+      "updated_at": 1786066398296
+    },
+    {
+      "from_id": "s7lsr4mi",
+      "to_id": "btpyl4q2",
+      "relation": "same_workflow",
+      "weight": 0.63,
+      "reason": "Provides the repository-specific pnpm environment and verification procedure relevant to the source's release checks.",
+      "source": "auto",
+      "created_at": 1786066398296,
+      "updated_at": 1786066398296
     }
   ]
 }
