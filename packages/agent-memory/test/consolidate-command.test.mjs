@@ -93,6 +93,8 @@ describe('Codex-backed memory consolidation', () => {
           const outputPath = args[args.indexOf('--output-last-message') + 1];
           const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
           expect(schema.properties.completed).toEqual({ type: 'boolean', const: true });
+          expect(schema.properties.changes.items.required).toEqual(['action', 'memory_id', 'summary']);
+          expect(schema.properties.changes.items.properties.memory_id).toEqual({ type: ['string', 'null'] });
           writeFileSync(outputPath, JSON.stringify({
             completed: true,
             summary: 'Consolidated project memory.',

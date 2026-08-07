@@ -42,10 +42,10 @@ const CODEX_OUTPUT_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['action', 'summary'],
+        required: ['action', 'memory_id', 'summary'],
         properties: {
           action: { type: 'string', enum: ['saved', 'updated', 'deleted', 'repaired'] },
-          memory_id: { type: 'string', minLength: 1 },
+          memory_id: { type: ['string', 'null'] },
           summary: { type: 'string', minLength: 1, maxLength: 400 },
         },
       },
@@ -182,10 +182,11 @@ export function readCodexConsolidationReport(filePath: string): ReconciliationRe
   const changes = output.changes.flatMap((change): ReconciliationChange[] => {
     if (!change || typeof change !== 'object' || Array.isArray(change)) return [];
     const item = change as Partial<ReconciliationChange>;
+    const memoryId = (change as { memory_id?: unknown }).memory_id;
     return (item.action === 'saved' || item.action === 'updated' || item.action === 'deleted' || item.action === 'repaired')
       && typeof item.summary === 'string' && item.summary.trim() && item.summary.length <= 400
-      && (item.memory_id === undefined || (typeof item.memory_id === 'string' && item.memory_id.trim()))
-      ? [{ action: item.action, ...(typeof item.memory_id === 'string' && item.memory_id.trim() ? { memory_id: item.memory_id } : {}), summary: item.summary }]
+      && (memoryId === undefined || memoryId === null || (typeof memoryId === 'string' && memoryId.trim()))
+      ? [{ action: item.action, ...(typeof memoryId === 'string' && memoryId.trim() ? { memory_id: memoryId } : {}), summary: item.summary }]
       : [];
   });
   if (changes.length !== output.changes.length || output.unresolved.some((item) => typeof item !== 'string' || !item.trim() || item.length > 400)) {
