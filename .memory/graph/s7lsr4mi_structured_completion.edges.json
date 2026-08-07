@@ -1,0 +1,25 @@
+{
+  "file_name": "s7lsr4mi_structured_completion",
+  "edges": [
+    {
+      "from_id": "s7lsr4mi",
+      "to_id": "6dj2jocx",
+      "relation": "same_workflow",
+      "weight": 0.82,
+      "reason": "Both define Agent Memory Codex reconciliation and completion contracts for CLI workflows.",
+      "source": "auto",
+      "created_at": 1786064972964,
+      "updated_at": 1786064972964
+    },
+    {
+      "from_id": "s7lsr4mi",
+      "to_id": "0eqwbcjr",
+      "relation": "same_workflow",
+      "weight": 0.68,
+      "reason": "Both address staged maintenance, Codex reconciliation, and safeguards around persistence and completion.",
+      "source": "auto",
+      "created_at": 1786064972964,
+      "updated_at": 1786064972964
+    }
+  ]
+}
