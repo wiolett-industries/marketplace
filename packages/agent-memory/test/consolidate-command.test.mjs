@@ -1,8 +1,8 @@
 import { describe, expect, test } from '@jest/globals';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { buildCodexArgs, formatReconciliationReport, hasRequiredCodexModel, readCodexConsolidationReport, runConsolidateCommand } from '../dist/cli/consolidate-command.js';
+import { buildCodexArgs, formatReconciliationReport, hasRequiredCodexModel, runConsolidateCommand } from '../dist/cli/consolidate-command.js';
 
 function createUi() {
   const messages = [];
@@ -53,30 +53,14 @@ describe('Codex-backed memory consolidation', () => {
     expect(args).not.toContain('--ask-for-approval never');
   });
 
-  test('asks Codex for a structured report and keeps recording in the parent CLI', () => {
-    const args = buildCodexArgs(
-      { scope: 'project', memoryRoot: '/tmp/memory', workingDirectory: '/tmp/project', status: {} },
-      '/tmp/report.schema.json',
-      '/tmp/report.json',
-    );
-    expect(args).toContain('--output-schema');
-    expect(args).toContain('/tmp/report.schema.json');
-    expect(args).toContain('--output-last-message');
-    expect(args).toContain('/tmp/report.json');
-    expect(args.at(-1)).toContain('Do not call memory_reconciliation_record');
+  test('asks Codex for a plain-language summary without an output schema', () => {
+    const args = buildCodexArgs({ scope: 'project', memoryRoot: '/tmp/memory', workingDirectory: '/tmp/project', status: {} });
+    expect(args).not.toContain('--output-schema');
+    expect(args).not.toContain('--output-last-message');
+    expect(args.at(-1)).toContain('human-readable summary');
   });
 
-  test('rejects a malformed Codex report before recording reconciliation', () => {
-    const reportPath = path.join(mkdtempSync(path.join(tmpdir(), 'agent-memory-report-')), 'report.json');
-    try {
-      writeFileSync(reportPath, JSON.stringify({ completed: true, summary: 'Missing report fields' }), 'utf8');
-      expect(() => readCodexConsolidationReport(reportPath)).toThrow('Codex did not return a valid consolidation report.');
-    } finally {
-      rmSync(path.dirname(reportPath), { recursive: true, force: true });
-    }
-  });
-
-  test('records a validated parent-side report after Codex exits successfully', async () => {
+  test('records reconciliation after Codex exits successfully without requiring a machine-readable report', async () => {
     const project = mkdtempSync(path.join(tmpdir(), 'agent-memory-consolidation-project-'));
     const previousCwd = process.cwd();
     mkdirSync(path.join(project, '.memory', 'memories'), { recursive: true });
@@ -88,25 +72,10 @@ describe('Codex-backed memory consolidation', () => {
       await runConsolidateCommand({
         ui,
         listCodexModels: async () => supportedModels(),
-        runCodex: async (args) => {
-          const schemaPath = args[args.indexOf('--output-schema') + 1];
-          const outputPath = args[args.indexOf('--output-last-message') + 1];
-          const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
-          expect(schema.properties.completed).toEqual({ type: 'boolean', const: true });
-          expect(schema.properties.changes.items.required).toEqual(['action', 'memory_id', 'summary']);
-          expect(schema.properties.changes.items.properties.memory_id).toEqual({ type: ['string', 'null'] });
-          writeFileSync(outputPath, JSON.stringify({
-            completed: true,
-            summary: 'Consolidated project memory.',
-            reviewed: 1,
-            changes: [],
-            unresolved: [],
-          }), 'utf8');
-          return 0;
-        },
+        runCodex: async () => ({ code: 0, summary: 'Consolidated project memory.' }),
       });
       const record = JSON.parse(readFileSync(path.join(project, '.memory', 'maintenance', 'reconciliation.json'), 'utf8'));
-      expect(record.report).toEqual(expect.objectContaining({ summary: 'Consolidated project memory.', reviewed: 1 }));
+      expect(record.report).toEqual(expect.objectContaining({ summary: 'Consolidated project memory.' }));
       expect(ui.messages.join('\n')).toContain('Project memory consolidation completed');
     } finally {
       process.chdir(previousCwd);
@@ -114,7 +83,7 @@ describe('Codex-backed memory consolidation', () => {
     }
   });
 
-  test('does not record reconciliation when Codex exits without a valid report', async () => {
+  test('does not record reconciliation when Codex exits unsuccessfully', async () => {
     const project = mkdtempSync(path.join(tmpdir(), 'agent-memory-consolidation-project-'));
     const previousCwd = process.cwd();
     mkdirSync(path.join(project, '.memory', 'memories'), { recursive: true });
@@ -126,11 +95,7 @@ describe('Codex-backed memory consolidation', () => {
       await runConsolidateCommand({
         ui,
         listCodexModels: async () => supportedModels(),
-        runCodex: async (args) => {
-          const outputPath = args[args.indexOf('--output-last-message') + 1];
-          writeFileSync(outputPath, JSON.stringify({ completed: true, summary: 'Incomplete' }), 'utf8');
-          return 0;
-        },
+        runCodex: async () => 1,
       });
       expect(() => readFileSync(path.join(project, '.memory', 'maintenance', 'reconciliation.json'), 'utf8')).toThrow();
       expect(ui.messages.join('\n')).toContain('Memory consolidation did not complete');
@@ -147,7 +112,7 @@ describe('Codex-backed memory consolidation', () => {
     expect(prompt).toContain('memory_graph_maintain with dry_run=false');
     expect(prompt).toContain('orphan graph files');
     expect(prompt).toContain('model reasoning for semantic maintenance');
-    expect(prompt).toContain('saved/updated/deleted/repaired');
+    expect(prompt).toContain('maintenance you performed');
     expect(prompt).not.toContain('Do not delete memories, prune graph edges');
   });
 

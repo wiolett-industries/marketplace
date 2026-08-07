@@ -1,6 +1,6 @@
 {
   "name": "agent-memory",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Persistent scoped memory for Claude Code with focused startup recall, explicit write boundaries, graph tools, and a local dashboard.",
   "author": {
     "name": "Wiolett Industries",

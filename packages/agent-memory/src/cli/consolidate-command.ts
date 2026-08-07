@@ -1,9 +1,7 @@
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
+import { existsSync } from 'node:fs';
 import { getMemoryRoot, getProjectRoot, type MemoryScope } from '../scope.js';
-import { getReconciliationStatus, recordReconciliation, type ReconciliationChange, type ReconciliationReport, type ReconciliationStatus } from '../reconciliation.js';
+import { getReconciliationStatus, recordReconciliation, type ReconciliationReport, type ReconciliationStatus } from '../reconciliation.js';
 import type { ConfigCliUi, ConfigOption } from './config-ui.js';
 
 const RECENT_RECONCILIATION_MS = 24 * 60 * 60 * 1000;
@@ -24,35 +22,7 @@ export interface ConsolidationCommandInput {
   runCodex?: (args: string[], cwd: string) => Promise<number | CodexRunResult>;
 }
 
-export type CodexRunResult = { code: number; diagnostic?: string };
-
-type CodexConsolidationOutput = ReconciliationReport & { completed: true };
-
-const CODEX_OUTPUT_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['completed', 'summary', 'reviewed', 'changes', 'unresolved'],
-  properties: {
-    completed: { type: 'boolean', const: true },
-    summary: { type: 'string', minLength: 1, maxLength: 1_200 },
-    reviewed: { type: 'integer', minimum: 0, maximum: 10_000 },
-    changes: {
-      type: 'array',
-      maxItems: 50,
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['action', 'memory_id', 'summary'],
-        properties: {
-          action: { type: 'string', enum: ['saved', 'updated', 'deleted', 'repaired'] },
-          memory_id: { type: ['string', 'null'] },
-          summary: { type: 'string', minLength: 1, maxLength: 400 },
-        },
-      },
-    },
-    unresolved: { type: 'array', maxItems: 20, items: { type: 'string', minLength: 1, maxLength: 400 } },
-  },
-} as const;
+export type CodexRunResult = { code: number; diagnostic?: string; summary?: string };
 
 export async function getEligibleConsolidationScopes(input: Pick<ConsolidationCommandInput, 'now' | 'listCodexModels'> = {}): Promise<ConsolidationScopeOption[]> {
   const now = input.now?.() ?? new Date();
@@ -94,27 +64,23 @@ export async function runConsolidateCommand(input: ConsolidationCommandInput): P
 
   const startedAt = (input.now?.() ?? new Date()).getTime();
   const spinner = input.ui.spinner(`Consolidating ${selected.scope} memory with Codex...`);
-  const outputDir = mkdtempSync(path.join(tmpdir(), 'agent-memory-consolidate-'));
-  const schemaPath = path.join(outputDir, 'report.schema.json');
-  const outputPath = path.join(outputDir, 'report.json');
   try {
-    writeFileSync(schemaPath, JSON.stringify(CODEX_OUTPUT_SCHEMA), 'utf8');
-    const outcome = await (input.runCodex ?? runCodex)(buildCodexArgs(selected, schemaPath, outputPath), selected.workingDirectory);
+    const outcome = await (input.runCodex ?? runCodex)(buildCodexArgs(selected), selected.workingDirectory);
     const result = typeof outcome === 'number' ? { code: outcome } : outcome;
     if (result.code !== 0) throw new Error(`Codex exited unsuccessfully.${result.diagnostic ? ` ${result.diagnostic}` : ''}`);
-    const report = readCodexConsolidationReport(outputPath);
-    const updated = recordReconciliation(selected.scope, report);
+    const updated = recordReconciliation(selected.scope, {
+      summary: result.summary?.trim() || `Codex completed ${selected.scope} memory maintenance.`,
+      changes: [],
+      unresolved: [],
+    });
     if (!updated.last_reconciled_at || Date.parse(updated.last_reconciled_at) < startedAt - 5_000) {
       throw new Error('Codex completed without recording the reconciliation.');
     }
-    if (!updated.report) throw new Error('Codex completed without recording a reconciliation report.');
     spinner.stop(`${selected.scope === 'project' ? 'Project' : 'Global'} memory consolidation completed`);
-    input.ui.note(formatReconciliationReport(updated.report), 'Consolidation result');
+    input.ui.note(formatReconciliationReport(updated.report!), 'Consolidation result');
   } catch (error) {
     spinner.error('Memory consolidation did not complete');
     input.ui.info(error instanceof Error ? error.message : String(error));
-  } finally {
-    rmSync(outputDir, { recursive: true, force: true });
   }
 }
 
@@ -140,8 +106,7 @@ async function selectScope(ui: ConfigCliUi, scopes: ConsolidationScopeOption[]):
   return scopes.find((scope) => scope.scope === value) ?? null;
 }
 
-export function buildCodexArgs(scope: ConsolidationScopeOption, outputSchemaPath?: string, outputPath?: string): string[] {
-  if (Boolean(outputSchemaPath) !== Boolean(outputPath)) throw new Error('Codex output schema and output path must be provided together.');
+export function buildCodexArgs(scope: ConsolidationScopeOption): string[] {
   const prompt = [
     `Perform exactly one user-approved full Agent Memory maintenance reconciliation for the ${scope.scope} scope.`,
     `Target memory root: ${scope.memoryRoot}.`,
@@ -149,50 +114,16 @@ export function buildCodexArgs(scope: ConsolidationScopeOption, outputSchemaPath
     'Read reconciliation status, run one broad memory recap, inspect all durable records and graph health before making changes. Consolidate duplicates and superseded records into canonical memories; split mixed memories or save a new canonical memory when this preserves distinct durable facts or reveals a stable cross-memory pattern.',
     'Delete a canonical memory only after its durable value has been preserved elsewhere and it is proven duplicate, superseded, stale, wrongly scoped, or secret-bearing. Do not delete ambiguous memories, invent facts, alter unrelated repository files, re-embed content, or remove structurally valid manual graph edges.',
     'First call memory_graph_maintain with dry_run=false for deterministic cleanup: delete dead index pointers, orphan graph files, and structurally impossible edges, then rebuild AUTO links. It preserves valid manual links. Inspect graph health afterwards. Use your model reasoning for semantic maintenance—deciding which memories or remaining healthy relationships should be merged, split, created, updated, or removed—rather than treating structural repair as a substitute for that review.',
-    'Do not call memory_reconciliation_record. After the scoped work is actually complete, return a JSON report matching the supplied output schema: completed=true, concise secret-free summary, reviewed count, every saved/updated/deleted/repaired result in changes, and every unresolved conflict in unresolved. The parent CLI validates this report and records reconciliation atomically.',
-    'For project memory, inspect the resulting .memory changes before returning the report.',
+    'After the scoped work is actually complete, return a concise human-readable summary of the maintenance you performed and any unresolved conflicts. Do not use a machine-readable response format.',
+    'For project memory, inspect the resulting .memory changes before returning the summary.',
   ].join('\n');
   return [
     '--ask-for-approval', 'never', 'exec', '--ephemeral', '--model', CODEX_MODEL,
     '-c', `model_reasoning_effort = "${CODEX_REASONING}"`,
     '--sandbox', 'workspace-write', '--cd', scope.workingDirectory,
     ...(scope.scope === 'global' ? ['--skip-git-repo-check'] : []),
-    ...(outputSchemaPath && outputPath ? ['--output-schema', outputSchemaPath, '--output-last-message', outputPath] : []),
     prompt,
   ];
-}
-
-export function readCodexConsolidationReport(filePath: string): ReconciliationReport {
-  let value: unknown;
-  try {
-    value = JSON.parse(readFileSync(filePath, 'utf8'));
-  } catch {
-    throw new Error('Codex did not return a valid consolidation report.');
-  }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Codex did not return a valid consolidation report.');
-  const output = value as Partial<CodexConsolidationOutput>;
-  const reviewed = output.reviewed;
-  if (output.completed !== true || typeof output.summary !== 'string' || !output.summary.trim()
-    || output.summary.length > 1_200
-    || typeof reviewed !== 'number' || !Number.isInteger(reviewed) || reviewed < 0 || reviewed > 10_000
-    || !Array.isArray(output.changes) || output.changes.length > 50
-    || !Array.isArray(output.unresolved) || output.unresolved.length > 20) {
-    throw new Error('Codex did not return a valid consolidation report.');
-  }
-  const changes = output.changes.flatMap((change): ReconciliationChange[] => {
-    if (!change || typeof change !== 'object' || Array.isArray(change)) return [];
-    const item = change as Partial<ReconciliationChange>;
-    const memoryId = (change as { memory_id?: unknown }).memory_id;
-    return (item.action === 'saved' || item.action === 'updated' || item.action === 'deleted' || item.action === 'repaired')
-      && typeof item.summary === 'string' && item.summary.trim() && item.summary.length <= 400
-      && (memoryId === undefined || memoryId === null || (typeof memoryId === 'string' && memoryId.trim()))
-      ? [{ action: item.action, ...(typeof memoryId === 'string' && memoryId.trim() ? { memory_id: memoryId } : {}), summary: item.summary }]
-      : [];
-  });
-  if (changes.length !== output.changes.length || output.unresolved.some((item) => typeof item !== 'string' || !item.trim() || item.length > 400)) {
-    throw new Error('Codex did not return a valid consolidation report.');
-  }
-  return { summary: output.summary, reviewed, changes, unresolved: output.unresolved };
 }
 
 export function formatReconciliationReport(report: ReconciliationReport): string {
@@ -227,11 +158,13 @@ function listCodexModels(): Promise<unknown> {
 
 function runCodex(args: string[], cwd: string): Promise<CodexRunResult> {
   return new Promise((resolve, reject) => {
-    const child = spawn('codex', args, { cwd, stdio: ['ignore', 'ignore', 'pipe'] });
+    const child = spawn('codex', args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '';
     let stderr = '';
+    child.stdout.on('data', (chunk: Buffer) => { stdout = `${stdout}${chunk.toString()}`.slice(-2_000); });
     child.stderr.on('data', (chunk: Buffer) => { stderr = `${stderr}${chunk.toString()}`.slice(-2_000); });
     child.once('error', reject);
-    child.once('close', (code) => resolve({ code: code ?? 1, ...(stderr.trim() ? { diagnostic: sanitizeDiagnostic(stderr) } : {}) }));
+    child.once('close', (code) => resolve({ code: code ?? 1, ...(stderr.trim() ? { diagnostic: sanitizeDiagnostic(stderr) } : {}), ...(stdout.trim() ? { summary: sanitizeDiagnostic(stdout) } : {}) }));
   });
 }
 
