@@ -33,7 +33,7 @@ const CODEX_OUTPUT_SCHEMA = {
   additionalProperties: false,
   required: ['completed', 'summary', 'reviewed', 'changes', 'unresolved'],
   properties: {
-    completed: { const: true },
+    completed: { type: 'boolean', const: true },
     summary: { type: 'string', minLength: 1, maxLength: 1_200 },
     reviewed: { type: 'integer', minimum: 0, maximum: 10_000 },
     changes: {

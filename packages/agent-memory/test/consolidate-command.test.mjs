@@ -89,7 +89,10 @@ describe('Codex-backed memory consolidation', () => {
         ui,
         listCodexModels: async () => supportedModels(),
         runCodex: async (args) => {
+          const schemaPath = args[args.indexOf('--output-schema') + 1];
           const outputPath = args[args.indexOf('--output-last-message') + 1];
+          const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
+          expect(schema.properties.completed).toEqual({ type: 'boolean', const: true });
           writeFileSync(outputPath, JSON.stringify({
             completed: true,
             summary: 'Consolidated project memory.',
