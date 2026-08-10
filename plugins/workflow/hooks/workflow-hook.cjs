@@ -336,6 +336,10 @@ function sessionContext(input) {
     "Workflow: read `using-workflow`, choose one primary path (direct, plan-execute, audit, or GitLab review), and load only the current module.",
     "A triggered skill does not imply an artifact, subagent, plan, review loop, or fresh budget.",
     "Run `intent-gate` locally for non-trivial work and keep it silent when intent is clear.",
+    "Context budget is a hard gate: a new plan, resume, compaction, or hand-off never authorizes project inventory; start from the named surface and widen only for one named dependency.",
+    "Minimum-solution gate: every plan item must trace to requested behavior, an observed failure, or a concrete normal-path risk. Minimal means behavior-complete: never omit accepted behavior, normal flow, integrity/security, or compatibility. Cut hypothetical edge cases, future-proofing, repeated-crash scenarios, and unrelated refactors.",
+    "UI reuse gate: use existing shared components. A shared-components-only restriction forbids custom components, wrappers, tokens, and parallel layout patterns; adapt/compose or ask.",
+    "UI composition gate: before JSX/CSS, inspect a named analogous screen and reuse/adapt its containment, hierarchy, spacing, and responsive composition. Shared components alone do not satisfy it.",
     "Task-wide ceilings: fast (0 agents), standard (at most 1 total), assurance (declared total, default 3; at most 2 reviewers per round), or an explicit audit budget.",
     "Authorization is permission, not activation. Parent Max/Ultra and multiple skills do not expand the budget.",
     "Run each verification once per unchanged diff and stop when acceptance, required evidence, and material-risk gates pass.",
@@ -349,8 +353,21 @@ function sessionContext(input) {
   writeContext(input.hook_event_name || "SessionStart", lines);
 }
 
-function postCompactContext() {
-  ok();
+function postCompactContext(input) {
+  const root = repoRoot(input.cwd || process.cwd());
+  const workflowRoot = workflowArtifactRoot(root);
+  const globalState = readJson(path.join(workflowRoot, "state.json"));
+  const lines = [
+    "Compaction recovery is not a discovery reset: preserve the current task scope and read budget.",
+    "Do not re-run repository discovery, root-doc or manifest scans, project-wide file listings, or broad memory recovery. Use the compacted task summary first.",
+    "Open only a named source, directly affected test, or referenced artifact needed for the next action. If a material decision is missing, ask or name the exact gap; do not scan to reconstruct it.",
+  ];
+
+  if (globalState?.active_plan) {
+    lines.push("If active workflow state is uncertain, call `workflow_status` once and read only the manifest, state, and current task references.");
+  }
+
+  writeContext("PostCompact", lines);
 }
 
 function stopCommitmentReflection(input) {
@@ -398,6 +415,10 @@ function subagentStart(input) {
     `Workflow agent ${agentType}: assigned artifacts/scope are source of truth.`,
     "RO=no edits. Write=assigned worktree/scope only.",
     "No scope creep, lint suppression, or unsupported assumptions.",
+    "Context hard gate: the assigned scope or question is a read boundary. Do not inventory or re-read the project after a plan or compaction; if an outside file is essential, name the exact dependency and report `NEEDS_CONTEXT`.",
+    "Minimum-solution gate: implement assigned behavior completely; do not add hypothetical hardening or omit acceptance, normal flow, integrity/security, or compatibility to reduce scope.",
+    "UI reuse gate: shared-components-only means no custom components or wrappers; adapt/compose shared UI or report `NEEDS_CONTEXT`.",
+    "UI composition gate: component reuse alone is insufficient; use a named analogous layout/screen or report `NEEDS_CONTEXT`.",
   ];
 
   if (agentType === "workflow_implementer") {

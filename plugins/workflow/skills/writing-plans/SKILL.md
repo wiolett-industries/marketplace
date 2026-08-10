@@ -18,6 +18,10 @@ Use this module when at least one is true:
 
 Fast localized work and chat-only planning skip `.workflow/`. An explicit no-edits/read-only boundary blocks plan artifacts unless the user separately authorizes a durable plan.
 
+## Planning Does Not Expand Context
+
+A plan is not permission to map or preemptively harden. Every task must trace to stated behavior, observed failure, or normal-path risk. Cut only work outside acceptance, normal flow, integrity/security, and compatibility; minimal means behavior-complete, not partial. Reuse the working set; don't rediscover after create, reflection, or compaction.
+
 ## Create Or Resume
 
 Use `workflow_plan_create`, `workflow_plan_update`, `workflow_plan_artifact_write`, and `workflow_handoff_write` when available. Manual `.workflow/` writes are fallback only. Resume an unfinished matching run; do not reopen completed work by default.
@@ -30,7 +34,7 @@ The plan must lock decisions that execution cannot safely infer:
 
 - exact goal, success criteria, scope, and non-goals;
 - expected change class (`L0`-`L3`), expected surfaces, must-preserve constraints, and the smallest behavior-complete approach;
-- repository facts, constraints, and accepted decisions;
+- repository facts at the known surfaces, constraints, and accepted decisions;
 - implementation approach and dependency order;
 - tasks with allowed scope, ownership, and expected files/artifacts;
 - verification commands and acceptance checks;

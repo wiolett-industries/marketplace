@@ -76,6 +76,14 @@ test('workflow session hook emits recovery context for active plans', () => {
   assert.match(output.hookSpecificOutput.additionalContext, /using-workflow/);
   assert.match(output.hookSpecificOutput.additionalContext, /choose one primary path/);
   assert.match(output.hookSpecificOutput.additionalContext, /triggered skill does not imply an artifact, subagent, plan, review loop, or fresh budget/);
+  assert.match(output.hookSpecificOutput.additionalContext, /Context budget is a hard gate/);
+  assert.match(output.hookSpecificOutput.additionalContext, /Minimum-solution gate/);
+  assert.match(output.hookSpecificOutput.additionalContext, /repeated-crash scenarios/);
+  assert.match(output.hookSpecificOutput.additionalContext, /Minimal means behavior-complete/);
+  assert.match(output.hookSpecificOutput.additionalContext, /UI reuse gate/);
+  assert.match(output.hookSpecificOutput.additionalContext, /shared-components-only restriction forbids custom components/);
+  assert.match(output.hookSpecificOutput.additionalContext, /UI composition gate/);
+  assert.match(output.hookSpecificOutput.additionalContext, /Shared components alone do not satisfy it/);
   assert.match(output.hookSpecificOutput.additionalContext, /fast \(0 agents\), standard \(at most 1 total\), assurance \(declared total, default 3; at most 2 reviewers per round\)/);
   assert.match(output.hookSpecificOutput.additionalContext, /Authorization is permission, not activation/);
   assert.match(output.hookSpecificOutput.additionalContext, /Parent Max\/Ultra and multiple skills do not expand the budget/);
@@ -293,6 +301,10 @@ test('workflow subagent start reminds implementers to stay bounded', () => {
   assert.equal(output.hookSpecificOutput.hookEventName, 'SubagentStart');
   assert.match(output.hookSpecificOutput.additionalContext, /bounded code patches only/);
   assert.match(output.hookSpecificOutput.additionalContext, /no open-ended analysis/);
+  assert.match(output.hookSpecificOutput.additionalContext, /read boundary/);
+  assert.match(output.hookSpecificOutput.additionalContext, /implement assigned behavior completely/);
+  assert.match(output.hookSpecificOutput.additionalContext, /shared-components-only means no custom components/);
+  assert.match(output.hookSpecificOutput.additionalContext, /component reuse alone is insufficient/);
 });
 
 test('Codex registers commitment Stop enforcement while Claude remains hook-optional', () => {
@@ -380,12 +392,14 @@ test('workflow hook config does not match compact source as SessionStart', () =>
   assert.equal(config.hooks.SubagentStop[0].matcher, '^(workflow_|merge_request_)');
 });
 
-test('workflow post-compact hook returns common output fields only', () => {
+test('workflow post-compact hook restores a narrow recovery boundary', () => {
   const output = runHook({ hook_event_name: 'PostCompact', cwd: repoRoot });
 
   assert.equal(output.continue, true);
-  assert.equal(output.systemMessage, undefined);
-  assert.equal(output.hookSpecificOutput, undefined);
+  assert.equal(output.hookSpecificOutput.hookEventName, 'PostCompact');
+  assert.match(output.hookSpecificOutput.additionalContext, /Compaction recovery is not a discovery reset/);
+  assert.match(output.hookSpecificOutput.additionalContext, /Do not re-run repository discovery/);
+  assert.match(output.hookSpecificOutput.additionalContext, /exact gap/);
 });
 
 test('workflow hook applies merge request reviewer context and validation when plugin is installed', () => {
@@ -715,6 +729,7 @@ test('workflow prompts route subagents by task shape and cap review loops', () =
   const contextDiscovery = readFileSync(path.join(skillDir, 'context-discovery/SKILL.md'), 'utf8');
   const uiContract = readFileSync(path.join(skillDir, 'ui-contract/SKILL.md'), 'utf8');
   const implementer = readFileSync(path.join(repoRoot, 'packages/workflow/agents/workflow_implementer.toml'), 'utf8');
+  const explorer = readFileSync(path.join(repoRoot, 'packages/workflow/agents/workflow_explorer.toml'), 'utf8');
   const fixTriage = readFileSync(path.join(repoRoot, 'packages/workflow/agents/workflow_fix_triage.toml'), 'utf8');
 
   assert.match(writingPlans, /separate analysis\/decision tasks from small implementation tasks/);
@@ -725,7 +740,7 @@ test('workflow prompts route subagents by task shape and cap review loops', () =
   assert.match(executingPlans, /agent budget is global across planning, execution, and finalization/i);
   assert.match(executingPlans, /Never fan out by file count, checklist length, number of chunks, or number of applicable skills/);
   assert.match(executingPlans, /Prefer one focused agent for nontrivial diagnosis, multi-surface review, broad read-only exploration/);
-  assert.match(contextDiscovery, /For nontrivial diagnosis or unfamiliar repository mapping, use `workflow_explorer`/);
+  assert.match(contextDiscovery, /For nontrivial diagnosis or unfamiliar mapping, use `workflow_explorer`/);
   assert.match(finalizingPlan, /Do not chase perfection indefinitely/);
   assert.match(finalizingPlan, /finalization never creates fresh budgets/);
   assert.match(finalizingPlan, /re-review only the changed delta plus affected integration paths/i);
@@ -739,6 +754,8 @@ test('workflow prompts route subagents by task shape and cap review loops', () =
   assert.match(implementer, /bounded patch worker, not an architecture analyst/);
   assert.match(implementer, /inspect the assigned reuse decision and named local candidates before coding/);
   assert.match(implementer, /report `NEEDS_CONTEXT`/);
+  assert.match(explorer, /not a repository inventory agent/);
+  assert.match(explorer, /six file slices, 20 KB of output, and three searches/);
   assert.match(fixTriage, /Stop low-value loops/);
   assert.match(fixTriage, /must_fix.*should_fix.*accept_low.*out_of_scope/s);
   assert.match(fixTriage, /work_class: mechanical \| structured \| standard \| complex \| critical/);
@@ -752,6 +769,7 @@ test('workflow skills bound context, delegation, and scope amplification portabl
   const writingPlans = readFileSync(path.join(skillDir, 'writing-plans/SKILL.md'), 'utf8');
   const executingPlans = readFileSync(path.join(skillDir, 'executing-plans/SKILL.md'), 'utf8');
   const finalizingPlan = readFileSync(path.join(skillDir, 'finalizing-plan/SKILL.md'), 'utf8');
+  const uiContract = readFileSync(path.join(skillDir, 'ui-contract/SKILL.md'), 'utf8');
   const workflowMcp = readFileSync(path.join(skillDir, 'workflow-mcp/SKILL.md'), 'utf8');
 
   assert.match(usingWorkflow, /Authorization is permission, not activation or an explicit request/);
@@ -761,9 +779,19 @@ test('workflow skills bound context, delegation, and scope amplification portabl
   const delegationReference = readFileSync(path.join(skillDir, 'using-workflow/references/delegation-and-task-chats.md'), 'utf8');
   assert.match(delegationReference, /For a `standard` task, use one focused agent/);
   assert.match(delegationReference, /In Codex, use the supported task\/thread API/);
-  assert.match(contextDiscovery, /at most five relevant files/);
-  assert.match(contextDiscovery, /twelve files or about 50 KB/);
-  assert.match(contextDiscovery, /does not restart discovery/);
+  assert.match(usingWorkflow, /never reset discovery/);
+  assert.match(usingWorkflow, /hypotheticals/);
+  assert.match(usingWorkflow, /custom primitives need explicit user approval/);
+  assert.match(usingWorkflow, /named analogous layout/);
+  assert.match(usingWorkflow, /proceed only if uncertainty cannot change acceptance/);
+  assert.match(contextDiscovery, /at most three files/);
+  assert.match(contextDiscovery, /eight files or 25 KB/);
+  assert.match(contextDiscovery, /never resets these totals/);
+  assert.match(writingPlans, /Planning Does Not Expand Context/);
+  assert.match(writingPlans, /Every task must trace to stated behavior/);
+  assert.match(writingPlans, /minimal means behavior-complete, not partial/);
+  assert.match(uiContract, /shared components only” constraint forbids custom components\/wrappers/);
+  assert.match(uiContract, /Component reuse alone is insufficient/);
   assert.match(intentGate, /L0.*L1.*L2.*L3/s);
   assert.match(intentGate, /material plan, architecture decision, or scope-expanding solution/);
   assert.match(intentGate, /Do this silently for chat-only work/);

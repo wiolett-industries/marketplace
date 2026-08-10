@@ -9,7 +9,7 @@ Gather only enough context for a confident execution decision or decision-comple
 
 ## Question Budget
 
-1. Inspect manifests, docs, related code, tests, and recent local patterns first.
+1. Start at the named working surface; inspect only the smallest code, test, or manifest evidence that resolves the question.
 2. Ask one grouped question batch for the remaining material branches.
 3. Use a second batch only if the first answer reveals a new costly or irreversible branch.
 4. For reversible fast/standard decisions, proceed with an explicit reasonable assumption when clarification would cost more than correction.
@@ -23,17 +23,19 @@ For production UI work, complete the `ui-contract` reuse gate before proposing n
 
 ## Read Budget
 
-- `fast`: inspect the diff or named surface, at most five relevant files, and at most three targeted searches.
-- `standard`: start from the named surface and stop by twelve files or about 50 KB of new tool output unless a concrete unresolved dependency justifies widening.
+These are hard gates. Count new file output; prefer slices over whole files.
+
+- `fast`: diff or named surface; at most three files, two searches, and 12 KB.
+- `standard`: at most four files, three searches, and 16 KB initially; eight files or 25 KB total unless the next read answers a named dependency.
 - `assurance` or explicit audit: declare the extra surface before widening and keep each pass tied to a named risk.
 
-Do not list or read the whole repository without a named unknown that requires it. Stop when the direct implementation path and affected tests are known. A small user correction reopens only the touched surface; it does not restart discovery.
+No whole-repository scan without a named unknown. Stop when the direct path and tests are known. A new plan, compaction, retry, hand-off, or correction never resets these totals. At the cap, proceed, shrink, ask, or name the gap.
 
 ## Exploration Delegation
 
-For nontrivial diagnosis or unfamiliar repository mapping, use `workflow_explorer` when a compact independent search would reduce parent-context noise or establish the causal path faster. This is the normal standard-path choice once the answer is likely to cross several files, layers, or commands; the parent keeps hypothesis selection and the final decision. Keep a one-file or otherwise direct lookup local.
+For nontrivial diagnosis or unfamiliar mapping, use `workflow_explorer` only after the initial probe exposes a named unknown across known surfaces. Never delegate generic orientation. The parent keeps the decision; keep direct lookups local.
 
-Give the explorer a question, included/excluded surfaces, and the decision it must unblock. For UI inventory, require reusable component, analogous-screen, token, and responsive-pattern paths plus a `reuse`/`adapt`/`none` recommendation. Its report must return concrete paths/evidence and a compact recommendation, not a repository dump.
+Give the explorer a question, surfaces, six-file-slice/20-KB default, and the decision it must unblock. Allow more only for named assurance surfaces. For UI inventory, require reusable component, analogous-screen, token, and responsive-pattern paths plus a `reuse`/`adapt`/`none` recommendation. Return paths/evidence and a compact recommendation, not a dump.
 
 ## Bounded Spike
 

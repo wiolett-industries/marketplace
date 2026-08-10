@@ -23,9 +23,9 @@ Do not invent production state matrices, extra breakpoints, accessibility progra
 
 ## UI Reuse Gate
 
-Before writing production JSX, CSS, layout, or a new component, inspect the local UI inventory: shared primitives, analogous screens, layout/responsive patterns, tokens or theme variables, and existing typography/icon rules. Record a compact reuse decision in `ui-contract.md` (or chat when no plan exists): candidates and paths; `reuse`, `adapt`, or `none`; and why a new primitive is necessary. Treat no suitable local candidate as a conclusion that needs evidence, not a default assumption.
+Before production JSX, CSS, or layout, inspect the closest analogous screen, shared primitives, layout/responsive patterns, and tokens. Record candidates/paths, `reuse`/`adapt`/`none`, and layout precedent (containment, hierarchy, spacing, responsive behavior) in `ui-contract.md` or chat. Component reuse alone is insufficient; no suitable candidate needs evidence.
 
-Reuse or adapt the closest existing primitive and its visual rules. Do not introduce one-off components, arbitrary font/size/spacing values, or a parallel responsive/layout pattern when an established local pattern covers the need. A new primitive is allowed only when it has no suitable candidate or consolidates repeated behavior inside the approved scope.
+Reuse/adapt the closest primitive and named layout precedent. Do not introduce one-off components, arbitrary font/size/spacing values, or a parallel responsive/layout pattern when an established local pattern covers the need. A “shared components only” constraint forbids custom components/wrappers; compose/adapt or ask. Otherwise, a new primitive needs evidence no candidate fits.
 
 Read [reuse-gate.md](references/reuse-gate.md) before making the reuse decision or assigning UI work to an implementer.
 

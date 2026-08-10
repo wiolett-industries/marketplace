@@ -22,6 +22,10 @@ A skill trigger never implies an artifact, subagent, plan, or verification step 
 
 Read the request and cheap repository facts; run a local `intent-gate` for non-trivial work. After compaction or when `.workflow/` exists, call `workflow_status` once and resume only an active run. Select one primary path and profile, then load only its current phase. Read this router once per task; same-task follow-ups do not restart routing.
 
+## Context Discipline
+
+Plans or compaction never reset discovery. Use named surfaces, dependencies, and tests; no inventory, hypotheticals, future-proofing, or unrelated refactors. Expand only for required behavior, observed failure, or normal-path risk. UI uses shared components and a named analogous layout; custom primitives need explicit user approval and evidence no candidate fits. At cap, proceed only if uncertainty cannot change acceptance; otherwise ask/`NEEDS_CONTEXT`, never omit required behavior.
+
 ## Action Boundary
 
 Discussion, diagnosis, and review authorize inspection/reporting, not writes. Change/build/fix authorizes scoped edits and non-destructive validation; an explicit durable plan/audit authorizes its artifacts. Read-only, no-edits, without changes, or equivalent blocks code, workflow-state, memory, and external mutations unless separately authorized. Ask before destructive actions, external writes, purchases, or material scope expansion.
@@ -37,7 +41,7 @@ Assurance is about consequence, not implementation difficulty.
 
 The budget is a ceiling, never a quota. Parent Max/Ultra does not raise it. Multiple skills, files, checklist items, or workflow phases do not create independent launch budgets.
 
-Authorization is permission, not activation or an explicit request; it is also not a reason to default every nontrivial task to local work. Beyond a small direct answer, positively consider one focused agent for parallel search, context isolation, or independent judgment. This is normally true for diagnosis with an unclear causal chain, repository exploration spanning several surfaces, and code/plan review where an independent reading can find a real regression or scope gap. Use `workflow_explorer` for broad mapping and keep final product decisions with the parent.
+Authorization is permission, not activation or an explicit request; it is also not a reason to default every nontrivial task to local work. Consider one focused agent only after a bounded local lookup identifies an exact unanswered question and a compact report will replace parent reads. This may apply to diagnosis with an unclear causal chain, repository exploration spanning several surfaces, and code/plan review where independent reading can find a real regression or scope gap. An unfamiliar repository, a fresh plan, or “need more context” is not enough; use `workflow_explorer` only for a named question across specific surfaces, never for generic orientation or a project inventory.
 
 Keep work local only when the answer is contained in a small known surface, the causal path is already clear, or the coordination cost is greater than the likely new evidence. Do not fan out merely by file count, checklist length, or applicable skills. Reuse an agent for focused follow-up instead of launching another phase-specific agent.
 
