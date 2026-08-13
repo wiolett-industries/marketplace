@@ -2,26 +2,13 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|resume|clear",
+        "matcher": "startup|resume|clear|compact",
         "hooks": [
           {
             "type": "command",
             "command": "node \"$PLUGIN_ROOT/hooks/workflow-hook.cjs\"",
             "timeout": 10,
             "statusMessage": "Loading workflow context"
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "matcher": "manual|auto",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$PLUGIN_ROOT/hooks/workflow-hook.cjs\"",
-            "timeout": 10,
-            "statusMessage": "Completing workflow compact hook"
           }
         ]
       }

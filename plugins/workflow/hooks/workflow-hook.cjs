@@ -332,6 +332,10 @@ function mergeRequestReviewContext(root) {
 
 function sessionContext(input) {
   const root = repoRoot(input.cwd || process.cwd());
+  if (input.source === "compact") {
+    writeContext("SessionStart", compactRecoveryContext());
+    return;
+  }
   const lines = [
     "Workflow: read `using-workflow`, choose one primary path (direct, plan-execute, audit, or GitLab review), and load only the current module.",
     "A triggered skill does not imply an artifact, subagent, plan, review loop, or fresh budget.",
@@ -353,21 +357,13 @@ function sessionContext(input) {
   writeContext(input.hook_event_name || "SessionStart", lines);
 }
 
-function postCompactContext(input) {
-  const root = repoRoot(input.cwd || process.cwd());
-  const workflowRoot = workflowArtifactRoot(root);
-  const globalState = readJson(path.join(workflowRoot, "state.json"));
-  const lines = [
+function compactRecoveryContext() {
+  return [
     "Compaction recovery is not a discovery reset: preserve the current task scope and read budget.",
     "Do not re-run repository discovery, root-doc or manifest scans, project-wide file listings, or broad memory recovery. Use the compacted task summary first.",
     "Open only a named source, directly affected test, or referenced artifact needed for the next action. If a material decision is missing, ask or name the exact gap; do not scan to reconstruct it.",
   ];
 
-  if (globalState?.active_plan) {
-    lines.push("If active workflow state is uncertain, call `workflow_status` once and read only the manifest, state, and current task references.");
-  }
-
-  writeContext("PostCompact", lines);
 }
 
 function stopCommitmentReflection(input) {
@@ -566,7 +562,7 @@ function main() {
         sessionContext(input);
         break;
       case "PostCompact":
-        postCompactContext(input);
+        ok();
         break;
       case "SubagentStart":
         if (isWorkflowAgent(input)) {

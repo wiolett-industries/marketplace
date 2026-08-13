@@ -255,7 +255,7 @@ test('Codex and Claude workflow hook configs stay platform-specific', () => {
   const claudeConfig = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/workflow/hooks/hooks.json'), 'utf8'));
 
   assert.match(codexConfig.hooks.SessionStart[0].hooks[0].command, /PLUGIN_ROOT/);
-  assert.equal(codexConfig.hooks.PostCompact[0].matcher, 'manual|auto');
+  assert.equal(codexConfig.hooks.PostCompact, undefined);
   assert.equal(codexConfig.hooks.SubagentStart[0].matcher, '^(workflow_|merge_request_)');
   assert.match(claudeConfig.hooks.SessionStart[0].hooks[0].command, /CLAUDE_PLUGIN_ROOT/);
   assert.equal(claudeConfig.hooks.PostToolUse[0].matcher, 'Bash');
@@ -384,22 +384,25 @@ test('Kimi Stop uses native exit-code blocking without changing Codex output', (
   assert.equal(kimiAllowed.stderr, '');
 });
 
-test('workflow hook config does not match compact source as SessionStart', () => {
+test('workflow session hook matches compact source', () => {
   const config = JSON.parse(readFileSync(hookConfig, 'utf8'));
 
-  assert.equal(config.hooks.SessionStart[0].matcher, 'startup|resume|clear');
+  assert.equal(config.hooks.SessionStart[0].matcher, 'startup|resume|clear|compact');
   assert.equal(config.hooks.SubagentStart[0].matcher, '^(workflow_|merge_request_)');
   assert.equal(config.hooks.SubagentStop[0].matcher, '^(workflow_|merge_request_)');
 });
 
-test('workflow post-compact hook restores a narrow recovery boundary', () => {
-  const output = runHook({ hook_event_name: 'PostCompact', cwd: repoRoot });
+test('workflow compact-session hook restores a narrow recovery boundary', () => {
+  const output = runHook({ hook_event_name: 'SessionStart', source: 'compact', cwd: repoRoot });
 
   assert.equal(output.continue, true);
-  assert.equal(output.hookSpecificOutput.hookEventName, 'PostCompact');
+  assert.equal(output.hookSpecificOutput.hookEventName, 'SessionStart');
   assert.match(output.hookSpecificOutput.additionalContext, /Compaction recovery is not a discovery reset/);
   assert.match(output.hookSpecificOutput.additionalContext, /Do not re-run repository discovery/);
   assert.match(output.hookSpecificOutput.additionalContext, /exact gap/);
+
+  const postCompactOutput = runHook({ hook_event_name: 'PostCompact', cwd: repoRoot });
+  assert.deepEqual(postCompactOutput, { continue: true });
 });
 
 test('workflow hook applies merge request reviewer context and validation when plugin is installed', () => {
