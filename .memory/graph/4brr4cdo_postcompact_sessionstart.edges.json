@@ -1,0 +1,15 @@
+{
+  "file_name": "4brr4cdo_postcompact_sessionstart",
+  "edges": [
+    {
+      "from_id": "4brr4cdo",
+      "to_id": "cyeiuloe",
+      "relation": "same_area",
+      "weight": 0.9,
+      "reason": "Both entries describe required common hook output (continue:true) and verification for SessionStart/PostCompact hook handling in the same workflow codebase",
+      "source": "auto",
+      "created_at": 1786642696699,
+      "updated_at": 1786642696699
+    }
+  ]
+}
