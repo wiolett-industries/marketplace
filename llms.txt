@@ -35,7 +35,7 @@ Claude Code:
 - `merge-request-review`: Strict ready GitLab MR review workflow with current
   discussions, CI-first evidence, local review state, findings, note drafts,
   zero-agent normal review by default, and at most two agents for high-risk
-  review. GitLab reads/writes still require an external GitLab MCP.
+  review. GitLab reads/writes require a separately configured authorized interface, such as an external GitLab MCP or authenticated glab.
 
 ## Model Access
 

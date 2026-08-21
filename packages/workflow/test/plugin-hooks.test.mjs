@@ -95,6 +95,9 @@ test('workflow session hook emits recovery context for active plans', () => {
   assert.match(output.hookSpecificOutput.additionalContext, /memory completion latch/);
   assert.match(output.hookSpecificOutput.additionalContext, /read-only\/no-edits work does not write memory/);
   assert.match(output.hookSpecificOutput.additionalContext, /Merge Request Review installed/);
+  assert.match(output.hookSpecificOutput.additionalContext, /external GitLab MCP or authenticated `glab`/);
+  assert.match(output.hookSpecificOutput.additionalContext, /does not restrict GitLab CLI usage outside MR reviews/);
+  assert.doesNotMatch(output.hookSpecificOutput.additionalContext, /External GitLab MCP owns GitLab reads\/writes/);
   assert.match(output.hookSpecificOutput.additionalContext, /Active merge request review: \.workflow\/mr-reviews\/01-01-26-mr-hooks/);
   assert.match(output.hookSpecificOutput.additionalContext, /mr_review_complete/);
 });

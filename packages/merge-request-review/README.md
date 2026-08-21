@@ -8,7 +8,7 @@ On startup it:
 - creates best-effort compatibility links under `~/.agents/agents/`
 - registers filesystem-backed review state and artifact tools under `.workflow/mr-reviews/` by default
 
-This package does not talk to GitLab. The model or an external GitLab MCP is responsible for fetching MR metadata, discussions, diffs, CI state, posting notes, and approving merge requests. This MCP owns only the review protocol state, local artifacts, normalized findings, and fixed-format note drafts.
+This package does not talk to GitLab. The model uses a separately configured and authorized GitLab interface, such as an external GitLab MCP or authenticated `glab`, to fetch MR metadata, discussions, diffs, CI state, post notes, and approve merge requests. This MCP owns only the review protocol state, local artifacts, normalized findings, and fixed-format note drafts.
 
 The artifact root is read from `mcp.merge-request-review.artifacts.root` in
 `$AGENTS_HOME/.wiolett/config/mcp-config.yml`. This package never creates or

@@ -5,7 +5,7 @@ description: Use for an actual ready, non-draft GitLab merge request review, re-
 
 # Review Merge Request
 
-Run one discussion-aware GitLab review path. This skill is mutually exclusive with Workflow `finalizing-plan` for the same review. External GitLab MCP owns GitLab reads/writes; this plugin MCP owns only `.workflow/mr-reviews/` protocol state and artifacts.
+Run one discussion-aware GitLab review path. This skill is mutually exclusive with Workflow `finalizing-plan` for the same review. This plugin MCP owns only `.workflow/mr-reviews/` protocol state and artifacts; use any separately configured and authorized GitLab interface available in the environment, such as an external GitLab MCP or authenticated `glab`, for GitLab reads and writes.
 
 `.workflow/mr-reviews/` is the default artifact root. If `mr_review_status`
 reports a configured root, use that MCP-reported location rather than assuming

@@ -37,7 +37,7 @@ review, and it is not combined with Workflow `finalizing-plan` for the same MR.
 
 High-risk mode is used for merge requests that touch sensitive categories such as auth, payments, migrations, infra, public/shared APIs, security-sensitive code, or any change with broad or uncertain blast radius.
 
-This plugin does not bundle its own GitLab integration. It depends on an external GitLab MCP being available in the agent session.
+This plugin does not bundle its own GitLab integration. It depends on a separately configured and authorized GitLab interface being available in the agent session, such as an external GitLab MCP or authenticated `glab`.
 
 ## MCP Tools
 

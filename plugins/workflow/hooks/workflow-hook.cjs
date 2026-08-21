@@ -328,7 +328,7 @@ function mergeRequestReviewContext(root) {
 
   const lines = [
     "Merge Request Review installed: use `review-merge-request` only for an actual ready GitLab MR; do not also use `finalizing-plan` for that review.",
-    `External GitLab MCP owns GitLab reads/writes; MR review MCP owns only \`${path.relative(root, reviewArtifactRoot(root)) || "."}/\` artifacts.`,
+    `The MR review MCP owns only \`${path.relative(root, reviewArtifactRoot(root)) || "."}/\` artifacts and does not access GitLab itself. For an actual MR review, use any separately configured and authorized GitLab interface available in the environment, such as an external GitLab MCP or authenticated \`glab\`; this does not restrict GitLab CLI usage outside MR reviews.`,
   ];
   const reviewState = readJson(path.join(reviewArtifactRoot(root), "state.json"));
   if (reviewState?.active_review) {
