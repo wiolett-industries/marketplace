@@ -76,12 +76,18 @@ describe('memory write gate', () => {
     expect(skill).toMatch(/Skip the MCP read only for self-contained facts/);
     expect(skill).toMatch(/read-only, no edits, without changes/);
     expect(skill).toMatch(/run one mandatory memory completion latch/);
+    expect(skill).toMatch(/Deliberately consider both scopes/);
+    expect(skill).toMatch(/Prefer `global` whenever the durable lesson can guide future work in more than one repository/);
     expect(skill).toMatch(/without waiting for an explicit "remember this" request/);
     expect(skill).toMatch(/Planning discussion, speculative direction, raw progress/);
     expect(skill).toMatch(/raw session summaries/);
     expect(skill).toMatch(/Prefer `memory_update` when an existing canonical memory/);
     expect(skill).toMatch(/Use `memory_save` only for a genuinely new durable fact/);
     expect(skill).toMatch(/Preserve negation and ownership exactly/);
+    expect(skill).toMatch(/A lesson does not become project-only because it was learned during repository work/);
+    expect(skill).toMatch(/if the memory can improve future work in another repository/);
+    expect(skill).toMatch(/selected scope is authoritative/);
+    expect(skill).toMatch(/must not reroute a write/);
     expect(skill).toMatch(/Treat project `\.memory\/` as repository-owned team knowledge/);
     expect(skill).toMatch(/Commit every authorized change under `\.memory\/memories\/`, `\.memory\/index\/`, `\.memory\/embeddings\/`, `\.memory\/graph\/`, and `\.memory\/maintenance\/`/);
     expect(skill).toMatch(/Never add `\.memory\/`, `\.memory\/\*\*`/);
@@ -145,9 +151,13 @@ describe('memory write gate', () => {
         suggested_tags: ['workflow'],
       }));
       expect(requestBody.model).toBe('gpt-5-mini');
+      expect(requestBody.instructions).toContain('safety-focused, default-allow memory write gate');
       expect(requestBody.instructions).toContain('Allow distilled durable lessons from completed work');
       expect(requestBody.instructions).toContain('Reject planning-stage product decisions');
       expect(requestBody.instructions).toContain('Prefer updating an existing memory');
+      expect(requestBody.instructions).toContain('caller-selected scope is authoritative');
+      expect(requestBody.instructions).toContain('does not become project-only merely because it was learned during project work');
+      expect(requestBody.instructions).toContain('When durable cross-project value is reasonably plausible, prefer allow over reject');
       expect(requestBody.instructions).toContain('Default to allow and preserve the submitted content verbatim');
       expect(requestBody.instructions).toContain('Never rewrite solely to improve prose, grammar, formatting');
       expect(requestBody.instructions).toContain('A rewrite must be surgical');
@@ -162,6 +172,32 @@ describe('memory write gate', () => {
         'confidence',
         'importance',
       ]);
+    });
+  });
+
+  test('cannot reroute a caller-selected global write to project memory', async () => {
+    await withMockedProvider(async () => {
+      globalThis.fetch = async () => new Response(JSON.stringify({
+        output_text: JSON.stringify({
+          decision: 'allow',
+          reason: 'Reusable preference learned during project work.',
+          normalized_content: null,
+          suggested_scope: 'project',
+          suggested_tags: ['preference'],
+          confidence: 0.88,
+          importance: 0.82,
+        }),
+      }), { status: 200 });
+
+      const result = await evaluateMemoryWrite({
+        content: 'Across repositories, keep verification proportional to the change risk.',
+        tags: ['workflow'],
+        scope: 'global',
+        operation: 'save',
+      });
+
+      expect(result.decision).toBe('allow');
+      expect(result.suggested_scope).toBeUndefined();
     });
   });
 

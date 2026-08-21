@@ -45,13 +45,17 @@ export async function evaluateMemoryWrite(args: {
   }
 
   const prompt = [
-    'You are a strict memory write gate for an MCP memory server.',
+    'You are a safety-focused, default-allow memory write gate for an MCP memory server.',
     'Return JSON only.',
     'Reject secrets, credentials, raw tokens, raw transcripts, ephemeral task chatter, and model self-notes.',
     'Allow distilled durable lessons from completed work, including root causes, fix patterns, verification sequences, workflow gotchas, and stable preferences.',
     'Reject planning-stage product decisions, speculative product ideas, and one-off product choices unless the user explicitly asked to remember them or they are stable accepted decisions likely to be reused.',
     'Prefer updating an existing memory over creating a new memory when the content refines the same product direction, workflow, preference, or repo convention.',
-    'Global memory must only contain durable cross-project user preferences, stable workflows, or durable user-level facts.',
+    'The caller-selected scope is authoritative. Never reroute a write between global and project memory; return suggested_scope null.',
+    'For global scope, allow durable guidance that can improve future work across projects: user preferences, communication habits, tool choices, model-behavior requirements, reusable workflows, root-cause or fix patterns, and verification practices.',
+    'A durable lesson does not become project-only merely because it was learned during project work, mentions the originating project as an example, or could also be useful inside that project.',
+    'Reject a global write as wrongly scoped only when its useful meaning depends exclusively on one repository and has no reusable cross-project guidance.',
+    'When durable cross-project value is reasonably plausible, prefer allow over reject.',
     'Project memory may contain durable repository facts, workflows, setup steps, decisions, and operational gotchas.',
     'Default to allow and preserve the submitted content verbatim. Rewrite is exceptional, not a quality-improvement pass.',
     'Never rewrite solely to improve prose, grammar, formatting, headings, language, concision, tone, or perceived clarity. Do not rewrite already structured Markdown, commands, code, field names, paths, versions, or exact technical wording.',
@@ -107,7 +111,7 @@ export async function evaluateMemoryWrite(args: {
         },
       },
     });
-    return normalizeGateResult(rawGateSchema.parse(JSON.parse(response.outputText)), args.content);
+    return normalizeGateResult(rawGateSchema.parse(JSON.parse(response.outputText)), args.content, args.scope);
   } catch {
     return args.scope === 'global'
       ? { decision: 'reject', reason: 'Global memory gate failed to produce valid review JSON.', confidence: 0, importance: 0 }
@@ -115,12 +119,18 @@ export async function evaluateMemoryWrite(args: {
   }
 }
 
-function normalizeGateResult(raw: z.infer<typeof rawGateSchema>, originalContent: string): MemoryGateResult {
+function normalizeGateResult(
+  raw: z.infer<typeof rawGateSchema>,
+  originalContent: string,
+  requestedScope: MemoryScope,
+): MemoryGateResult {
+  const suggestedScope = raw.suggested_scope === requestedScope ? requestedScope : undefined;
+
   if (raw.decision === 'rewrite' && raw.normalized_content && losesNegation(originalContent, raw.normalized_content)) {
     return gateSchema.parse({
       decision: 'allow',
       reason: `${raw.reason} Rewrite discarded because it may invert or drop negation from the original memory.`,
-      suggested_scope: raw.suggested_scope ?? undefined,
+      suggested_scope: suggestedScope,
       suggested_tags: raw.suggested_tags ?? undefined,
       confidence: Math.min(raw.confidence, 0.55),
       importance: raw.importance,
@@ -131,7 +141,7 @@ function normalizeGateResult(raw: z.infer<typeof rawGateSchema>, originalContent
     decision: raw.decision,
     reason: raw.reason,
     ...(raw.normalized_content ? { normalized_content: raw.normalized_content } : {}),
-    ...(raw.suggested_scope ? { suggested_scope: raw.suggested_scope } : {}),
+    ...(suggestedScope ? { suggested_scope: suggestedScope } : {}),
     ...(raw.suggested_tags ? { suggested_tags: raw.suggested_tags } : {}),
     confidence: raw.confidence,
     importance: raw.importance,

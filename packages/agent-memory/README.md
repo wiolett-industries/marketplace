@@ -268,7 +268,7 @@ memory_recap(scope="project", workspace_root="/path/to/repo", topic="release and
 memory_reconciliation_status(scope="project", workspace_root="/path/to/repo")
 ```
 
-When a repository should use project memory, save or mutate project memory normally. The first write/mutation call initializes the local `.memory/` store automatically. Read calls against a repo with no project memory return empty results and leave the repo untouched. After a repo root is known, pass an absolute `workspace_root` on project-scoped reads/writes if the MCP server may have launched from another directory.
+Prefer global memory for durable guidance that can improve future work across repositories, even when the lesson was learned during work in one repository. Use project memory when the useful meaning depends on that repository's code, configuration, decisions, or operational state. The caller-selected scope is authoritative; the write gate can allow, surgically rewrite, or reject content but cannot reroute it. The first project write/mutation call initializes the local `.memory/` store automatically. Read calls against a repo with no project memory return empty results and leave the repo untouched. After a repo root is known, pass an absolute `workspace_root` on project-scoped reads/writes if the MCP server may have launched from another directory.
 
 From there, use memory tools to store and retrieve reusable knowledge as needed.
 

@@ -70,6 +70,14 @@ function readJson(file) {
   }
 }
 
+function readText(file) {
+  try {
+    return fs.readFileSync(file, "utf8");
+  } catch {
+    return "";
+  }
+}
+
 function agentsHome() {
   return process.env.PROJECT_MEMORY_AGENTS_HOME || process.env.AGENTS_HOME || path.join(os.homedir(), ".agents");
 }
@@ -342,8 +350,8 @@ function sessionContext(input) {
     "Run `intent-gate` locally for non-trivial work and keep it silent when intent is clear.",
     "Context budget is a hard gate: a new plan, resume, compaction, or hand-off never authorizes project inventory; start from the named surface and widen only for one named dependency.",
     "Minimum-solution gate: every plan item must trace to requested behavior, an observed failure, or a concrete normal-path risk. Minimal means behavior-complete: never omit accepted behavior, normal flow, integrity/security, or compatibility. Cut hypothetical edge cases, future-proofing, repeated-crash scenarios, and unrelated refactors.",
-    "UI reuse gate: use existing shared components. A shared-components-only restriction forbids custom components, wrappers, tokens, and parallel layout patterns; adapt/compose or ask.",
-    "UI composition gate: before JSX/CSS, inspect a named analogous screen and reuse/adapt its containment, hierarchy, spacing, and responsive composition. Shared components alone do not satisfy it.",
+    "UI reuse gate: before JSX/CSS, record a reuse receipt with target, shared primitive path/export, analogous layout path, reuse/adapt/none, and structural verification. A named shared component is architecture acceptance, not visual guidance.",
+    "UI composition gate: shared-components-only forbids local substitutes, wrappers, tokens, and parallel layouts. Reuse/adapt the named primitive and analogous composition or ask; behavior tests and screenshots alone do not prove reuse.",
     "Task-wide ceilings: fast (0 agents), standard (at most 1 total), assurance (declared total, default 3; at most 2 reviewers per round), or an explicit audit budget.",
     "Authorization is permission, not activation. Parent Max/Ultra and multiple skills do not expand the budget.",
     "Run each verification once per unchanged diff and stop when acceptance, required evidence, and material-risk gates pass.",
@@ -366,7 +374,7 @@ function compactRecoveryContext() {
 
 }
 
-function stopCommitmentReflection(input) {
+function validateStopGates(input) {
   if (input.stop_hook_active) {
     ok();
     return;
@@ -375,19 +383,12 @@ function stopCommitmentReflection(input) {
   const root = repoRoot(input.cwd || process.cwd());
   const workflowRoot = workflowArtifactRoot(root);
   const globalState = readJson(path.join(workflowRoot, "state.json"));
-  if (!globalState?.active_plan) {
-    ok();
-    return;
-  }
+  const activePlan = globalState?.active_plan;
+  const planState = activePlan ? readJson(path.join(workflowRoot, activePlan, "state.json")) : null;
 
-  const planState = readJson(path.join(workflowRoot, globalState.active_plan, "state.json"));
   const reflection = planState?.commitment_reflection;
-  if (!reflection || reflection.required !== true) {
-    ok();
-    return;
-  }
 
-  if (reflection.status === "pending") {
+  if (reflection?.required === true && reflection.status === "pending") {
     const hasProposal = Boolean(reflection.proposal);
     block(
       hasProposal
@@ -397,12 +398,65 @@ function stopCommitmentReflection(input) {
     return;
   }
 
-  if (reflection.status === "replan_required") {
+  if (reflection?.required === true && reflection.status === "replan_required") {
     block("Replace the rejected candidate with a narrower plan, then run one new propose/confirm commitment reflection. Keep the pass local and omit architecture polish.");
     return;
   }
 
+  const uiReason = validateUiReuseEvidence(input, workflowRoot, activePlan, planState);
+  if (uiReason) {
+    block(uiReason);
+    return;
+  }
+
   ok();
+}
+
+function hasUiChangedFile(message) {
+  return /(?:^|[\s`(])[^\s`()]+\.(?:tsx|jsx|vue|svelte|css|scss|sass|less)(?=[:`,)\s]|$)/imu.test(message);
+}
+
+function missingReuseReceiptField(source) {
+  const fields = [
+    ["Target", /^Target:\s*\S+/im],
+    ["Shared primitive", /^Shared primitive:\s*\S+/im],
+    ["Layout precedent", /^Layout precedent:\s*\S+/im],
+    ["Decision", /^Decision:\s*(?:reuse|adapt|none)\s*$/im],
+    ["Structural verification", /^Structural verification:\s*\S+/im],
+  ];
+  return fields.find(([, pattern]) => !pattern.test(source))?.[0] || null;
+}
+
+function hasPassingStructuralEvidence(source) {
+  return /^Structural verification:\s*PASS\b.*(?:lint|ast|import|wiring|static|architecture|code check|symbol)/im.test(source);
+}
+
+function validateUiReuseEvidence(input, workflowRoot, activePlan, planState) {
+  const message = input.last_assistant_message || "";
+  if (hasUiChangedFile(message)) {
+    if (!/^UI Reuse Evidence:\s*$/im.test(message)) {
+      return "UI files are reported as changed, but final output lacks `UI Reuse Evidence:`. Provide Target, Shared primitive, Layout precedent, Decision, and Structural verification with PASS evidence.";
+    }
+    const missing = missingReuseReceiptField(message);
+    if (missing) return `UI reuse evidence is missing \`${missing}:\`.`;
+    if (!hasPassingStructuralEvidence(message)) {
+      return "UI completion requires `Structural verification: PASS ...` with lint, AST/import, wiring, static, architecture, or focused code-check evidence; behavior tests/screenshots alone do not prove reuse.";
+    }
+  }
+
+  if (!activePlan) return null;
+  const contract = readText(path.join(workflowRoot, activePlan, "ui-contract.md"));
+  if (!contract || /No UI contract applies unless frontend or visible UI work is in scope\./i.test(contract)) return null;
+
+  if (!/^## UI Reuse Receipt\s*$/im.test(contract)) {
+    return "The active UI contract lacks `## UI Reuse Receipt`; record it before continuing UI implementation.";
+  }
+  const missing = missingReuseReceiptField(contract);
+  if (missing) return `The active UI reuse receipt is missing \`${missing}:\`.`;
+  if (["finalizing", "complete"].includes(planState?.phase) && !hasPassingStructuralEvidence(contract)) {
+    return "Finalizing UI work requires `Structural verification: PASS ...` with static import/wiring evidence in `ui-contract.md`.";
+  }
+  return null;
 }
 
 function subagentStart(input) {
@@ -413,8 +467,8 @@ function subagentStart(input) {
     "No scope creep, lint suppression, or unsupported assumptions.",
     "Context hard gate: the assigned scope or question is a read boundary. Do not inventory or re-read the project after a plan or compaction; if an outside file is essential, name the exact dependency and report `NEEDS_CONTEXT`.",
     "Minimum-solution gate: implement assigned behavior completely; do not add hypothetical hardening or omit acceptance, normal flow, integrity/security, or compatibility to reduce scope.",
-    "UI reuse gate: shared-components-only means no custom components or wrappers; adapt/compose shared UI or report `NEEDS_CONTEXT`.",
-    "UI composition gate: component reuse alone is insufficient; use a named analogous layout/screen or report `NEEDS_CONTEXT`.",
+    "UI reuse gate: before coding, require a receipt naming target, shared primitive path/export, analogous layout path, decision, and structural verification. A named reuse instruction is architecture acceptance.",
+    "UI composition gate: shared-components-only means no local substitute or wrapper; use the named primitive and analogous layout or report `NEEDS_CONTEXT`. Behavior tests/screenshots alone do not prove reuse.",
   ];
 
   if (agentType === "workflow_implementer") {
@@ -476,13 +530,24 @@ function validateSubagentStop(input) {
     return;
   }
 
-  if (agentType === "workflow_implementer") {
+  if (agentType.startsWith("workflow_implementer")) {
     const hasStatus = /^Status:\s*(DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT)\s*$/im.test(message);
     const hasChangedFiles = /^Changed files:/im.test(message);
     const hasVerification = /^Verification:/im.test(message);
     if (!hasStatus || !hasChangedFiles || !hasVerification) {
       block("Need `Status: DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT`, `Changed files:`, `Verification:`.");
       return;
+    }
+    if (hasUiChangedFile(message)) {
+      if (!/^UI Reuse Evidence:\s*$/im.test(message)) {
+        block("UI implementer output needs `UI Reuse Evidence:` with Target, Shared primitive, Layout precedent, Decision, and Structural verification.");
+        return;
+      }
+      const missing = missingReuseReceiptField(message);
+      if (missing || !hasPassingStructuralEvidence(message)) {
+        block(missing ? `UI reuse evidence is missing \`${missing}:\`.` : "UI implementer completion requires `Structural verification: PASS ...` with static import/wiring evidence.");
+        return;
+      }
     }
   } else if (agentType === "workflow_fix_triage") {
     if (!hasVerdict(message, ["FIX_TASKS", "NO_ACTION"])) {
@@ -583,7 +648,7 @@ function main() {
         }
         break;
       case "Stop":
-        stopCommitmentReflection(input);
+        validateStopGates(input);
         break;
       default:
         ok();

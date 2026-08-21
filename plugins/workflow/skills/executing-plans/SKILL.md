@@ -25,7 +25,7 @@ Read [references/execution-state.md](references/execution-state.md) only when up
 - Do not write workflow state after every tool call or tiny edit.
 - Execute tasks within their allowed scope and record any approved scope change before editing outside it.
 - Do not perform opportunistic refactors. A new API/schema/protocol/shared abstraction/layer or a higher change class requires an approved plan update and a renewed commitment reflection before implementation continues.
-- For production UI, read the UI contract's reuse decision before writing markup or styles. Reuse/adapt its named candidates; stop for parent direction before creating a duplicate primitive or deviating from local typography, layout, spacing, or responsive patterns without recorded justification.
+- For production UI, read the UI contract's reuse receipt before markup/styles. It names target, shared path/export, analogous layout, decision, and structural check. Treat named reuse as architecture acceptance; stop before a local substitute, duplicate primitive, or unapproved layout deviation.
 - For a small user correction, inspect and edit only the touched surface plus directly affected tests; do not restart repository discovery.
 - For chunks, root owns dependency order and integration. Never create nested chunks.
 

@@ -1,6 +1,6 @@
 {
   "name": "workflow",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "Lean, risk-budgeted workflows for Kimi Code with one primary path, focused context, selective subagents, single-pass verification, and explicit completion gates.",
   "keywords": [
     "kimi",
@@ -39,7 +39,7 @@
   "interface": {
     "displayName": "Workflow",
     "shortDescription": "One-path engineering workflow with bounded agents and verification",
-    "longDescription": "A Kimi Code workflow router with direct, plan-execute, audit, and GitLab review paths, bounded agent budgets, durable MCP-backed state, and a Kimi-native Stop guard for material-plan reflection.",
+    "longDescription": "A Kimi Code workflow router with direct, plan-execute, audit, and GitLab review paths, bounded agent budgets, durable MCP-backed state, and a Kimi-native Stop guard for plan reflection and UI reuse evidence.",
     "developerName": "Wiolett Industries",
     "websiteURL": "https://github.com/wiolett-industries/marketplace"
   }

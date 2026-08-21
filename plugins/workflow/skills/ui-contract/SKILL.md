@@ -1,35 +1,29 @@
 ---
 name: ui-contract
-description: Use as a supporting skill for substantial production UI intended to ship when hierarchy, interaction, responsive behavior, accessibility, or visible states need an explicit build/review contract. Do not trigger for tiny copy/style changes, invisible frontend plumbing, or bounded mockups and throwaway prototypes.
+description: Use as a supporting skill for substantial production UI and for any production UI change that names an existing/shared component, pattern, or analogous screen. Do not trigger for tiny copy/style changes without an architecture constraint, invisible frontend plumbing, or bounded mockups and throwaway prototypes.
 ---
 
 # UI Contract
 
-Support substantial production UI without creating an independent workflow or agent budget. The active primary path owns planning, execution, and completion.
+Support production UI within the active workflow and its existing agent budget.
 
 ## Mockup And Prototype Fast Path
 
-If this skill is explicitly invoked for a bounded mockup, landing-page concept, or throwaway prototype:
-
-- do not create a durable contract unless requested;
-- inspect the requested viewport and primary visual objective once;
-- check only obvious clipping, overlap, unreadable copy, broken assets, and major hierarchy failures;
-- use no UI review agent under `fast`;
-- stop after material issues are fixed and the single visual pass succeeds.
-
-Do not invent production state matrices, extra breakpoints, accessibility programs, or reusable behavior for a bounded concept.
+For an explicitly bounded mockup, concept, or prototype, create no durable contract unless requested. Inspect the viewport/objective once; check only clipping, overlap, unreadable copy, broken assets, and major hierarchy failures; use no UI review agent under `fast`; stop after one successful visual pass. Do not invent production state matrices, breakpoints, or reusable behavior.
 
 ## Production Define Mode
 
 ## UI Reuse Gate
 
-Before production JSX, CSS, or layout, inspect the closest analogous screen, shared primitives, layout/responsive patterns, and tokens. Record candidates/paths, `reuse`/`adapt`/`none`, and layout precedent (containment, hierarchy, spacing, responsive behavior) in `ui-contract.md` or chat. Component reuse alone is insufficient; no suitable candidate needs evidence.
+Before production JSX, CSS, or layout, inspect the closest screen, shared primitives, layout/responsive patterns, and tokens.
+
+## UI Reuse Receipt
+
+Before the first edit, record in `ui-contract.md` or chat the target, shared path/export, layout precedent, `reuse`/`adapt`/`none`, and planned structural verification; [reuse-gate.md](references/reuse-gate.md) defines the exact receipt. Named reuse is an architecture acceptance criterion, not visual equivalence. Resolve its path/export; do not substitute local markup or wrappers without explicit approval. Component reuse alone is insufficient; `none` needs evidence.
 
 Reuse/adapt the closest primitive and named layout precedent. Do not introduce one-off components, arbitrary font/size/spacing values, or a parallel responsive/layout pattern when an established local pattern covers the need. A “shared components only” constraint forbids custom components/wrappers; compose/adapt or ask. Otherwise, a new primitive needs evidence no candidate fits.
 
-Read [reuse-gate.md](references/reuse-gate.md) before making the reuse decision or assigning UI work to an implementer.
-
-Before substantial undecided production UI implementation, create or update the active plan's `ui-contract.md`. Include only acceptance-relevant details:
+Before substantial undecided production UI implementation, create/update the active plan's `ui-contract.md`; smaller named-reuse tasks record the receipt in chat. Include only acceptance-relevant details:
 
 - objective and user job;
 - surfaces and primary hierarchy/actions;
@@ -44,7 +38,7 @@ Do not include vague taste language or states outside accepted scope. Execution 
 
 ## Production Review Mode
 
-Before completing substantial production UI, review once against the contract and runnable browser evidence. Check accepted viewports/states and verify that the reuse decision was followed; flag an unapproved duplicate component, visual token, or layout pattern as `Important`. Record `UI_PASS` or `UI_REVISE` plus concrete `Important`, `Minor`, or `Polish` findings under `artifacts/ui-review/` when a plan exists; otherwise report in chat.
+Before completing substantial UI or named reuse, review once against the contract and browser evidence. Verify reuse; unapproved duplicate components, tokens, or layouts are `Important`. Named components need lint, AST/import assertion, or focused code evidence; behavior tests and screenshots alone do not prove reuse. Record `UI_PASS`/`UI_REVISE` under `artifacts/ui-review/` when a plan exists; otherwise report in chat.
 
 An independent UI reviewer is optional, consumes the existing task-wide budget, and requires the same benefit gate as any other agent. Screenshots do not replace relevant code verification, and code checks do not replace the scoped visual pass.
 

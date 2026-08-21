@@ -26,17 +26,19 @@ For recurring repository work, work resumed after compaction, or work that depen
 Memory reads are read-only. Memory writes are durable state changes.
 
 - If the user says read-only, no edits, without changes, or equivalent, do not call `memory_save`, `memory_update`, `memory_reconciliation_record`, or other mutation tools unless the same request explicitly asks to remember, correct, or reconcile memory.
-- Before the final response for completed non-trivial work, run one mandatory memory completion latch: inspect the finished outcome for a reusable preference, workflow, convention, root cause, fix pattern, setup gotcha, or verification sequence. If one exists, save or update it without waiting for an explicit "remember this" request; if none exists, do not write.
+- Before the final response for completed non-trivial work, run one mandatory memory completion latch: inspect the finished outcome for a reusable preference, workflow, convention, root cause, fix pattern, setup gotcha, or verification sequence. Deliberately consider both scopes. Prefer `global` whenever the durable lesson can guide future work in more than one repository; use `project` for knowledge whose useful meaning depends on this repository. If a reusable lesson exists, save or update it without waiting for an explicit "remember this" request; if none exists, do not write.
 - Planning discussion, speculative direction, raw progress, and one-off edits normally produce no memory write.
 - Other skills may point to this decision but must not restate or expand it.
 
 ## What To Save
 
-Use `global` only for durable cross-project preferences, communication habits, tool choices, and model-behavior requirements. Use `project` only for durable repo-specific setup, build, release, architecture, integration, root-cause, or verification knowledge.
+Prefer `global` for durable guidance reusable across projects: user preferences, communication habits, tool choices, model-behavior requirements, general workflows, root-cause and fix patterns, and verification practices. A lesson does not become project-only because it was learned during repository work, mentions the originating project as an example, or could also help that project. Use `project` for durable setup, build, release, architecture, integration, decisions, and operational facts whose useful meaning depends on this repository.
+
+Use a practical portability test: if the memory can improve future work in another repository without requiring that repository to share this one's code or state, choose `global`. When both scopes have distinct durable value, save the reusable rule globally and the repository-specific details in project memory. Do not duplicate the same undistilled content in both scopes.
 
 Never save secrets, credentials, private webhook values, raw session summaries, obvious code facts, temporary progress, speculative plans, or project facts in global memory. Preserve negation and ownership exactly when updating constraints.
 
-Prefer `memory_update` when an existing canonical memory covers the same decision or workflow. Use `memory_save` only for a genuinely new durable fact. The memory gate remains authoritative; do not bypass it.
+Prefer `memory_update` when an existing canonical memory covers the same decision or workflow. Use `memory_save` only for a genuinely new durable fact. The selected scope is authoritative: the memory gate may allow, surgically rewrite, or reject content, but it must not reroute a write between `global` and `project`.
 
 ## Project Memory Git Contract
 

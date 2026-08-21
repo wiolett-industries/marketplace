@@ -7,7 +7,10 @@
     "cli",
     "codex",
     "gate",
+    "global-memory",
     "reconciliation",
+    "scope",
+    "skills",
     "usage"
   ],
   "layer": "lite",
@@ -16,7 +19,7 @@
   "confidence": 0.5,
   "importance": 0.5,
   "created_at": 1785833570620,
-  "updated_at": 1785834337599
+  "updated_at": 1787305785946
 }
 ---
-[→ 6dj2jocx] Agent Memory CLI and write-gate behavior contracts.
+[→ 6dj2jocx] Agent Memory write-gate and scope contracts

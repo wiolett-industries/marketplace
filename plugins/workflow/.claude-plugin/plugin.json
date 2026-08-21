@@ -1,6 +1,6 @@
 {
   "name": "workflow",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "Lean, risk-budgeted workflows for Claude Code with one primary path, selective subagents, single-pass verification, and explicit completion gates.",
   "author": {
     "name": "Wiolett Industries",

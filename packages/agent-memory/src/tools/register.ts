@@ -80,7 +80,7 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_save',
     {
       title: 'Save Memory',
-      description: mutationDescription('Proactively save a new durable project or global lesson after completed non-trivial work when reusable preferences, workflows, gotchas, root causes, fix patterns, or verification sequences emerged. Do not save raw progress or transcripts.'),
+      description: mutationDescription('Proactively save a new durable lesson after completed non-trivial work. Prefer global scope when the lesson can guide future work across repositories, even if learned during project work; use project scope when its useful meaning depends on that repository. The selected scope is authoritative. Do not save raw progress or transcripts.'),
       annotations: localMutationAnnotations,
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
@@ -101,7 +101,7 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_update',
     {
       title: 'Update Memory',
-      description: mutationDescription('Proactively update an existing canonical memory after completed non-trivial work when the durable lesson changed or was refined; its ID and manual graph links are preserved.'),
+      description: mutationDescription('Proactively update an existing canonical memory after completed non-trivial work when the durable lesson changed or was refined; its ID, selected scope, and manual graph links are preserved.'),
       annotations: localMutationAnnotations,
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),

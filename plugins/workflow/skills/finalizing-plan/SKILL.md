@@ -15,7 +15,7 @@ Completion requires all of the following:
 2. required fresh verification is green;
 3. diff/scope sanity finds no silent shrink, unrelated change, or unwired artifact;
 4. no unresolved `BLOCKING` or `HIGH` finding remains;
-5. substantial production UI has its scoped `ui-contract` review;
+5. applicable production UI has its `ui-contract` review and structural reuse evidence;
 6. the active plan is closed with `workflow_plan_complete`.
 
 Once the latch passes, stop. Do not add another review, rerun unchanged checks, or pursue optional polish.
@@ -67,7 +67,7 @@ Read [references/review-protocol.md](references/review-protocol.md) only when st
 
 ## UI, Memory, And Close
 
-For substantial production UI, invoke `ui-contract` review mode once. Bounded mockups use their one local visual pass and do not enter a production UI gate.
+For substantial production UI or any named reuse constraint, invoke `ui-contract` review once; named components need structural import/wiring evidence. Bounded mockups use one local visual pass and skip the production gate.
 
 Before final output, follow the memory completion latch in `using-agent-memory`; do not duplicate its trigger list here.
 

@@ -33,7 +33,7 @@ You may take on analysis-before-coding for the assigned task. Do not take on cro
 
 - Work only in your assigned worktree.
 - Follow existing repo patterns; when a new pattern is unavoidable, keep it consistent with surrounding code and note it in Concerns.
-- For UI work, inspect the assigned reuse decision and named local candidates before coding. Reuse or adapt them; report `NEEDS_CONTEXT` before adding a duplicate component or unexplained visual/layout pattern.
+- For UI work, require the assigned reuse receipt before coding: target, shared primitive path/export, analogous layout path, decision, and structural verification. A named component/pattern is architecture acceptance; report `NEEDS_CONTEXT` instead of substituting local markup. Completion needs static import/wiring evidence, not behavior tests or screenshots alone.
 - Stay within the assigned task boundary; do not expand scope.
 - Do not disable or weaken lint/test rules to pass.
 - Keep changed files focused.
@@ -50,4 +50,10 @@ Status: DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
 Changed files:
 Verification:
 Concerns:
+UI Reuse Evidence: (required when UI files changed)
+Target:
+Shared primitive:
+Layout precedent:
+Decision: reuse | adapt | none
+Structural verification: PASS <evidence>
 ```

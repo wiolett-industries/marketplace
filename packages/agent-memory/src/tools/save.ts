@@ -28,14 +28,13 @@ export async function handleSave(args: {
   }
 
   const content = gate.decision === 'rewrite' && gate.normalized_content ? gate.normalized_content : args.content;
-  const finalScope = gate.suggested_scope ?? scope;
-  ensureMemoryReady(finalScope);
+  ensureMemoryReady(scope);
   const result = await handleWrite({
     content,
     tags: gate.suggested_tags ?? tags,
     summary: args.summary,
     layer: args.layer,
-    scope: finalScope,
+    scope,
   });
 
   return {

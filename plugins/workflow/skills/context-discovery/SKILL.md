@@ -19,7 +19,7 @@ Do not ask for discoverable facts, preferences that do not affect the result, or
 
 ## UI Discovery
 
-For production UI work, complete the `ui-contract` reuse gate before proposing new components or visual rules. Inspect the closest screen, reusable primitives, and visual source of truth; capture the candidate paths and `reuse`/`adapt`/`none` decision in the plan or handoff. This is part of normal discovery, not a separate design exercise.
+For production UI work, including small changes when the request names an existing/shared component, complete the `ui-contract` reuse gate before proposing components or visual rules. Inspect the closest screen, primitives, and visual source of truth; record receipt paths/exports, `reuse`/`adapt`/`none`, and structural verification in chat, plan, or handoff. Named reuse is architecture acceptance, not visual guidance.
 
 ## Read Budget
 

@@ -13,16 +13,6 @@
     },
     {
       "from_id": "s7lsr4mi",
-      "to_id": "6dj2jocx",
-      "relation": "same_workflow",
-      "weight": 0.8,
-      "reason": "Both establish contracts for Codex invocation, reconciliation reporting, and preserving the due state when validation fails.",
-      "source": "auto",
-      "created_at": 1786066398296,
-      "updated_at": 1786066398296
-    },
-    {
-      "from_id": "s7lsr4mi",
       "to_id": "btpyl4q2",
       "relation": "same_workflow",
       "weight": 0.63,

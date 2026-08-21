@@ -81,9 +81,10 @@ test('workflow session hook emits recovery context for active plans', () => {
   assert.match(output.hookSpecificOutput.additionalContext, /repeated-crash scenarios/);
   assert.match(output.hookSpecificOutput.additionalContext, /Minimal means behavior-complete/);
   assert.match(output.hookSpecificOutput.additionalContext, /UI reuse gate/);
-  assert.match(output.hookSpecificOutput.additionalContext, /shared-components-only restriction forbids custom components/);
+  assert.match(output.hookSpecificOutput.additionalContext, /reuse receipt/);
+  assert.match(output.hookSpecificOutput.additionalContext, /architecture acceptance/);
   assert.match(output.hookSpecificOutput.additionalContext, /UI composition gate/);
-  assert.match(output.hookSpecificOutput.additionalContext, /Shared components alone do not satisfy it/);
+  assert.match(output.hookSpecificOutput.additionalContext, /screenshots alone do not prove reuse/);
   assert.match(output.hookSpecificOutput.additionalContext, /fast \(0 agents\), standard \(at most 1 total\), assurance \(declared total, default 3; at most 2 reviewers per round\)/);
   assert.match(output.hookSpecificOutput.additionalContext, /Authorization is permission, not activation/);
   assert.match(output.hookSpecificOutput.additionalContext, /Parent Max\/Ultra and multiple skills do not expand the budget/);
@@ -291,6 +292,45 @@ test('workflow subagent stop accepts valid implementer output', () => {
   assert.equal(output.continue, true);
 });
 
+test('workflow subagent stop requires structural reuse evidence for UI implementers', () => {
+  const missing = runHook({
+    hook_event_name: 'SubagentStop',
+    agent_type: 'workflow_implementer_standard',
+    last_assistant_message: [
+      'Status: DONE',
+      'Changed files:',
+      '- src/Table.tsx',
+      'Verification:',
+      '- pnpm test',
+      'Concerns:',
+      '- none',
+    ].join('\n'),
+  });
+  assert.equal(missing.decision, 'block');
+  assert.match(missing.reason, /UI Reuse Evidence/);
+
+  const valid = runHook({
+    hook_event_name: 'SubagentStop',
+    agent_type: 'workflow_implementer_standard',
+    last_assistant_message: [
+      'Status: DONE',
+      'Changed files:',
+      '- src/Table.tsx',
+      'Verification:',
+      '- pnpm test',
+      'Concerns:',
+      '- none',
+      'UI Reuse Evidence:',
+      'Target: src/Table.tsx',
+      'Shared primitive: src/shared/Table.tsx#Table',
+      'Layout precedent: src/screens/Users.tsx',
+      'Decision: reuse',
+      'Structural verification: PASS AST import assertion',
+    ].join('\n'),
+  });
+  assert.equal(valid.continue, true);
+});
+
 test('workflow subagent start reminds implementers to stay bounded', () => {
   const output = runHook({
     hook_event_name: 'SubagentStart',
@@ -303,11 +343,12 @@ test('workflow subagent start reminds implementers to stay bounded', () => {
   assert.match(output.hookSpecificOutput.additionalContext, /no open-ended analysis/);
   assert.match(output.hookSpecificOutput.additionalContext, /read boundary/);
   assert.match(output.hookSpecificOutput.additionalContext, /implement assigned behavior completely/);
-  assert.match(output.hookSpecificOutput.additionalContext, /shared-components-only means no custom components/);
-  assert.match(output.hookSpecificOutput.additionalContext, /component reuse alone is insufficient/);
+  assert.match(output.hookSpecificOutput.additionalContext, /receipt naming target/);
+  assert.match(output.hookSpecificOutput.additionalContext, /architecture acceptance/);
+  assert.match(output.hookSpecificOutput.additionalContext, /no local substitute or wrapper/);
 });
 
-test('Codex registers commitment Stop enforcement while Claude remains hook-optional', () => {
+test('Codex registers completion Stop enforcement while Claude remains hook-optional', () => {
   const codexConfig = JSON.parse(readFileSync(hookConfig, 'utf8'));
   const claudeConfig = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/workflow/hooks/hooks.json'), 'utf8'));
 
@@ -351,6 +392,95 @@ test('Codex Stop allows reviewed and awaiting-user commitment states', () => {
     );
     assert.equal(runHook({ hook_event_name: 'Stop', cwd: workspace }, workspace).continue, true);
   }
+});
+
+test('Codex Stop requires a complete reuse receipt when final output reports UI files', () => {
+  const missing = runHook({
+    hook_event_name: 'Stop',
+    last_assistant_message: 'Implemented src/Table.tsx and tests pass.',
+  });
+  assert.equal(missing.decision, 'block');
+  assert.match(missing.reason, /UI Reuse Evidence/);
+
+  const incomplete = runHook({
+    hook_event_name: 'Stop',
+    last_assistant_message: [
+      'Implemented src/Table.tsx.',
+      'UI Reuse Evidence:',
+      'Target: src/Table.tsx',
+      'Shared primitive: src/shared/Table.tsx#Table',
+      'Layout precedent: src/screens/Users.tsx',
+      'Decision: reuse',
+      'Structural verification: pnpm test',
+    ].join('\n'),
+  });
+  assert.equal(incomplete.decision, 'block');
+  assert.match(incomplete.reason, /Structural verification: PASS/);
+
+  const behavioralOnly = runHook({
+    hook_event_name: 'Stop',
+    last_assistant_message: [
+      'Implemented src/Table.tsx.',
+      'UI Reuse Evidence:',
+      'Target: src/Table.tsx',
+      'Shared primitive: src/shared/Table.tsx#Table',
+      'Layout precedent: src/screens/Users.tsx',
+      'Decision: reuse',
+      'Structural verification: PASS pnpm test',
+    ].join('\n'),
+  });
+  assert.equal(behavioralOnly.decision, 'block');
+  assert.match(behavioralOnly.reason, /static|AST\/import/);
+
+  const valid = runHook({
+    hook_event_name: 'Stop',
+    last_assistant_message: [
+      'Implemented src/Table.tsx.',
+      'UI Reuse Evidence:',
+      'Target: src/Table.tsx',
+      'Shared primitive: src/shared/Table.tsx#Table',
+      'Layout precedent: src/screens/Users.tsx',
+      'Decision: reuse',
+      'Structural verification: PASS AST import assertion',
+    ].join('\n'),
+  });
+  assert.equal(valid.continue, true);
+});
+
+test('Codex Stop enforces active-plan UI receipts and final structural evidence', () => {
+  const workspace = mkdtempSync(path.join(os.tmpdir(), 'workflow-stop-ui-reuse-'));
+  const planDir = path.join(workspace, '.workflow/plans/ui-reuse');
+  mkdirSync(planDir, { recursive: true });
+  writeFileSync(path.join(workspace, '.workflow/state.json'), JSON.stringify({ active_plan: 'plans/ui-reuse' }), 'utf8');
+  writeFileSync(path.join(planDir, 'state.json'), JSON.stringify({ phase: 'executing' }), 'utf8');
+  writeFileSync(path.join(planDir, 'ui-contract.md'), '# UI Contract\n\nProduction table change.\n', 'utf8');
+
+  const missing = runHook({ hook_event_name: 'Stop', cwd: workspace }, workspace);
+  assert.equal(missing.decision, 'block');
+  assert.match(missing.reason, /UI Reuse Receipt/);
+
+  writeFileSync(path.join(planDir, 'ui-contract.md'), [
+    '# UI Contract',
+    '## UI Reuse Receipt',
+    'Target: src/Table.tsx',
+    'Shared primitive: src/shared/Table.tsx#Table',
+    'Layout precedent: src/screens/Users.tsx',
+    'Decision: reuse',
+    'Structural verification: AST import assertion',
+  ].join('\n'), 'utf8');
+  assert.equal(runHook({ hook_event_name: 'Stop', cwd: workspace }, workspace).continue, true);
+
+  writeFileSync(path.join(planDir, 'state.json'), JSON.stringify({ phase: 'finalizing' }), 'utf8');
+  const notVerified = runHook({ hook_event_name: 'Stop', cwd: workspace }, workspace);
+  assert.equal(notVerified.decision, 'block');
+  assert.match(notVerified.reason, /Structural verification: PASS/);
+
+  writeFileSync(
+    path.join(planDir, 'ui-contract.md'),
+    readFileSync(path.join(planDir, 'ui-contract.md'), 'utf8').replace('Structural verification: AST', 'Structural verification: PASS AST'),
+    'utf8',
+  );
+  assert.equal(runHook({ hook_event_name: 'Stop', cwd: workspace }, workspace).continue, true);
 });
 
 test('Kimi Stop uses native exit-code blocking without changing Codex output', () => {
@@ -748,14 +878,19 @@ test('workflow prompts route subagents by task shape and cap review loops', () =
   assert.match(finalizingPlan, /finalization never creates fresh budgets/);
   assert.match(finalizingPlan, /re-review only the changed delta plus affected integration paths/i);
   assert.match(contextDiscovery, /Ask only questions whose answers can change scope, architecture, risk, acceptance criteria, or user-visible behavior/);
-  assert.match(contextDiscovery, /For production UI work, complete the `ui-contract` reuse gate/);
+  assert.match(contextDiscovery, /For production UI work.*complete the `ui-contract` reuse gate/);
+  assert.match(contextDiscovery, /small changes when the request names an existing\/shared component/);
   assert.match(uiContract, /Mockup And Prototype Fast Path/);
   assert.match(uiContract, /use no UI review agent under `fast`/);
   assert.match(uiContract, /## UI Reuse Gate/);
+  assert.match(uiContract, /## UI Reuse Receipt/);
+  assert.match(uiContract, /architecture acceptance criterion/);
   assert.match(uiContract, /Do not introduce one-off components, arbitrary font\/size\/spacing values/);
-  assert.match(uiContract, /flag an unapproved duplicate component, visual token, or layout pattern as `Important`/);
+  assert.match(uiContract, /AST\/import assertion/);
+  assert.match(uiContract, /unapproved duplicate components, tokens, or layouts are `Important`/);
   assert.match(implementer, /bounded patch worker, not an architecture analyst/);
-  assert.match(implementer, /inspect the assigned reuse decision and named local candidates before coding/);
+  assert.match(implementer, /require the assigned reuse receipt before coding/);
+  assert.match(implementer, /Structural verification: PASS/);
   assert.match(implementer, /report `NEEDS_CONTEXT`/);
   assert.match(explorer, /not a repository inventory agent/);
   assert.match(explorer, /six file slices, 20 KB of output, and three searches/);
@@ -785,7 +920,7 @@ test('workflow skills bound context, delegation, and scope amplification portabl
   assert.match(usingWorkflow, /never reset discovery/);
   assert.match(usingWorkflow, /hypotheticals/);
   assert.match(usingWorkflow, /custom primitives need explicit user approval/);
-  assert.match(usingWorkflow, /named analogous layout/);
+  assert.match(usingWorkflow, /named reuse instruction is an architecture acceptance criterion/);
   assert.match(usingWorkflow, /proceed only if uncertainty cannot change acceptance/);
   assert.match(contextDiscovery, /at most three files/);
   assert.match(contextDiscovery, /eight files or 25 KB/);
@@ -795,13 +930,14 @@ test('workflow skills bound context, delegation, and scope amplification portabl
   assert.match(writingPlans, /minimal means behavior-complete, not partial/);
   assert.match(uiContract, /shared components only” constraint forbids custom components\/wrappers/);
   assert.match(uiContract, /Component reuse alone is insufficient/);
+  assert.match(uiContract, /behavior tests and screenshots alone do not prove reuse/);
   assert.match(intentGate, /L0.*L1.*L2.*L3/s);
   assert.match(intentGate, /material plan, architecture decision, or scope-expanding solution/);
   assert.match(intentGate, /Do this silently for chat-only work/);
   assert.match(writingPlans, /workflow_plan_commitment_propose/);
   assert.match(writingPlans, /same-model shrink-first reflection/);
   assert.match(executingPlans, /Do not perform opportunistic refactors/);
-  assert.match(executingPlans, /read the UI contract's reuse decision before writing markup or styles/);
+  assert.match(executingPlans, /read the UI contract's reuse receipt before markup\/styles/);
   assert.match(finalizingPlan, /Check scope before style/);
   assert.match(workflowMcp, /Claude Code and other clients must never be instructed to find or wait for that hook/);
 

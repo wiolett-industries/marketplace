@@ -3,33 +3,23 @@
   "edges": [
     {
       "from_id": "6dj2jocx",
-      "to_id": "rn35sah4",
-      "relation": "related_to",
-      "weight": 0.9,
-      "reason": "Repository-level project memory rules (.memory/ canonical ownership) directly interact with the write-gate contract that mandates preserving submitted content verbatim for committed memories.",
+      "to_id": "0eqwbcjr",
+      "relation": "same_workflow",
+      "weight": 0.86,
+      "reason": "Both define durable Agent Memory maintenance, reconciliation, and Codex contract behavior.",
       "source": "auto",
-      "created_at": 1785834344502,
-      "updated_at": 1785834344502
+      "created_at": 1787305790784,
+      "updated_at": 1787305790784
     },
     {
       "from_id": "6dj2jocx",
-      "to_id": "t7wcxn2n",
-      "relation": "related_to",
-      "weight": 0.8,
-      "reason": "Both concern Agent Memory response and synthesis behavior; the write-gate contract impacts how query-aware multi-memory synthesis and memory_recap should preserve original submitted content.",
+      "to_id": "s7lsr4mi",
+      "relation": "same_workflow",
+      "weight": 0.72,
+      "reason": "Both govern Codex-driven reconciliation execution and reliable validation of its reported results.",
       "source": "auto",
-      "created_at": 1785834344502,
-      "updated_at": 1785834344502
-    },
-    {
-      "from_id": "6dj2jocx",
-      "to_id": "e87wrzeg",
-      "relation": "related_to",
-      "weight": 0.7,
-      "reason": "MCP workspace_root and memory_list behaviors affect when and how memory writes occur; the write-gate contract influences acceptable normalization during MCP writes and reconciliation.",
-      "source": "auto",
-      "created_at": 1785834344502,
-      "updated_at": 1785834344502
+      "created_at": 1787305790784,
+      "updated_at": 1787305790784
     }
   ]
 }

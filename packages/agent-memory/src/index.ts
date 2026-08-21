@@ -3,7 +3,7 @@
 import { runInitCommand } from './cli/init.js';
 import { isCliAbortError } from './cli/prompts.js';
 
-const VERSION = '1.1.6';
+const VERSION = '1.1.7';
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
@@ -109,7 +109,7 @@ async function startMcpServer(): Promise<void> {
     },
     {
       instructions:
-        'Agent Memory is this MCP-backed memory system, separate from Codex built-in memory, chat history, and workflow artifacts. For non-trivial work, proactively use memory_query for a focused question or memory_recap for broad recovery whenever prior repository or user context could affect the result; do not wait for an explicit memory request. After a repo boundary is known, pass an absolute workspace_root for project-scoped reads/writes when the MCP server cwd may differ from the repo. Before the final response for completed non-trivial work, inspect the outcome for a reusable preference, workflow, convention, setup gotcha, root cause, fix pattern, or verification sequence and call memory_save or memory_update when one exists. Never save raw progress, transcripts, secrets, or speculative chatter. Read-only/no-edits requests block memory writes unless remembering was explicitly requested. Read tools never initialize missing project memory; project memory storage is created only by memory_setup or write/mutation tools.',
+        'Agent Memory is this MCP-backed memory system, separate from Codex built-in memory, chat history, and workflow artifacts. For non-trivial work, proactively use memory_query for a focused question or memory_recap for broad recovery whenever prior repository or user context could affect the result; do not wait for an explicit memory request. After a repo boundary is known, pass an absolute workspace_root for project-scoped reads/writes when the MCP server cwd may differ from the repo. Before the final response for completed non-trivial work, inspect the outcome for a reusable preference, workflow, convention, setup gotcha, root cause, fix pattern, or verification sequence and call memory_save or memory_update when one exists. Prefer global memory whenever a durable lesson can guide future work across repositories, even when it was learned during project work; use project memory when the useful meaning depends on that repository. The caller-selected scope is authoritative and the write gate must not reroute it. Never save raw progress, transcripts, secrets, or speculative chatter. Read-only/no-edits requests block memory writes unless remembering was explicitly requested. Read tools never initialize missing project memory; project memory storage is created only by memory_setup or write/mutation tools.',
     }
   );
 
