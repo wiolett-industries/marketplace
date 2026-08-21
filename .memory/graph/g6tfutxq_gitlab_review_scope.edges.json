@@ -1,0 +1,25 @@
+{
+  "file_name": "g6tfutxq_gitlab_review_scope",
+  "edges": [
+    {
+      "from_id": "g6tfutxq",
+      "to_id": "cyeiuloe",
+      "relation": "related_to",
+      "weight": 0.7,
+      "reason": "Both define durable workflow hook conventions and regression verification requirements in agent-marketplace-next.",
+      "source": "auto",
+      "created_at": 1787317999630,
+      "updated_at": 1787317999630
+    },
+    {
+      "from_id": "g6tfutxq",
+      "to_id": "btpyl4q2",
+      "relation": "related_to",
+      "weight": 0.52,
+      "reason": "Provides the repository-specific pnpm shell and version guidance needed for the source's full test and typecheck verification.",
+      "source": "auto",
+      "created_at": 1787317999630,
+      "updated_at": 1787317999630
+    }
+  ]
+}
