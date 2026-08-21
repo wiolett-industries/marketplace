@@ -659,6 +659,7 @@ test('repository ships Kimi aggregate and per-plugin manifests without cross-pla
     }
 
     for (const [serverName, server] of Object.entries(sourceMcp)) {
+      assert.deepEqual(server.env_vars, ['AGENTS_HOME']);
       assert.deepEqual(kimi.mcpServers[serverName], {
         command: server.command,
         args: server.args,

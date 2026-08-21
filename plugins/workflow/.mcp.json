@@ -6,6 +6,9 @@
         "-y",
         "@wiolett/workflow@latest"
       ],
+      "env_vars": [
+        "AGENTS_HOME"
+      ],
       "note": "Workflow MCP. On startup it syncs workflow_* custom agents globally into ~/.codex/agents and registers workflow artifact tools. Agent sync is automatic and intentionally has no model-visible sync tool."
     }
   }

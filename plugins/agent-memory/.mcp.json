@@ -6,6 +6,9 @@
         "-y",
         "@wiolett/agent-memory@latest"
       ],
+      "env_vars": [
+        "AGENTS_HOME"
+      ],
       "note": "Agent Memory MCP. Registers persistent global/project memory tools (setup/list/query/recall/save/update/inspect/delete/link/unlink plus graph/path/prune). Project-scoped tools accept an absolute workspace_root when the MCP server cwd differs from the repo. Inspect a store visually with npx -y @wiolett/agent-memory@latest view. Configure model access with npx -y @wiolett/agent-memory@latest init."
     }
   }

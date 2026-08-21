@@ -1,6 +1,6 @@
 {
   "name": "agent-memory",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "Persistent scoped Agent Memory with focused startup recall, explicit write boundaries, graph tools, and a local dashboard.",
   "author": {
     "name": "Wiolett Industries",

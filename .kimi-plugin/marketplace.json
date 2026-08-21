@@ -4,7 +4,7 @@
     {
       "id": "wiolett-industries",
       "displayName": "Wiolett Industries Agent Plugins",
-      "version": "1.1.8",
+      "version": "1.1.9",
       "description": "Workflow, memory, and GitLab merge request review tools distributed as one aggregate Kimi Code plugin.",
       "homepage": "https://github.com/wiolett-industries/marketplace",
       "source": "https://github.com/wiolett-industries/marketplace",

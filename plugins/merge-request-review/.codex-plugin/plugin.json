@@ -1,6 +1,6 @@
 {
   "name": "merge-request-review",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "Ready GitLab MR review with discussion intake, applicable gates, CI-first evidence, bounded agents, focused re-review, and one clean-pass approval.",
   "author": {
     "name": "Wiolett Industries",
