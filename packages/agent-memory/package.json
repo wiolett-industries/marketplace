@@ -1,6 +1,6 @@
 {
   "name": "@wiolett/agent-memory",
-  "version": "1.1.8",
+  "version": "1.1.7",
   "type": "module",
   "description": "MCP server backing Agent Memory with scoped storage, model-gated writes, compiled recall, and automatic graph links.",
   "license": "MIT",
