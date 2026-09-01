@@ -257,19 +257,21 @@ fall back to cheaper local behavior where possible.
 
 ## Project Memory Belongs In Git
 
-Project `.memory/` is repository-owned team knowledge, not a generated cache
-directory. Commit memories, indexes, embeddings, graph edges, and reconciliation
-metadata under
-`.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, and
-`.memory/graph/`, and `.memory/maintenance/`. Never ignore `.memory/` wholesale.
+The configured project-memory root defaults to `.memory/`. When that root is
+inside the repository, it is repository-owned team knowledge, not a generated
+cache directory. Commit its `memories/`, `index/`, `embeddings/`, `graph/`, and
+`maintenance/` contents. Never ignore the configured root wholesale.
 
 Only the local SQLite cache and its sidecars should be ignored:
 
 ```gitignore
-.memory/memory.db*
+<configured-project-memory-root>/memory.db*
 ```
 
-That single pattern covers `memory.db`, `memory.db-shm`, and `memory.db-wal`.
+For the default root, use `.memory/memory.db*`. The pattern covers `memory.db`,
+`memory.db-shm`, and `memory.db-wal`. A root outside the repository cannot be
+tracked as repository-owned project memory and does not need a repository
+`.gitignore` entry.
 
 ## Agent Memory Dashboard
 

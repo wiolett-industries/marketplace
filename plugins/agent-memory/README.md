@@ -21,13 +21,14 @@ The runtime package is [`@wiolett/agent-memory`](../../packages/agent-memory).
 
 - Global memory lives under `~/.agents/.wiolett/global-memory/` by default and follows the user
   across repositories.
-- Project memory lives under `<repo>/.memory/` and belongs to that repository.
-- Canonical project files under `.memory/memories/`, `.memory/index/`,
-  `.memory/embeddings/`, `.memory/graph/`, and `.memory/maintenance/` are
+- Project memory defaults to `<repo>/.memory/`; its configured root may differ.
+- When the root is inside the repository, canonical project files under its
+  `memories/`, `index/`, `embeddings/`, `graph/`, and `maintenance/` directories are
   repository-owned team knowledge and **must be committed**, including
   embeddings, graph edges, and reconciliation metadata.
-- Never ignore `.memory/` wholesale. Ignore only `.memory/memory.db*`, covering
-  the generated SQLite cache plus its `-shm` and `-wal` sidecars.
+- Never ignore the configured root wholesale. Ignore only its `memory.db*`,
+  covering the generated SQLite cache plus its `-shm` and `-wal` sidecars. The
+  default pattern is `.memory/memory.db*`.
 
 ## MCP Tools
 

@@ -169,6 +169,23 @@ describe('agent-memory init', () => {
     expect(updated).toContain('text: gpt-updated');
   });
 
+  test('prompts for a key when bootstrap created an empty canonical credential', async () => {
+    const agentsHome = tempAgentsHome();
+    runCli(['init', '--non-interactive'], { agentsHome });
+    expect(readFileSync(providersPath(agentsHome), 'utf8')).toMatch(/api_key:\s*["']?["']?\s*$/m);
+
+    const ui = interactiveUi({
+      password: 'sk-recovered',
+      texts: ['https://interactive.test/v1', 'gpt-interactive', 'embed-interactive'],
+    });
+    await runInitCommand([], {
+      env: { PROJECT_MEMORY_AGENTS_HOME: agentsHome, OPENAI_API_KEY: '' },
+      ui,
+    });
+
+    expect(readFileSync(providersPath(agentsHome), 'utf8')).toMatch(/api_key:\s*["']?sk-recovered["']?/);
+  });
+
   test('preserves custom role routes while updating OpenAI defaults', () => {
     const agentsHome = tempAgentsHome();
     const configDir = path.join(agentsHome, '.wiolett', 'config');

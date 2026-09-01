@@ -40,7 +40,7 @@ function missingMemoryError(id: string): Error {
   return new Error(`Memory "${id}" does not exist.`);
 }
 
-const PROJECT_MEMORY_GIT_CONTRACT = 'For project scope, commit canonical .memory/memories, .memory/index, .memory/embeddings, .memory/graph, and .memory/maintenance changes; never ignore .memory wholesale. Only .memory/memory.db* is disposable SQLite cache.';
+const PROJECT_MEMORY_GIT_CONTRACT = 'For project scope, when the configured project-memory root is inside the repository, commit canonical memories, index, embeddings, graph, and maintenance changes under that root; never ignore the root wholesale. Only memory.db* within that root is disposable SQLite cache.';
 
 function mutationDescription(description: string): string {
   return `${description} ${PROJECT_MEMORY_GIT_CONTRACT}`;

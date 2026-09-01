@@ -63,11 +63,11 @@ describe('MCP launcher smoke test', () => {
     const memoryGraphMaintain = result.toolSchemas.find((tool) => tool.name === 'memory_graph_maintain');
     expect(JSON.stringify(memorySave)).not.toContain('bypass_gate');
     expect(JSON.stringify(memoryUpdate)).not.toContain('bypass_gate');
-    expect(JSON.stringify(memorySave)).toContain('commit canonical .memory/memories, .memory/index, .memory/embeddings, .memory/graph, and .memory/maintenance changes');
-    expect(JSON.stringify(memorySave)).toContain('never ignore .memory wholesale');
-    expect(JSON.stringify(memorySave)).toContain('Only .memory/memory.db* is disposable SQLite cache');
-    expect(JSON.stringify(memoryUpdate)).toContain('never ignore .memory wholesale');
-    expect(JSON.stringify(memoryLink)).toContain('never ignore .memory wholesale');
+    expect(JSON.stringify(memorySave)).toContain('when the configured project-memory root is inside the repository');
+    expect(JSON.stringify(memorySave)).toContain('never ignore the root wholesale');
+    expect(JSON.stringify(memorySave)).toContain('Only memory.db* within that root is disposable SQLite cache');
+    expect(JSON.stringify(memoryUpdate)).toContain('never ignore the root wholesale');
+    expect(JSON.stringify(memoryLink)).toContain('never ignore the root wholesale');
     expect(JSON.stringify(memoryRecall)).toContain('Requires memory_id from a prior query, recap, list, or explicit reference');
     expect(JSON.stringify(memoryRecall)).toContain('do not use for an initial semantic question or broad startup recall');
     expect(JSON.stringify(reconciliationStatus)).toContain('does not initialize a missing memory store');

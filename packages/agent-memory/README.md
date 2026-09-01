@@ -80,7 +80,7 @@ Project memory:
   memory.db-wal
 ```
 
-Canonical files under `.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, `.memory/graph/`, and `.memory/maintenance/` are the repository source of truth and **must be committed** for project/team memory. This includes embedding arrays, graph edges, and reconciliation metadata. Never ignore `.memory/` wholesale or discard these files as generated output. SQLite is only a local lookup cache, so `.memory/memory.db*` is the sole Agent Memory pattern that belongs in `.gitignore`; it covers `memory.db`, `memory.db-shm`, and `memory.db-wal`.
+The configured project-memory root defaults to `.memory/`. When it is inside the repository, canonical files under its `memories/`, `index/`, `embeddings/`, `graph/`, and `maintenance/` directories are the repository source of truth and **must be committed** for project/team memory. This includes embedding arrays, graph edges, and reconciliation metadata. Never ignore the configured root wholesale or discard canonical files as generated output. SQLite is only a local lookup cache, so `<configured-root>/memory.db*` is the sole Agent Memory pattern that belongs in `.gitignore`; for the default root this is `.memory/memory.db*`. A root outside the repository cannot participate in the repository-owned Git contract.
 
 ## Tool Surface
 

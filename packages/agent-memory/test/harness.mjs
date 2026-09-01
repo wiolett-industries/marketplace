@@ -50,7 +50,8 @@ function assert(condition, message) {
 
 function createTempProject(prefix) {
   const projectDir = mkdtempSync(path.join(os.tmpdir(), `${prefix}-`));
-  mkdirSync(projectDir, { recursive: true });
+  mkdirSync(path.join(projectDir, '.git'), { recursive: true });
+  writeFileSync(path.join(projectDir, '.git', 'HEAD'), 'ref: refs/heads/main\n', 'utf8');
   return projectDir;
 }
 
@@ -111,6 +112,84 @@ async function runSetupLocalEmbeddings() {
       if (previousConfigPath === undefined) delete process.env.WIOLETT_AUTH_CONFIG_PATH;
       else process.env.WIOLETT_AUTH_CONFIG_PATH = previousConfigPath;
     }
+  });
+}
+
+function configureProjectMemoryPath(memoryPath) {
+  const agentsHome = mkdtempSync(path.join(os.tmpdir(), 'pm-custom-path-agents-home-'));
+  const configDir = path.join(agentsHome, '.wiolett', 'config');
+  mkdirSync(configDir, { recursive: true });
+  writeFileSync(path.join(configDir, 'mcp-config.yml'), `version: 1
+mcp:
+  agent-memory:
+    storage:
+      memory:
+        global: .wiolett/global-memory
+        project: ${JSON.stringify(memoryPath)}
+`, 'utf8');
+  process.env.PROJECT_MEMORY_AGENTS_HOME = agentsHome;
+}
+
+async function runSetupCustomRelative() {
+  configureProjectMemoryPath('var/agent-memory');
+  const projectDir = createTempProject('pm-custom-relative-project');
+  writeFileSync(path.join(projectDir, '.gitignore'), [
+    'var/agent-memory/',
+    'var/agent-memory/memory.db*',
+    'keep-me',
+    '',
+  ].join('\n'), 'utf8');
+
+  return withProject(projectDir, async () => {
+    const first = setupProjectMemory(projectDir);
+    const second = setupProjectMemory(projectDir);
+    const memoryRoot = path.join(projectDir, 'var', 'agent-memory');
+    return {
+      first,
+      second,
+      memory_root: memoryRoot,
+      gitignore: readFileSync(path.join(projectDir, '.gitignore'), 'utf8'),
+      directories: {
+        memories: existsSync(path.join(memoryRoot, 'memories')),
+        index: existsSync(path.join(memoryRoot, 'index')),
+        embeddings: existsSync(path.join(memoryRoot, 'embeddings')),
+        graph: existsSync(path.join(memoryRoot, 'graph')),
+        default_root: existsSync(path.join(projectDir, '.memory')),
+      },
+    };
+  });
+}
+
+async function runSetupCustomExternal() {
+  const externalMemoryRoot = mkdtempSync(path.join(os.tmpdir(), 'pm-custom-external-memory-'));
+  configureProjectMemoryPath(externalMemoryRoot);
+  const projectDir = createTempProject('pm-custom-external-project');
+
+  return withProject(projectDir, async () => {
+    const setup = setupProjectMemory(projectDir);
+    return {
+      setup,
+      external_memory_root: externalMemoryRoot,
+      memories_created: existsSync(path.join(externalMemoryRoot, 'memories')),
+      gitignore_created: existsSync(path.join(projectDir, '.gitignore')),
+      default_root_created: existsSync(path.join(projectDir, '.memory')),
+    };
+  });
+}
+
+async function runRuntimeCustomRelative() {
+  configureProjectMemoryPath('state/memory');
+  const projectDir = createTempProject('pm-custom-runtime-project');
+
+  return withProject(projectDir, async () => {
+    ensureMemoryReady('project');
+    const memoryRoot = path.join(projectDir, 'state', 'memory');
+    return {
+      memory_root: memoryRoot,
+      memories_created: existsSync(path.join(memoryRoot, 'memories')),
+      gitignore: readFileSync(path.join(projectDir, '.gitignore'), 'utf8'),
+      default_root_created: existsSync(path.join(projectDir, '.memory')),
+    };
   });
 }
 
@@ -629,6 +708,7 @@ async function runMcpWorkspaceRoot() {
   const nestedRepoDir = path.join(parentProjectDir, 'nested-repo');
   const nestedRepoChildDir = path.join(nestedRepoDir, 'src');
   mkdirSync(path.join(nestedRepoDir, '.git'), { recursive: true });
+  writeFileSync(path.join(nestedRepoDir, '.git', 'HEAD'), 'ref: refs/heads/main\n', 'utf8');
   mkdirSync(nestedRepoChildDir, { recursive: true });
   await withProject(parentProjectDir, async () => {
     ensureMemoryReady('project');
@@ -1172,6 +1252,9 @@ const runners = {
   derank: runDerank,
   setup: runSetup,
   'setup-local-embeddings': runSetupLocalEmbeddings,
+  'setup-custom-relative': runSetupCustomRelative,
+  'setup-custom-external': runSetupCustomExternal,
+  'runtime-custom-relative': runRuntimeCustomRelative,
   memory: runMemory,
   global: runGlobal,
   'update-inspect': runUpdateInspect,

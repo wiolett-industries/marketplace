@@ -88,11 +88,12 @@ describe('memory write gate', () => {
     expect(skill).toMatch(/if the memory can improve future work in another repository/);
     expect(skill).toMatch(/selected scope is authoritative/);
     expect(skill).toMatch(/must not reroute a write/);
-    expect(skill).toMatch(/Treat project `\.memory\/` as repository-owned team knowledge/);
-    expect(skill).toMatch(/Commit every authorized change under `\.memory\/memories\/`, `\.memory\/index\/`, `\.memory\/embeddings\/`, `\.memory\/graph\/`, and `\.memory\/maintenance\/`/);
-    expect(skill).toMatch(/Never add `\.memory\/`, `\.memory\/\*\*`/);
-    expect(skill).toMatch(/Ignore only the SQLite cache and its sidecars via `\.memory\/memory\.db\*`/);
-    expect(skill).toMatch(/git status --short \.memory/);
+    expect(skill).toMatch(/Resolve the configured project-memory root before applying Git rules/);
+    expect(skill).toMatch(/Commit every authorized change under the root's `memories\/`, `index\/`, `embeddings\/`, `graph\/`, and `maintenance\/`/);
+    expect(skill).toMatch(/Never add the project-memory root, its canonical directories, or a broad recursive pattern/);
+    expect(skill).toMatch(/Ignore only `memory\.db\*` inside the configured root/);
+    expect(skill).toMatch(/git status --short -- <configured-root>/);
+    expect(skill).toMatch(/configured root is outside the repository/);
     expect(skill).toMatch(/git check-ignore -v/);
     expect(skill).toMatch(/workspace_root/);
     expect(skill).toMatch(/references\/operations\.md/);
@@ -104,10 +105,11 @@ describe('memory write gate', () => {
     expect(operations).toMatch(/memory_link/);
     expect(operations).toMatch(/memory_unlink/);
     expect(operations).toMatch(/Omit `index_only` when debugging/);
-    expect(operations).toMatch(/Project `\.memory\/` files are repository-owned team knowledge artifacts/);
-    expect(operations).toMatch(/Commit every authorized creation, update, or deletion under `\.memory\/memories\/`, `\.memory\/index\/`, `\.memory\/embeddings\/`, `\.memory\/graph\/`, and `\.memory\/maintenance\/`/);
-    expect(operations).toMatch(/Never ignore `\.memory\/` wholesale/);
-    expect(operations).toMatch(/Ignore only `\.memory\/memory\.db\*`/);
+    expect(operations).toMatch(/Resolve the configured project-memory root first/);
+    expect(operations).toMatch(/commit every authorized creation, update, or deletion under its `memories\/`, `index\/`, `embeddings\/`, `graph\/`, and `maintenance\/`/);
+    expect(operations).toMatch(/Never ignore that root wholesale/);
+    expect(operations).toMatch(/Ignore only `<configured-root>\/memory\.db\*`/);
+    expect(operations).toMatch(/root is outside the repository/);
     expect(reconciliation).toMatch(/^name: reconciling-memory$/m);
     expect(reconciliation).toMatch(/memory_reconciliation_status/);
     expect(reconciliation).toMatch(/memory_reconciliation_record/);
@@ -115,8 +117,11 @@ describe('memory write gate', () => {
     expect(reconciliation).toMatch(/## Full Maintenance/);
     expect(reconciliation).toMatch(/memory_graph_maintain/);
     expect(readme).toMatch(/Project Memory Belongs In Git/);
-    expect(readme).toMatch(/Commit memories, indexes, embeddings, graph edges, and reconciliation/);
-    expect(readme).toMatch(/Never ignore `\.memory\/` wholesale/);
+    expect(readme).toMatch(/Commit its `memories\/`, `index\/`, `embeddings\/`, `graph\/`/);
+    expect(readme).toMatch(/`maintenance\/` contents/);
+    expect(readme).toMatch(/Never ignore the configured root wholesale/);
+    expect(readme).toMatch(/A root outside the repository cannot be/);
+    expect(readme).toMatch(/tracked as repository-owned project memory/);
     expect(readme).toMatch(/\.memory\/memory\.db\*/);
   });
 
