@@ -29,9 +29,10 @@ Claude Code:
   pass; standard work uses at most one total; assurance work declares a bounded
   task-wide budget. Durable work uses `.workflow/` MCP state operations.
 - `agent-memory`: Durable global/project memory. Global memory follows the
-  user. Project memory lives in `<repo>/.memory/`; markdown, index, embedding,
-  and graph files are intended to be committed for team use. `.memory/memory.db*`
-  is generated cache and should stay ignored.
+  user. Project memory defaults to `<repo>/.memory/`; when its configured root
+  is inside the repository, markdown, index, embedding, and graph files are
+  intended to be committed for team use. Only `memory.db*` under that root is
+  generated cache; the default ignore pattern is `.memory/memory.db*`.
 - `merge-request-review`: Strict ready GitLab MR review workflow with current
   discussions, CI-first evidence, local review state, findings, note drafts,
   zero-agent normal review by default, and at most two agents for high-risk

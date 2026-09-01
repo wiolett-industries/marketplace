@@ -170,10 +170,11 @@ async function collectAndConfirmInit(
 ): Promise<void> {
   const providersConfig = readAiProvidersConfig(configPath);
   const existing = providersConfig?.providers.openai;
+  const existingApiKey = existing?.auth?.api_key?.trim() || undefined;
   ui.intro('Agent Memory · Initialize');
-  if (existing?.auth?.api_key) ui.info(`Existing OpenAI settings from ${configPath} will be used as defaults.`);
+  if (existingApiKey) ui.info(`Existing OpenAI settings from ${configPath} will be used as defaults.`);
 
-  const apiKey = args.key ?? existing?.auth?.api_key ?? await ui.password('OpenAI API key', {
+  const apiKey = args.key ?? existingApiKey ?? await ui.password('OpenAI API key', {
     validate: (value) => value?.trim() ? undefined : 'OpenAI API key is required.',
   });
   if (apiKey === null) return cancelInit(ui);

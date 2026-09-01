@@ -1,10 +1,11 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { getDb } from './db.js';
 import { getEmbeddingsDir, getGraphDir, getIndexDir, getMemoriesDir } from './files.js';
+import { updateProjectMemoryGitignore } from './project-memory-gitignore.js';
 import { rebuildFromFiles } from './rebuild.js';
 import type { MemoryScope } from './scope.js';
-import { getMemoryRoot, getProjectRoot } from './scope.js';
+import { getMemoryRoot, getProjectRoot, withProjectRoot } from './scope.js';
 
 export interface MemoryState {
   scope: MemoryScope;
@@ -47,35 +48,17 @@ function bootstrapGlobalMemory(): void {
   getDb('global');
 }
 
-function updateGitignore(projectPath: string): void {
-  const gitignorePath = path.join(projectPath, '.gitignore');
-  const dbIgnoreEntry = '.memory/memory.db*';
-  const legacyIgnoreEntry = '.memory/';
-
-  if (existsSync(gitignorePath)) {
-    const lines = readFileSync(gitignorePath, 'utf8').split('\n');
-    const filtered = lines.filter((line) => line.trim() !== legacyIgnoreEntry);
-    const hasDbIgnore = filtered.some((line) => line.trim() === dbIgnoreEntry);
-
-    if (!hasDbIgnore) {
-      filtered.push(dbIgnoreEntry, '');
-      writeFileSync(gitignorePath, filtered.join('\n'), 'utf8');
-    }
-    return;
-  }
-
-  appendFileSync(gitignorePath, `${dbIgnoreEntry}\n`);
-}
-
 function bootstrapProjectMemory(projectPath?: string): void {
   const resolvedProjectPath = getProjectRoot(projectPath);
-  const memoryDir = getMemoryRoot('project', resolvedProjectPath);
-  mkdirSync(path.join(memoryDir, 'memories'), { recursive: true });
-  mkdirSync(path.join(memoryDir, 'index'), { recursive: true });
-  mkdirSync(path.join(memoryDir, 'embeddings'), { recursive: true });
-  mkdirSync(path.join(memoryDir, 'graph'), { recursive: true });
-  getDb('project');
-  updateGitignore(resolvedProjectPath);
+  withProjectRoot(resolvedProjectPath, () => {
+    const memoryDir = getMemoryRoot('project', resolvedProjectPath);
+    mkdirSync(path.join(memoryDir, 'memories'), { recursive: true });
+    mkdirSync(path.join(memoryDir, 'index'), { recursive: true });
+    mkdirSync(path.join(memoryDir, 'embeddings'), { recursive: true });
+    mkdirSync(path.join(memoryDir, 'graph'), { recursive: true });
+    getDb('project');
+    updateProjectMemoryGitignore(resolvedProjectPath, memoryDir);
+  });
 }
 
 export function ensureMemoryReady(scope: MemoryScope = 'project'): void {

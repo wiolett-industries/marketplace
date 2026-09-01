@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { getBootstrapAgentsHome, readMcpConfig, resolveConfiguredPath } from './config.js';
 
@@ -42,22 +42,45 @@ function hasProjectMemoryLayout(projectPath: string): boolean {
 }
 
 function nearestProjectBase(startPath: string): string {
-  let current = path.resolve(startPath);
+  const start = path.resolve(startPath);
+  let gitRoot: string | null = null;
+  let current = start;
 
   while (true) {
-    if (hasProjectMemoryLayout(current)) {
-      return current;
-    }
-
-    if (existsSync(path.join(current, '.git'))) {
-      return current;
+    if (isGitBoundary(current)) {
+      gitRoot = current;
+      break;
     }
 
     const parent = path.dirname(current);
     if (parent === current) {
-      return path.resolve(startPath);
+      break;
     }
     current = parent;
+  }
+
+  // Without a repository boundary, ancestor memory is ambiguous: a shared
+  // parent such as /tmp may belong to an unrelated project. Non-repository
+  // callers can still target a parent explicitly through workspace_root or
+  // PROJECT_MEMORY_PROJECT_ROOT.
+  if (!gitRoot) return start;
+
+  current = start;
+  while (true) {
+    if (hasProjectMemoryLayout(current)) return current;
+    if (current === gitRoot) return gitRoot;
+    current = path.dirname(current);
+  }
+}
+
+function isGitBoundary(projectPath: string): boolean {
+  const marker = path.join(projectPath, '.git');
+  if (!existsSync(marker)) return false;
+  try {
+    const info = statSync(marker);
+    return info.isFile() || (info.isDirectory() && existsSync(path.join(marker, 'HEAD')));
+  } catch {
+    return false;
   }
 }
 

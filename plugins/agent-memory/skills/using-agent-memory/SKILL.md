@@ -42,12 +42,13 @@ Prefer `memory_update` when an existing canonical memory covers the same decisio
 
 ## Project Memory Git Contract
 
-Treat project `.memory/` as repository-owned team knowledge, not as a generated cache directory.
+Resolve the configured project-memory root before applying Git rules; it defaults to `.memory/`. When that root is inside the repository, treat it as repository-owned team knowledge, not as a generated cache directory.
 
-- Commit every authorized change under `.memory/memories/`, `.memory/index/`, `.memory/embeddings/`, `.memory/graph/`, and `.memory/maintenance/`, including newly created files. Embeddings, graph edges, and reconciliation metadata are canonical project artifacts, not disposable build output.
-- Never add `.memory/`, `.memory/**`, or any canonical subdirectory above to `.gitignore`. Never discard or omit those files merely because Agent Memory generated them.
-- Ignore only the SQLite cache and its sidecars via `.memory/memory.db*`; this covers `memory.db`, `memory.db-shm`, and `memory.db-wal`.
-- Before commit or handoff after a project-memory mutation, check `git status --short .memory` and ensure canonical `.memory/` changes are included in the intended repository diff. If `git check-ignore -v` reports a canonical file, remove the offending broad ignore rule instead of ignoring the artifact.
+- Commit every authorized change under the root's `memories/`, `index/`, `embeddings/`, `graph/`, and `maintenance/` directories, including newly created files. Embeddings, graph edges, and reconciliation metadata are canonical project artifacts, not disposable build output.
+- Never add the project-memory root, its canonical directories, or a broad recursive pattern for that root to `.gitignore`. Never discard or omit canonical files merely because Agent Memory generated them.
+- Ignore only `memory.db*` inside the configured root; this covers `memory.db`, `memory.db-shm`, and `memory.db-wal`. For the default root, the pattern is `.memory/memory.db*`.
+- Before commit or handoff after a project-memory mutation, inspect `git status --short -- <configured-root>` and ensure canonical changes are included in the intended repository diff. If `git check-ignore -v` reports a canonical file, remove the offending broad ignore rule instead of ignoring the artifact.
+- If the configured root is outside the repository, do not claim its files are part of the repository diff; report that the external location cannot satisfy the repository-owned Git contract.
 
 ## Recovery And Completion
 
