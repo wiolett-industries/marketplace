@@ -350,7 +350,7 @@ function sessionContext(input) {
     "Run `intent-gate` locally for non-trivial work and keep it silent when intent is clear.",
     "Context budget is a hard gate: a new plan, resume, compaction, or hand-off never authorizes project inventory; start from the named surface and widen only for one named dependency.",
     "Minimum-solution gate: every plan item must trace to requested behavior, an observed failure, or a concrete normal-path risk. Minimal means behavior-complete: never omit accepted behavior, normal flow, integrity/security, or compatibility. Cut hypothetical edge cases, future-proofing, repeated-crash scenarios, and unrelated refactors.",
-    "UI reuse gate: before JSX/CSS, record a reuse receipt with target, shared primitive path/export, analogous layout path, reuse/adapt/none, and structural verification. A named shared component is architecture acceptance, not visual guidance.",
+    "UI reuse gate: before JSX/CSS, record a reuse receipt with the exact fields `Target:`, `Shared primitive:`, `Layout precedent:`, `Decision:`, and `Structural verification:`. A named shared component is architecture acceptance, not visual guidance.",
     "UI composition gate: shared-components-only forbids local substitutes, wrappers, tokens, and parallel layouts. Reuse/adapt the named primitive and analogous composition or ask; behavior tests and screenshots alone do not prove reuse.",
     "Task-wide ceilings: fast (0 agents), standard (at most 1 total), assurance (declared total, default 3; at most 2 reviewers per round), or an explicit audit budget.",
     "Authorization is permission, not activation. Parent Max/Ultra and multiple skills do not expand the budget.",
@@ -412,8 +412,20 @@ function validateStopGates(input) {
   ok();
 }
 
+function containsUiFile(source) {
+  return /(?:^|[\s`(])[^\s`()]+\.(?:tsx|jsx|vue|svelte|css|scss|sass|less)(?=\W|$)/imu.test(source);
+}
+
 function hasUiChangedFile(message) {
-  return /(?:^|[\s`(])[^\s`()]+\.(?:tsx|jsx|vue|svelte|css|scss|sass|less)(?=[:`,)\s]|$)/imu.test(message);
+  const changedFilesIndex = message.search(/^Changed files:/im);
+  if (changedFilesIndex >= 0) {
+    const remainder = message.slice(changedFilesIndex).replace(/^Changed files:[^\S\r\n]*/i, "");
+    const nextSection = remainder.search(/^(?:Verification|Concerns|UI Reuse Evidence):/im);
+    const changedFiles = nextSection >= 0 ? remainder.slice(0, nextSection) : remainder;
+    if (containsUiFile(changedFiles)) return true;
+  }
+
+  return /^(?:[-*]\s*)?(?:(?:I|We)\s+)?(?:implemented|changed|edited|updated|modified|created|added|removed|fixed)\b[^\n]*\.(?:tsx|jsx|vue|svelte|css|scss|sass|less)(?=\W|$)/imu.test(message);
 }
 
 function missingReuseReceiptField(source) {
@@ -433,7 +445,8 @@ function hasPassingStructuralEvidence(source) {
 
 function validateUiReuseEvidence(input, workflowRoot, activePlan, planState) {
   const message = input.last_assistant_message || "";
-  if (hasUiChangedFile(message)) {
+  const reportsUiChanges = hasUiChangedFile(message);
+  if (reportsUiChanges) {
     if (!/^UI Reuse Evidence:\s*$/im.test(message)) {
       return "UI files are reported as changed, but final output lacks `UI Reuse Evidence:`. Provide Target, Shared primitive, Layout precedent, Decision, and Structural verification with PASS evidence.";
     }
@@ -444,7 +457,9 @@ function validateUiReuseEvidence(input, workflowRoot, activePlan, planState) {
     }
   }
 
-  if (!activePlan) return null;
+  // An incomplete active UI contract belongs to the plan, not to every chat
+  // turn. Only enforce it when this response actually reports UI changes.
+  if (!activePlan || !reportsUiChanges) return null;
   const contract = readText(path.join(workflowRoot, activePlan, "ui-contract.md"));
   if (!contract || /No UI contract applies unless frontend or visible UI work is in scope\./i.test(contract)) return null;
 
@@ -467,7 +482,7 @@ function subagentStart(input) {
     "No scope creep, lint suppression, or unsupported assumptions.",
     "Context hard gate: the assigned scope or question is a read boundary. Do not inventory or re-read the project after a plan or compaction; if an outside file is essential, name the exact dependency and report `NEEDS_CONTEXT`.",
     "Minimum-solution gate: implement assigned behavior completely; do not add hypothetical hardening or omit acceptance, normal flow, integrity/security, or compatibility to reduce scope.",
-    "UI reuse gate: before coding, require a receipt naming target, shared primitive path/export, analogous layout path, decision, and structural verification. A named reuse instruction is architecture acceptance.",
+    "UI reuse gate: before coding, require a receipt with the exact fields `Target:`, `Shared primitive:`, `Layout precedent:`, `Decision:`, and `Structural verification:`. A named reuse instruction is architecture acceptance.",
     "UI composition gate: shared-components-only means no local substitute or wrapper; use the named primitive and analogous layout or report `NEEDS_CONTEXT`. Behavior tests/screenshots alone do not prove reuse.",
   ];
 

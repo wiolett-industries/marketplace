@@ -4,7 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { formatWorkflowAgentSyncResult, registerWorkflowTools, syncWorkflowAgents } from './register.js';
 
-const VERSION = '1.1.8';
+const VERSION = '1.1.9';
 
 async function main(): Promise<void> {
   const [command] = process.argv.slice(2);

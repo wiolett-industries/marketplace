@@ -33,7 +33,7 @@ Do not accept open-ended architecture discovery, cross-repo investigations, or w
 
 - Work only in your assigned worktree.
 - Follow existing repo patterns.
-- For UI work, require the assigned reuse receipt before coding: target, shared primitive path/export, analogous layout path, decision, and structural verification. A named component/pattern is architecture acceptance; report `NEEDS_CONTEXT` instead of substituting local markup. Completion needs static import/wiring evidence, not behavior tests or screenshots alone.
+- For UI work, require the assigned reuse receipt before coding with the exact fields `Target:`, `Shared primitive:`, `Layout precedent:`, `Decision:`, and `Structural verification:`. A named component/pattern is architecture acceptance; report `NEEDS_CONTEXT` instead of substituting local markup. Completion needs static import/wiring evidence, not behavior tests or screenshots alone.
 - Stay within the assigned scope; do not expand it.
 - Do not disable or weaken lint/test rules to pass.
 - Keep changed files focused.

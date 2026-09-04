@@ -82,6 +82,8 @@ test('workflow session hook emits recovery context for active plans', () => {
   assert.match(output.hookSpecificOutput.additionalContext, /Minimal means behavior-complete/);
   assert.match(output.hookSpecificOutput.additionalContext, /UI reuse gate/);
   assert.match(output.hookSpecificOutput.additionalContext, /reuse receipt/);
+  assert.match(output.hookSpecificOutput.additionalContext, /`Layout precedent:`/);
+  assert.doesNotMatch(output.hookSpecificOutput.additionalContext, /analogous layout path/i);
   assert.match(output.hookSpecificOutput.additionalContext, /architecture acceptance/);
   assert.match(output.hookSpecificOutput.additionalContext, /UI composition gate/);
   assert.match(output.hookSpecificOutput.additionalContext, /screenshots alone do not prove reuse/);
@@ -346,7 +348,9 @@ test('workflow subagent start reminds implementers to stay bounded', () => {
   assert.match(output.hookSpecificOutput.additionalContext, /no open-ended analysis/);
   assert.match(output.hookSpecificOutput.additionalContext, /read boundary/);
   assert.match(output.hookSpecificOutput.additionalContext, /implement assigned behavior completely/);
-  assert.match(output.hookSpecificOutput.additionalContext, /receipt naming target/);
+  assert.match(output.hookSpecificOutput.additionalContext, /receipt with the exact fields/);
+  assert.match(output.hookSpecificOutput.additionalContext, /`Layout precedent:`/);
+  assert.doesNotMatch(output.hookSpecificOutput.additionalContext, /analogous layout path/i);
   assert.match(output.hookSpecificOutput.additionalContext, /architecture acceptance/);
   assert.match(output.hookSpecificOutput.additionalContext, /no local substitute or wrapper/);
 });
@@ -398,6 +402,12 @@ test('Codex Stop allows reviewed and awaiting-user commitment states', () => {
 });
 
 test('Codex Stop requires a complete reuse receipt when final output reports UI files', () => {
+  const mentionOnly = runHook({
+    hook_event_name: 'Stop',
+    last_assistant_message: 'The signing method is implemented in src/Wallet.tsx; no file was changed.',
+  });
+  assert.equal(mentionOnly.continue, true);
+
   const missing = runHook({
     hook_event_name: 'Stop',
     last_assistant_message: 'Implemented src/Table.tsx and tests pass.',
@@ -458,7 +468,28 @@ test('Codex Stop enforces active-plan UI receipts and final structural evidence'
   writeFileSync(path.join(planDir, 'state.json'), JSON.stringify({ phase: 'executing' }), 'utf8');
   writeFileSync(path.join(planDir, 'ui-contract.md'), '# UI Contract\n\nProduction table change.\n', 'utf8');
 
-  const missing = runHook({ hook_event_name: 'Stop', cwd: workspace }, workspace);
+  const ordinaryQuestion = runHook({
+    hook_event_name: 'Stop',
+    cwd: workspace,
+    last_assistant_message: 'The signing method is implemented in src/Wallet.tsx; no file was changed.',
+  }, workspace);
+  assert.equal(ordinaryQuestion.continue, true);
+
+  const uiCompletionMessage = [
+    'Implemented src/Table.tsx.',
+    'UI Reuse Evidence:',
+    'Target: src/Table.tsx',
+    'Shared primitive: src/shared/Table.tsx#Table',
+    'Layout precedent: src/screens/Users.tsx',
+    'Decision: reuse',
+    'Structural verification: PASS AST import assertion',
+  ].join('\n');
+
+  const missing = runHook({
+    hook_event_name: 'Stop',
+    cwd: workspace,
+    last_assistant_message: uiCompletionMessage,
+  }, workspace);
   assert.equal(missing.decision, 'block');
   assert.match(missing.reason, /UI Reuse Receipt/);
 
@@ -471,10 +502,18 @@ test('Codex Stop enforces active-plan UI receipts and final structural evidence'
     'Decision: reuse',
     'Structural verification: AST import assertion',
   ].join('\n'), 'utf8');
-  assert.equal(runHook({ hook_event_name: 'Stop', cwd: workspace }, workspace).continue, true);
+  assert.equal(runHook({
+    hook_event_name: 'Stop',
+    cwd: workspace,
+    last_assistant_message: uiCompletionMessage,
+  }, workspace).continue, true);
 
   writeFileSync(path.join(planDir, 'state.json'), JSON.stringify({ phase: 'finalizing' }), 'utf8');
-  const notVerified = runHook({ hook_event_name: 'Stop', cwd: workspace }, workspace);
+  const notVerified = runHook({
+    hook_event_name: 'Stop',
+    cwd: workspace,
+    last_assistant_message: uiCompletionMessage,
+  }, workspace);
   assert.equal(notVerified.decision, 'block');
   assert.match(notVerified.reason, /Structural verification: PASS/);
 
@@ -483,7 +522,11 @@ test('Codex Stop enforces active-plan UI receipts and final structural evidence'
     readFileSync(path.join(planDir, 'ui-contract.md'), 'utf8').replace('Structural verification: AST', 'Structural verification: PASS AST'),
     'utf8',
   );
-  assert.equal(runHook({ hook_event_name: 'Stop', cwd: workspace }, workspace).continue, true);
+  assert.equal(runHook({
+    hook_event_name: 'Stop',
+    cwd: workspace,
+    last_assistant_message: uiCompletionMessage,
+  }, workspace).continue, true);
 });
 
 test('Kimi Stop uses native exit-code blocking without changing Codex output', () => {
@@ -848,11 +891,13 @@ test('workflow skills preserve mandatory routing and MCP boundaries', () => {
 
   assert.match(usingWorkflow, /run a local `intent-gate` for non-trivial work/i);
   assert.match(usingWorkflow, /A skill trigger never implies an artifact, subagent, plan, or verification step/);
+  assert.match(usingWorkflow, /exact receipt labels.*`Layout precedent:`/);
   assert.match(usingWorkflow, /Read-only, no-edits, without changes/);
   assert.match(intentGate, /brief local routing decision, not optional ceremony and not an automatic subagent step/);
   assert.match(workflowMcp, /normal path, not a preference/);
   assert.match(writingPlans, /Manual `\.workflow\/` writes are fallback only/);
   assert.match(executingPlans, /manual state\/artifact writes are fallback only/i);
+  assert.match(executingPlans, /exact labels.*`Layout precedent:`/);
   assert.match(executingPlans, /workflow_plan_complete/);
   assert.match(finalizingPlan, /Manual findings\/state\/artifact writes are fallback only/);
   assert.match(finalizingPlan, /workflow_plan_complete/);
@@ -894,8 +939,20 @@ test('workflow prompts route subagents by task shape and cap review loops', () =
   assert.match(uiContract, /unapproved duplicate components, tokens, or layouts are `Important`/);
   assert.match(implementer, /bounded patch worker, not an architecture analyst/);
   assert.match(implementer, /require the assigned reuse receipt before coding/);
+  assert.match(implementer, /exact fields.*`Layout precedent:`/);
+  assert.doesNotMatch(implementer, /analogous layout path/i);
   assert.match(implementer, /Structural verification: PASS/);
   assert.match(implementer, /report `NEEDS_CONTEXT`/);
+  for (const [dir, extension] of [
+    ['packages/workflow/agents', '.toml'],
+    ['plugins/workflow/agents', '.md'],
+  ]) {
+    for (const name of ['workflow_implementer', 'workflow_implementer_standard', 'workflow_implementer_complex']) {
+      const prompt = readAgentFile(dir, name, extension);
+      assert.match(prompt, /exact fields.*`Layout precedent:`/);
+      assert.doesNotMatch(prompt, /analogous layout path/i);
+    }
+  }
   assert.match(explorer, /not a repository inventory agent/);
   assert.match(explorer, /six file slices, 20 KB of output, and three searches/);
   assert.match(fixTriage, /Stop low-value loops/);
