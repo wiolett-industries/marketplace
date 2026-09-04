@@ -22,6 +22,7 @@
   "scripts": {
     "plugins:install": "pnpm install",
     "plugin:agent-memory:install": "pnpm install --filter @wiolett/agent-memory",
+    "publish:changed": "node scripts/publish-changed-packages.mjs",
     "build": "pnpm --filter @wiolett/agent-memory build && pnpm --filter @wiolett/workflow build && pnpm --filter @wiolett/merge-request-review build",
     "test": "pnpm --filter @wiolett/agent-memory test && pnpm --filter @wiolett/workflow test && pnpm --filter @wiolett/merge-request-review test",
     "typecheck": "pnpm --filter @wiolett/agent-memory typecheck && pnpm --filter @wiolett/workflow typecheck && pnpm --filter @wiolett/merge-request-review typecheck"

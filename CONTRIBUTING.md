@@ -58,6 +58,21 @@ pnpm --filter @wiolett/workflow test
 pnpm --filter @wiolett/merge-request-review test
 ```
 
+## npm Publishing
+
+The `Publish npm packages` GitHub Actions workflow runs after pushes to `main`
+and can also be started manually. It checks the root package and every public
+package under `packages/`, skips versions that already exist in npm, and
+publishes only missing versions.
+
+Configure a GitHub Actions repository secret named `NPM_TOKEN` with permission
+to publish the `@wiolett` packages. The token is provided to npm through the
+runner environment and must never be committed to the repository.
+
+Before merging a package change, update its version according to the versioning
+rules above. A failed partial publish is safe to rerun because already published
+versions are skipped.
+
 ## Pull Requests
 
 Keep pull requests focused and describe:
