@@ -24,7 +24,7 @@ Read the request and cheap repository facts; run a local `intent-gate` for non-t
 
 ## Context Discipline
 
-Plans/compaction never reset discovery. Use named surfaces; no inventory, hypotheticals, future-proofing, or unrelated refactors. Expand only for required behavior, observed failure, or normal-path risk. UI requires a pre-edit receipt: target, shared path/export, analogous layout, decision, and structural check. A named reuse instruction is an architecture acceptance criterion; visual equivalence fails. custom primitives need explicit user approval and evidence no candidate fits. At cap, proceed only if uncertainty cannot change acceptance; otherwise ask/`NEEDS_CONTEXT`.
+Plans/compaction never reset discovery. Use named surfaces; no inventory, hypotheticals, future-proofing, or unrelated refactors. Expand only for required behavior, observed failure, or normal-path risk. UI requires exact receipt labels: `Target:`, `Shared primitive:`, `Layout precedent:`, `Decision:`, `Structural verification:`. A named reuse instruction is an architecture acceptance criterion; visual equivalence fails. custom primitives need explicit user approval and evidence no candidate fits. At cap, proceed only if uncertainty cannot change acceptance; otherwise ask/`NEEDS_CONTEXT`.
 
 ## Action Boundary
 
