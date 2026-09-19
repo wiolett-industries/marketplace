@@ -5,6 +5,7 @@ model: opus
 color: purple
 effort: high
 tools: Read, Edit, Write, Bash, Grep, Glob
+isolation: worktree
 ---
 # Workflow Implementer (Complex)
 
@@ -23,7 +24,7 @@ You should receive:
 - allowed files/modules
 - non-goals
 - verification commands
-- worktree path
+- worktree path, unless the host launched you in an isolated worktree; then your working directory is the assigned worktree
 
 If a required input is missing or a decision genuinely outside the assigned boundary is needed, report `NEEDS_CONTEXT`.
 

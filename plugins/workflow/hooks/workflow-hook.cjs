@@ -7,7 +7,14 @@ const cp = require("child_process");
 
 function readInput() {
   const raw = fs.readFileSync(0, "utf8").trim();
-  return raw ? JSON.parse(raw) : {};
+  const input = raw ? JSON.parse(raw) : {};
+  if (typeof input.agent_type === "string") input.agent_type = bareAgentType(input.agent_type);
+  return input;
+}
+
+// Hosts that namespace plugin agents report `plugin:agent_name`; contracts key on the bare name.
+function bareAgentType(agentType) {
+  return agentType.slice(agentType.lastIndexOf(":") + 1);
 }
 
 function isKimiHost() {
@@ -221,7 +228,7 @@ function newestVersionRoot(container) {
       .filter((entry) => entry.isDirectory())
       .map((entry) => path.join(container, entry.name))
       .filter(hasPluginManifest)
-      .sort()
+      .sort((left, right) => path.basename(left).localeCompare(path.basename(right), undefined, { numeric: true }))
       .pop() || null;
   } catch {
     return null;

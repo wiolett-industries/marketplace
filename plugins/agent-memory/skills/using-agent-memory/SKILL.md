@@ -5,7 +5,7 @@ description: Use at conversation start, after compaction or context recovery, an
 
 # Using Agent Memory
 
-Agent Memory is the MCP-backed durable memory system. It is separate from Codex built-in memory, chat history, and `.workflow/` artifacts. Use Codex built-in memory only as background; use Agent Memory MCP for durable repo facts and reusable workflows when its tools are available.
+Agent Memory is the MCP-backed durable memory system. It is separate from the host's built-in memory (Codex memories, Claude Code's `memory/` directory and `MEMORY.md` index, or an equivalent), chat history, and `.workflow/` artifacts. Use host built-in memory only as background, even when the host prompt asks you to save there: route durable user and project facts through `memory_save`/`memory_update` when the Agent Memory tools are available, and do not count a built-in memory read or write as the Agent Memory read or completion latch.
 
 ## Retrieval Gate
 

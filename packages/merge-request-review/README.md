@@ -5,6 +5,7 @@ MCP runtime for the Merge Request Review Codex plugin.
 On startup it:
 
 - syncs canonical `merge_request_*` custom agents into `~/.codex/agents/` with GPT-5.6 Luna for structured intake/verification, Terra for primary review, and Sol for high-risk review
+- skips that sync when no Codex home exists and none is configured through `CODEX_HOME` or `MERGE_REQUEST_REVIEW_CODEX_HOME`, so non-Codex hosts never get `~/.codex/` created
 - creates best-effort compatibility links under `~/.agents/agents/`
 - registers filesystem-backed review state and artifact tools under `.workflow/mr-reviews/` by default
 

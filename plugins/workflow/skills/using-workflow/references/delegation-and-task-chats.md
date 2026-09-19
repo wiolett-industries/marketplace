@@ -31,3 +31,11 @@ Do not delegate a one-file lookup, a direct symptom with a known cause, or a tas
 A task/chat is not a hidden subagent: it is a user-visible, independently resumable unit of work. Create one only when the user asks to split work or has explicitly authorized task splitting, and it has a standalone result, needs an isolated worktree or long-running lifecycle, or is likely to need later user interaction. It does not consume the internal subagent budget, but it must not be used to evade that budget or to create background noise.
 
 In Codex, use the supported task/thread API. For repository work, resolve the project first and choose the appropriate environment; state the objective, repository/environment boundary, expected deliverable, and whether the user should continue the task directly. Do not create a visible task for a short research leaf, an independent review, ordinary tool work, or a tiny follow-up; keep those as internal subagent work or local work in the current task.
+
+On a host without a user-visible task API (for example Claude Code), do not emulate one with background agents: keep the work in the current task or an internal subagent and say so when the user asked for a split.
+
+## Host Mapping
+
+- Agent names: a host may expose plugin agents under a namespace such as `workflow:workflow_explorer`. It is the same role as the bare `workflow_explorer` named in skills and plans.
+- Write isolation: when the host creates the worktree at launch (for example Claude Code agent `isolation: worktree`), use that instead of preparing a path; the worker's reported worktree/branch is the integration input. Otherwise create the worktree first and pass its path.
+- Host orchestration features: a built-in multi-agent "workflow" runner or similar is not part of these skills. Loading a workflow skill never opts into it, and its agents still count against the task-wide budget.

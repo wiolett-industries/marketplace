@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -17,6 +17,26 @@ test('syncs merge request review agents globally', () => {
   assert.equal(result.compatibility_errors.length, 0);
   assert.equal(lock.managed_by, '@wiolett/merge-request-review');
   assert.ok(result.synced.includes('merge_request_primary_reviewer.toml'));
+});
+
+test('skips agent sync when no Codex home exists and none is configured', () => {
+  const home = mkdtempSync(path.join(os.tmpdir(), 'mr-review-home-'));
+  const result = syncMergeRequestReviewAgents({ packageVersion: 'test', env: { HOME: home } });
+
+  assert.equal(result.skipped, 'codex_home_missing');
+  assert.equal(result.count, 0);
+  assert.equal(existsSync(path.join(home, '.codex')), false);
+  assert.equal(existsSync(path.join(home, '.agents')), false);
+});
+
+test('syncs into an existing default Codex home without an explicit override', () => {
+  const home = mkdtempSync(path.join(os.tmpdir(), 'mr-review-home-'));
+  mkdirSync(path.join(home, '.codex'));
+  const result = syncMergeRequestReviewAgents({ packageVersion: 'test', env: { HOME: home } });
+
+  assert.equal(result.skipped, undefined);
+  assert.equal(result.count, 4);
+  assert.equal(existsSync(path.join(home, '.codex', 'agents', 'merge_request_primary_reviewer.toml')), true);
 });
 
 test('overwrites locally modified merge request review agents', () => {

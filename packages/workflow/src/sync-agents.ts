@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, mkdirSync, readlinkSync, readdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseWorkflowAgentDefinition, type WorkflowAgentDefinition } from './agent-schema.js';
-import { getCompatibilityAgentsDir, getGlobalAgentsDir, resolveSourceAgentsDir } from './paths.js';
+import { getCompatibilityAgentsDir, getGlobalAgentsDir, isCodexHomeAvailable, resolveSourceAgentsDir } from './paths.js';
 
 const LOCK_FILE = '.workflow-agents.lock.json';
 const MANAGED_BY = '@wiolett/workflow';
@@ -43,6 +43,7 @@ export interface SyncWorkflowAgentsResult {
   compatibility_removed: string[];
   compatibility_errors: string[];
   count: number;
+  skipped?: 'codex_home_missing';
 }
 
 export function syncWorkflowAgents(options: SyncWorkflowAgentsOptions): SyncWorkflowAgentsResult {
@@ -50,6 +51,25 @@ export function syncWorkflowAgents(options: SyncWorkflowAgentsOptions): SyncWork
   const sourceDir = resolveSourceAgentsDir(env);
   const targetDir = getGlobalAgentsDir(env);
   const compatibilityDir = getCompatibilityAgentsDir(env);
+
+  if (!isCodexHomeAvailable(env)) {
+    return {
+      source_dir: sourceDir,
+      target_dir: targetDir,
+      compatibility_dir: compatibilityDir,
+      synced: [],
+      unchanged: [],
+      removed: [],
+      linked: [],
+      copied: [],
+      compatibility_unchanged: [],
+      compatibility_removed: [],
+      compatibility_errors: [],
+      count: 0,
+      skipped: 'codex_home_missing',
+    };
+  }
+
   const sourceAgents = readSourceAgents(sourceDir);
   const previousLock = readLock(targetDir);
 

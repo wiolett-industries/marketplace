@@ -48,5 +48,6 @@ or reviewer validation.
 
 Kimi registers only Workflow's bounded `Stop` guard. Its hook entry lives only
 in the Kimi manifests, while Codex and Claude continue to use their existing
-platform-specific hook configurations. Kimi does not register the
-`PostToolUse` output filter because that event is observation-only there.
+platform-specific hook configurations. No platform registers a tool-output
+filter: command output reaches the model unmodified and hosts apply their own
+truncation.

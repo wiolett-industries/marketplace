@@ -19,6 +19,9 @@ export function registerWorkflowTools(server: McpServer): void {
 }
 
 export function formatWorkflowAgentSyncResult(result: SyncWorkflowAgentsResult): string {
+  if (result.skipped) {
+    return `workflow: skipped custom agent sync reason=${result.skipped} target=${result.target_dir}`;
+  }
   return [
     'workflow: synced workflow custom agents',
     `source=${result.source_dir}`,

@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { lstatSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { spawnSync } from 'node:child_process';
 import { syncWorkflowAgents } from '../dist/sync-agents.js';
 
 test('syncs workflow agents globally and writes lock file', () => {
@@ -144,6 +145,24 @@ function makeSourceDir() {
 function writeAgent(dir, name, description) {
   writeFileSync(path.join(dir, `${name}.toml`), agentContent(name, description), 'utf8');
 }
+
+test('skips agent sync when no Codex home exists and none is configured', () => {
+  const home = mkdtempSync(path.join(os.tmpdir(), 'workflow-home-'));
+  const syncModule = new URL('../dist/sync-agents.js', import.meta.url).href;
+  const { WORKFLOW_MCP_CODEX_HOME, CODEX_HOME, WORKFLOW_MCP_SHARED_AGENTS_HOME, AGENTS_HOME, ...cleanEnv } = process.env;
+  const child = spawnSync(process.execPath, [
+    '--input-type=module',
+    '-e',
+    `const { syncWorkflowAgents } = await import(${JSON.stringify(syncModule)}); console.log(JSON.stringify(syncWorkflowAgents({ packageVersion: 'test' })));`,
+  ], { encoding: 'utf8', env: { ...cleanEnv, HOME: home, USERPROFILE: home } });
+
+  assert.equal(child.status, 0, child.stderr);
+  const result = JSON.parse(child.stdout);
+  assert.equal(result.skipped, 'codex_home_missing');
+  assert.equal(result.count, 0);
+  assert.equal(existsSync(path.join(home, '.codex')), false);
+  assert.equal(existsSync(path.join(home, '.agents')), false);
+});
 
 function makeEnv(sourceDir) {
   return {

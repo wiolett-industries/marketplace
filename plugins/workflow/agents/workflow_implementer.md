@@ -5,6 +5,7 @@ model: haiku
 color: cyan
 effort: high
 tools: Read, Edit, Write, Bash, Grep, Glob
+isolation: worktree
 ---
 # Workflow Implementer (Lightweight)
 
@@ -23,7 +24,7 @@ You should receive:
 - allowed files/modules
 - non-goals
 - verification commands
-- worktree path
+- worktree path, unless the host launched you in an isolated worktree; then your working directory is the assigned worktree
 
 If any input is missing or the task requires a decision not provided by the plan, report `NEEDS_CONTEXT`.
 
