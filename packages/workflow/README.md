@@ -8,6 +8,8 @@ It also creates best-effort compatibility links in `~/.agents/agents/` that poin
 
 Agent sync is a startup invariant, not a model-visible action, so the server does not expose sync tools.
 
+Sync is skipped when no Codex home exists and none is configured through `CODEX_HOME` or the package-specific override, so Claude Code-only and Kimi-only installs never get `~/.codex/` or `~/.agents/agents/` created for them.
+
 The Workflow plugin is also the consolidated hook owner for Wiolett plugins. Its hook can detect sibling `agent-memory` and `merge-request-review` plugin installs and add the relevant startup context or merge_request_* reviewer validation without those plugins registering separate hooks. A Codex-only Stop adapter enforces pending material-plan reflection; Claude Code remains hook-optional because the portable behavior lives in skills and MCP state.
 
 ## Tools

@@ -264,7 +264,7 @@ test('Codex and Claude workflow hook configs stay platform-specific', () => {
   assert.equal(codexConfig.hooks.PostCompact, undefined);
   assert.equal(codexConfig.hooks.SubagentStart[0].matcher, '^(workflow_|merge_request_)');
   assert.match(claudeConfig.hooks.SessionStart[0].hooks[0].command, /CLAUDE_PLUGIN_ROOT/);
-  assert.equal(claudeConfig.hooks.PostToolUse[0].matcher, 'Bash');
+  assert.equal(claudeConfig.hooks.PostToolUse, undefined);
   assert.equal(claudeConfig.hooks.SubagentStart, undefined);
 });
 
@@ -277,6 +277,23 @@ test('workflow subagent stop blocks malformed reviewer output', () => {
 
   assert.equal(output.decision, 'block');
   assert.match(output.reason, /Verdict/);
+});
+
+test('workflow subagent hooks accept plugin-namespaced agent types', () => {
+  const stop = runHook({
+    hook_event_name: 'SubagentStop',
+    agent_type: 'workflow:workflow_combined_reviewer',
+    last_assistant_message: 'Looks fine to me.',
+  });
+  const start = runHook({
+    hook_event_name: 'SubagentStart',
+    agent_type: 'workflow:workflow_implementer',
+  });
+
+  assert.equal(stop.decision, 'block');
+  assert.match(stop.reason, /Verdict/);
+  assert.match(start.hookSpecificOutput.additionalContext, /Workflow agent workflow_implementer:/);
+  assert.match(start.hookSpecificOutput.additionalContext, /Lightweight implementer/);
 });
 
 test('workflow subagent stop accepts valid implementer output', () => {
@@ -650,7 +667,7 @@ test('repository ships both Codex and Claude plugin manifests', () => {
   for (const entry of [...codexMarketplace.plugins, ...claudeMarketplace.plugins]) {
     assert.equal(entry.version, undefined);
   }
-  assert.equal(claudeHookConfig.hooks.PostToolUse[0].matcher, 'Bash');
+  assert.equal(claudeHookConfig.hooks.PostToolUse, undefined);
 });
 
 test('repository ships Kimi aggregate and per-plugin manifests without cross-platform hook drift', () => {
@@ -719,7 +736,7 @@ test('repository ships Kimi aggregate and per-plugin manifests without cross-pla
   const claudeHooks = JSON.parse(readFileSync(path.join(repoRoot, 'plugins/workflow/hooks/hooks.json'), 'utf8'));
   assert.deepEqual(kimiWorkflow.hooks.map((hook) => hook.event), ['Stop']);
   assert.equal(codexWorkflow.hooks, './hooks/codex-hooks.json');
-  assert.equal(claudeHooks.hooks.PostToolUse[0].matcher, 'Bash');
+  assert.equal(claudeHooks.hooks.PostToolUse, undefined);
   assert.equal(claudeHooks.hooks.Stop, undefined);
 });
 
@@ -731,7 +748,7 @@ test('README documents Kimi aggregate installation and platform boundaries', () 
   assert.match(readme, /MCP servers can be enabled or disabled\s+independently/);
   assert.match(readme, /does not load the Codex TOML agents or Claude Code plugin\s+agents/);
   assert.match(readme, /Claude\/Codex hook\s+configuration remains separate/);
-  assert.match(readme, /Kimi treats that event as observation-only/);
+  assert.doesNotMatch(readme, /output filter/i);
 });
 
 test('runtime source versions match package manifests', () => {

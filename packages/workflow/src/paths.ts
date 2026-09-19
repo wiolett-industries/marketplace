@@ -7,6 +7,12 @@ export function getCodexHome(env: NodeJS.ProcessEnv = process.env): string {
   return env.WORKFLOW_MCP_CODEX_HOME || env.CODEX_HOME || path.join(os.homedir(), '.codex');
 }
 
+// Codex is the only consumer of synced TOML agents. Without an explicit home override or an
+// existing Codex home, the host is another client and sync must not create Codex directories.
+export function isCodexHomeAvailable(env: NodeJS.ProcessEnv = process.env): boolean {
+  return Boolean(env.WORKFLOW_MCP_CODEX_HOME || env.CODEX_HOME) || existsSync(getCodexHome(env));
+}
+
 export function getGlobalAgentsDir(env: NodeJS.ProcessEnv = process.env): string {
   return path.join(getCodexHome(env), 'agents');
 }

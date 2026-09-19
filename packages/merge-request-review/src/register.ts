@@ -9,6 +9,9 @@ export function registerMergeRequestReviewControlTools(server: McpServer): void 
 }
 
 export function formatMergeRequestReviewAgentSyncResult(result: SyncMergeRequestReviewAgentsResult): string {
+  if (result.skipped) {
+    return `merge-request-review: skipped custom agent sync reason=${result.skipped} target=${result.target_dir}`;
+  }
   return [
     'merge-request-review: synced custom agents',
     `source=${result.source_dir}`,

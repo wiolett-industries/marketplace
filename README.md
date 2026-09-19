@@ -162,8 +162,7 @@ declarations. It does not load the Codex TOML agents or Claude Code plugin
 agents; workflows run locally by default and may use Kimi's built-in `explore`,
 `plan`, or `coder` agents only within the same task-wide budget. The Kimi
 manifest registers only the bounded Workflow `Stop` guard. Claude/Codex hook
-configuration remains separate, and the Claude `PostToolUse` output filter is
-not registered because Kimi treats that event as observation-only.
+configuration remains separate.
 
 ## Model Access
 

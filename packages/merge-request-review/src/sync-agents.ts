@@ -19,6 +19,7 @@ export interface SyncMergeRequestReviewAgentsResult {
   compatibility_removed: string[];
   compatibility_errors: string[];
   count: number;
+  skipped?: 'codex_home_missing';
 }
 
 interface AgentFile {
@@ -39,8 +40,31 @@ interface LockFile {
 export function syncMergeRequestReviewAgents(options: { packageVersion: string; env?: NodeJS.ProcessEnv }): SyncMergeRequestReviewAgentsResult {
   const env = options.env ?? process.env;
   const sourceDir = resolveSourceAgentsDir(env);
-  const targetDir = path.join(env.MERGE_REQUEST_REVIEW_CODEX_HOME || path.join(homeDir(env), '.codex'), 'agents');
+  const explicitCodexHome = env.MERGE_REQUEST_REVIEW_CODEX_HOME || env.CODEX_HOME;
+  const codexHome = explicitCodexHome || path.join(homeDir(env), '.codex');
+  const targetDir = path.join(codexHome, 'agents');
   const compatibilityDir = path.join(env.MERGE_REQUEST_REVIEW_SHARED_AGENTS_HOME || path.join(homeDir(env), '.agents'), 'agents');
+
+  // Codex is the only consumer of synced TOML agents. Without an explicit home override or an
+  // existing Codex home, the host is another client and sync must not create Codex directories.
+  if (!explicitCodexHome && !existsSync(codexHome)) {
+    return {
+      source_dir: sourceDir,
+      target_dir: targetDir,
+      compatibility_dir: compatibilityDir,
+      synced: [],
+      unchanged: [],
+      removed: [],
+      linked: [],
+      copied: [],
+      compatibility_unchanged: [],
+      compatibility_removed: [],
+      compatibility_errors: [],
+      count: 0,
+      skipped: 'codex_home_missing',
+    };
+  }
+
   const agents = readAgents(sourceDir);
   const previousLock = readLock(targetDir);
   const synced: string[] = [];

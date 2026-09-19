@@ -75,7 +75,7 @@ Codex agent models are routed by role in the canonical TOML definitions:
 
 Skills and plan artifacts use semantic `work_class` and `agent_role` values rather than embedding model versions. No agent is statically pinned above `high` reasoning effort.
 
-The Codex sync target is global only: `~/.codex/agents/`. Project-scoped `.codex/agents/` sync is intentionally not used. For other CLI compatibility, the workflow MCP also creates best-effort links under `~/.agents/agents/`.
+The Codex sync target is global only: `~/.codex/agents/`. Project-scoped `.codex/agents/` sync is intentionally not used. For other CLI compatibility, the workflow MCP also creates best-effort links under `~/.agents/agents/`. Sync is skipped when no Codex home exists and none is configured through `CODEX_HOME` or the package-specific override, so Claude Code-only and Kimi-only installs never get `~/.codex/` or `~/.agents/agents/` created for them.
 
 ## MCP Tools
 

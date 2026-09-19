@@ -39,7 +39,7 @@ Verification:
 Report format:
 ```
 
-Every write agent also receives the no-revert rule, lint/file-boundary constraints, worktree path, and required report shape.
+Every write agent also receives the no-revert rule, lint/file-boundary constraints, worktree path, and required report shape. When the host creates the worktree at launch (for example Claude Code agent `isolation: worktree`), use that native isolation instead of a prepared path and integrate from the worktree/branch the worker reports.
 
 ## Merge Gate
 

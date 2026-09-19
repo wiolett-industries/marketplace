@@ -1,0 +1,15 @@
+{
+  "file_name": "sb03exgr_claude_code_compat",
+  "edges": [
+    {
+      "from_id": "sb03exgr",
+      "to_id": "cyeiuloe",
+      "relation": "same_workflow",
+      "weight": 0.82,
+      "reason": "Both define host-specific workflow hook contracts and regression verification for agent-marketplace-next.",
+      "source": "auto",
+      "created_at": 1789838182308,
+      "updated_at": 1789838182308
+    }
+  ]
+}
