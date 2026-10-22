@@ -561,6 +561,18 @@ async function runMcp() {
   });
   const recap = await client.callTool({ name: 'memory_recap', arguments: { limit: 3 } });
   const inspect = await client.callTool({ name: 'memory_inspect', arguments: { view: 'all' } });
+  // Read results expose ids as `id`; callers that pass `id` instead of
+  // `memory_id` must not fail input validation.
+  const canonicalId = JSON.parse(canonicalWrite.content[0].text).id;
+  const recallByMemoryId = await client.callTool({ name: 'memory_recall', arguments: { memory_id: canonicalId } });
+  const recallByIdAlias = await client.callTool({ name: 'memory_recall', arguments: { id: canonicalId } });
+  const recallWithoutId = await client.callTool({ name: 'memory_recall', arguments: {} });
+  const graphByIdAlias = await client.callTool({ name: 'memory_graph', arguments: { id: canonicalId, view: 'neighbors' } });
+  const inspectByIdAlias = await client.callTool({ name: 'memory_inspect', arguments: { view: 'memory', id: canonicalId } });
+  const updateByIdAlias = await client.callTool({
+    name: 'memory_update',
+    arguments: { id: canonicalId, content: 'Canonical smoke memory updated through the id alias', summary: 'Canonical smoke memory' },
+  });
   await transport.close();
 
   return {
@@ -591,6 +603,13 @@ async function runMcp() {
     query,
     recap,
     inspect,
+    canonicalId,
+    recallByMemoryId,
+    recallByIdAlias,
+    recallWithoutId,
+    graphByIdAlias,
+    inspectByIdAlias,
+    updateByIdAlias,
   };
 }
 

@@ -117,6 +117,29 @@ describe('MCP launcher smoke test', () => {
     expect(result.globalLite.content[0].text).not.toContain('Smoke global preference');
   }, 30000);
 
+  test('memory id tools accept the id alias instead of failing validation', async () => {
+    const result = runHarness('mcp');
+    const memoryRecall = result.toolSchemas.find((tool) => tool.name === 'memory_recall');
+    expect(memoryRecall.inputSchema.properties).toEqual(expect.objectContaining({ memory_id: expect.any(Object), id: expect.any(Object) }));
+    expect(memoryRecall.inputSchema.required ?? []).not.toContain('memory_id');
+    expect(memoryRecall.description.slice(0, 80)).toContain('memory_id (alias: id)');
+
+    expect(result.recallByMemoryId.isError).toBeFalsy();
+    expect(result.recallByIdAlias.isError).toBeFalsy();
+    expect(result.recallByIdAlias.content[0].text).toBe(result.recallByMemoryId.content[0].text);
+    expect(result.recallByIdAlias.content[0].text).toContain('Canonical smoke memory');
+
+    expect(result.recallWithoutId.isError).toBe(true);
+    expect(result.recallWithoutId.content[0].text).toContain('memory_id is required (alias: id)');
+    expect(result.recallWithoutId.content[0].text).not.toContain('Input validation error');
+
+    expect(result.graphByIdAlias.isError).toBeFalsy();
+    expect(result.inspectByIdAlias.isError).toBeFalsy();
+    expect(result.inspectByIdAlias.content[0].text).toContain(result.canonicalId);
+    expect(result.updateByIdAlias.isError).toBeFalsy();
+    expect(result.updateByIdAlias.content[0].text).not.toContain('Input validation error');
+  }, 30000);
+
   test('project reads can target a workspace root when MCP cwd differs', async () => {
     const result = runHarness('mcp-workspace-root');
     const wrongCwdList = JSON.parse(result.wrongCwdList.content[0].text);
