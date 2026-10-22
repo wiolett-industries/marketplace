@@ -40,6 +40,20 @@ function missingMemoryError(id: string): Error {
   return new Error(`Memory "${id}" does not exist.`);
 }
 
+// Read results expose memory ids as `id`, so callers routinely pass `id` where
+// a tool expects `memory_id`. Accept both spellings instead of failing input
+// validation; `memory_id` stays canonical and wins when both are present.
+const memoryIdSchema = z.string().min(1).optional().describe('Memory ID from query, recap, list, or an explicit reference. Alias: id.');
+const memoryIdAliasSchema = z.string().min(1).optional().describe('Alias for memory_id.');
+
+function resolveMemoryId(memory_id: string | undefined, id: string | undefined): string {
+  const resolved = memory_id ?? id;
+  if (!resolved) {
+    throw new Error('memory_id is required (alias: id). Find it with memory_query, memory_recap, or memory_list first.');
+  }
+  return resolved;
+}
+
 const PROJECT_MEMORY_GIT_CONTRACT = 'For project scope, when the configured project-memory root is inside the repository, commit canonical memories, index, embeddings, graph, and maintenance changes under that root; never ignore the root wholesale. Only memory.db* within that root is disposable SQLite cache.';
 
 function mutationDescription(description: string): string {
@@ -106,16 +120,18 @@ function registerCanonicalTools(server: McpServer): void {
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
-        memory_id: z.string().min(1),
+        memory_id: memoryIdSchema,
+        id: memoryIdAliasSchema,
         content: z.string().min(1),
         tags: z.array(z.string()).optional(),
         summary: z.string().optional(),
       }),
     },
-    async ({ scope, workspace_root, memory_id, content, tags, summary }) => withProjectRootAsync(workspace_root, async () => {
+    async ({ scope, workspace_root, memory_id, id, content, tags, summary }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
+      const resolvedId = resolveMemoryId(memory_id, id);
       ensureMemoryReady(resolvedScope);
-      return asTextResult(await handleUpdate({ scope: resolvedScope, memory_id, content, tags, summary }));
+      return asTextResult(await handleUpdate({ scope: resolvedScope, memory_id: resolvedId, content, tags, summary }));
     })
   );
 
@@ -123,23 +139,25 @@ function registerCanonicalTools(server: McpServer): void {
     'memory_recall',
     {
       title: 'Recall Known Memory',
-      description: 'Return compiled context for one known memory and its valuable relations. Requires memory_id from a prior query, recap, list, or explicit reference; do not use for an initial semantic question or broad startup recall.',
+      description: 'Recall one known memory by memory_id (alias: id) with compiled context and valuable relations. Requires memory_id from a prior query, recap, list, or explicit reference; do not use for an initial semantic question or broad startup recall.',
       annotations: localReadOnlyAnnotations,
       inputSchema: z.object({
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
-        memory_id: z.string().min(1),
+        memory_id: memoryIdSchema,
+        id: memoryIdAliasSchema,
         detail: detailSchema,
         max_depth: z.number().int().min(1).max(4).optional(),
         include_sources: z.boolean().optional(),
       }),
     },
-    async ({ scope, workspace_root, memory_id, detail, max_depth, include_sources }) => withProjectRootAsync(workspace_root, async () => {
+    async ({ scope, workspace_root, memory_id, id, detail, max_depth, include_sources }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
+      const resolvedId = resolveMemoryId(memory_id, id);
       if (!ensureMemoryReadable(resolvedScope)) {
         return asTextResult(null);
       }
-      return asTextResult(await handleRecall({ scope: resolvedScope, memory_id, detail, max_depth, include_sources }));
+      return asTextResult(await handleRecall({ scope: resolvedScope, memory_id: resolvedId, detail, max_depth, include_sources }));
     })
   );
 
@@ -268,16 +286,17 @@ function registerCanonicalTools(server: McpServer): void {
         scope: scopeSchema.describe('Defaults to project.'),
         workspace_root: workspaceRootSchema,
         view: z.enum(['memory', 'index', 'graph', 'health', 'all']).optional(),
-        memory_id: z.string().optional(),
+        memory_id: z.string().optional().describe('Optional memory ID to narrow the view. Alias: id.'),
+        id: z.string().optional().describe('Alias for memory_id.'),
         include_embedding: z.boolean().optional(),
       }),
     },
-    async ({ scope, workspace_root, view, memory_id, include_embedding }) => withProjectRootAsync(workspace_root, async () => {
+    async ({ scope, workspace_root, view, memory_id, id, include_embedding }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
       if (!ensureMemoryReadable(resolvedScope)) {
         return asTextResult(emptyInspectResult(view));
       }
-      return asTextResult(handleInspect({ scope: resolvedScope, view, memory_id, include_embedding }));
+      return asTextResult(handleInspect({ scope: resolvedScope, view, memory_id: memory_id || id || undefined, include_embedding }));
     })
   );
 
@@ -290,16 +309,13 @@ function registerCanonicalTools(server: McpServer): void {
       inputSchema: z.object({
         scope: scopeSchema,
         workspace_root: workspaceRootSchema,
-        memory_id: z.string().min(1).optional(),
-        id: z.string().min(1).optional(),
+        memory_id: memoryIdSchema,
+        id: memoryIdAliasSchema,
       }),
     },
     async ({ scope, workspace_root, memory_id, id }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
-      const resolvedId = memory_id ?? id;
-      if (!resolvedId) {
-        throw new Error('memory_id is required');
-      }
+      const resolvedId = resolveMemoryId(memory_id, id);
       ensureMemoryReady(resolvedScope);
       return asTextResult(handleDelete({ id: resolvedId, scope: resolvedScope }));
     })
@@ -358,7 +374,8 @@ function registerCanonicalTools(server: McpServer): void {
       inputSchema: z.object({
         scope: scopeSchema,
         workspace_root: workspaceRootSchema,
-        memory_id: z.string().min(1),
+        memory_id: memoryIdSchema,
+        id: memoryIdAliasSchema,
         view: z.enum(['neighbors', 'subgraph']),
         depth: z.number().int().min(1).max(4).optional(),
         direction: directionEnum.optional(),
@@ -368,12 +385,13 @@ function registerCanonicalTools(server: McpServer): void {
         max_nodes: z.number().int().min(1).max(200).optional(),
       }),
     },
-    async ({ scope, workspace_root, memory_id, view, depth, direction, relations, min_weight, limit, max_nodes }) => withProjectRootAsync(workspace_root, async () => {
+    async ({ scope, workspace_root, memory_id, id, view, depth, direction, relations, min_weight, limit, max_nodes }) => withProjectRootAsync(workspace_root, async () => {
       const resolvedScope = scope ?? 'project';
+      const resolvedId = resolveMemoryId(memory_id, id);
       if (!ensureMemoryReadable(resolvedScope)) {
-        throw missingMemoryError(memory_id);
+        throw missingMemoryError(resolvedId);
       }
-      return asTextResult(handleGraphView({ scope: resolvedScope, memory_id, view, depth, direction, relations, min_weight, limit, max_nodes }));
+      return asTextResult(handleGraphView({ scope: resolvedScope, memory_id: resolvedId, view, depth, direction, relations, min_weight, limit, max_nodes }));
     })
   );
 }

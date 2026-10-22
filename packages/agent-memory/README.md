@@ -134,7 +134,7 @@ Compatibility aliases remain available until the bundled skills move to the new 
 
 Normal reads should use:
 
-- `memory_recall` for one compiled known-memory context; it requires a non-empty `memory_id` obtained from query/list/recap output or an explicit user reference
+- `memory_recall` for one compiled known-memory context; it requires a non-empty `memory_id` (alias `id`, also accepted by `memory_update`, `memory_graph`, `memory_inspect`, and `memory_delete`) obtained from query/list/recap output or an explicit user reference
 - `memory_query` for a query-aware answer synthesized from several ranked search results
 - `memory_recap` for broad task startup or compaction recovery across several current memories
 - `memory_list({ index_only: true })` for lightweight index browsing; omit `index_only` to include deep memories as well
